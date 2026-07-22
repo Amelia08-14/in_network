@@ -1,0 +1,508 @@
+// IN NETWORK — Schéma de données (MVP V1)
+// Adapté du CDC Technique §4 pour MySQL (XAMPP en local, VPS en production)
+// Différences vs. CDC original (pensé pour PostgreSQL) :
+//  - String[] non supporté par Prisma sur MySQL -> remplacé par Json
+//  - Account/Session/VerificationToken (NextAuth) remplacés par RefreshToken (auth JWT maison)
+//  - Champs de vérification email / reset password ajoutés directement sur User
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MEMBER
+}
+
+enum MemberType {
+  FREELANCE
+  STARTUP
+  PME
+  DIASPORA
+  AUTRE
+}
+
+enum SpaceType {
+  DESK
+  PRIVATE_OFFICE
+  MEETING_ROOM
+}
+
+enum PlanBillingCycle {
+  DAY_PASS
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PENDING_PAYMENT
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentRelatedType {
+  SUBSCRIPTION
+  BOOKING
+  SERVICE_REQUEST
+}
+
+enum ServiceCategory {
+  DOMICILIATION
+  CREATION_ENTREPRISE
+  COMPTABILITE
+  JURIDIQUE
+  MARKETING
+  AUTRE
+}
+
+enum ServiceRequestStatus {
+  NEW
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum TagCategory {
+  SKILL
+  SECTOR
+}
+
+enum TagRelationType {
+  OFFER
+  NEED
+}
+
+enum SuggestionStatus {
+  NEW
+  VIEWED
+  CONTACTED
+  DISMISSED
+}
+
+enum ConnectionRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum EventType {
+  CONFERENCE
+  ATELIER
+  NETWORKING
+  MASTERCLASS
+}
+
+enum EventRegistrationStatus {
+  REGISTERED
+  ATTENDED
+  CANCELLED
+}
+
+// ============================================
+// IDENTITÉ
+// ============================================
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  emailVerified      DateTime?
+  emailVerifyToken   String?
+  emailVerifyExpires DateTime?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  passwordHash       String
+  phone              String?
+  role               Role      @default(MEMBER)
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  profile                     MemberProfile?
+  expertProfile                ExpertProfile?
+  subscriptions                Subscription[]
+  bookings                     Booking[]
+  payments                     Payment[]
+  serviceRequests               ServiceRequest[]
+  eventRegistrations            EventRegistration[]
+  notifications                Notification[]
+  refreshTokens                 RefreshToken[]
+  sentConnectionRequests        ConnectionRequest[] @relation("SentRequests")
+  receivedConnectionRequests     ConnectionRequest[] @relation("ReceivedRequests")
+  suggestionsFor                 ConnectionSuggestion[] @relation("SuggestionOwner")
+  suggestionsAs                   ConnectionSuggestion[] @relation("SuggestedMember")
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model MemberProfile {
+  id           String     @id @default(cuid())
+  userId       String     @unique
+  firstName    String
+  lastName     String
+  memberType   MemberType @default(FREELANCE)
+  companyName  String?
+  jobTitle     String?
+  bio          String?    @db.Text
+  avatarUrl    String?
+  website      String?
+  linkedinUrl  String?
+  isPublic     Boolean    @default(true)
+  siteId       String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site Site         @relation(fields: [siteId], references: [id])
+  tags ProfileTag[]
+
+  @@index([memberType])
+  @@index([siteId])
+  @@map("member_profiles")
+}
+
+model ExpertProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  expertiseArea   String
+  servicesOffered Json // string[] (MySQL: pas de scalar list natif)
+  hourlyRate      Decimal? @db.Decimal(10, 2)
+  isVerified      Boolean  @default(false)
+  isPublic        Boolean  @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("expert_profiles")
+}
+
+// ============================================
+// LIEU & RESSOURCES
+// ============================================
+
+model Site {
+  id        String   @id @default(cuid())
+  name      String
+  city      String
+  address   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  memberProfiles MemberProfile[]
+  spaces         SpaceResource[]
+  events         Event[]
+
+  @@map("sites")
+}
+
+model SpaceResource {
+  id          String    @id @default(cuid())
+  siteId      String
+  type        SpaceType
+  name        String
+  capacity    Int       @default(1)
+  hourlyRate  Decimal?  @db.Decimal(10, 2)
+  dailyRate   Decimal?  @db.Decimal(10, 2)
+  monthlyRate Decimal?  @db.Decimal(10, 2)
+  photos      Json? // string[] (MySQL: pas de scalar list natif)
+  isActive    Boolean   @default(true)
+
+  site     Site      @relation(fields: [siteId], references: [id])
+  bookings Booking[]
+
+  @@index([siteId, type])
+  @@map("space_resources")
+}
+
+// ============================================
+// ABONNEMENTS & RÉSERVATIONS
+// ============================================
+
+model MembershipPlan {
+  id                   String            @id @default(cuid())
+  name                 String
+  billingCycle         PlanBillingCycle
+  price                Decimal           @db.Decimal(10, 2)
+  currency             String            @default("DZD")
+  includedMeetingHours Int               @default(0)
+  features             Json // liste de features affichées
+  isActive             Boolean           @default(true)
+
+  subscriptions Subscription[]
+
+  @@map("membership_plans")
+}
+
+model Subscription {
+  id         String             @id @default(cuid())
+  userId     String
+  planId     String
+  status     SubscriptionStatus @default(PENDING_PAYMENT)
+  startDate  DateTime
+  endDate    DateTime
+  autoRenew  Boolean            @default(false)
+  createdAt  DateTime           @default(now())
+
+  user    User           @relation(fields: [userId], references: [id])
+  plan    MembershipPlan @relation(fields: [planId], references: [id])
+  payment Payment?
+
+  @@index([userId, status])
+  @@map("subscriptions")
+}
+
+model Booking {
+  id        String        @id @default(cuid())
+  userId    String
+  spaceId   String
+  startAt   DateTime
+  endAt     DateTime
+  status    BookingStatus @default(PENDING)
+  price     Decimal       @db.Decimal(10, 2)
+  createdAt DateTime      @default(now())
+
+  user    User          @relation(fields: [userId], references: [id])
+  space   SpaceResource @relation(fields: [spaceId], references: [id])
+  payment Payment?
+
+  @@index([spaceId, startAt, endAt])
+  @@index([userId])
+  @@map("bookings")
+}
+
+// ============================================
+// PAIEMENTS
+// ============================================
+
+model Payment {
+  id               String             @id @default(cuid())
+  userId           String
+  relatedType      PaymentRelatedType
+  subscriptionId   String?            @unique
+  bookingId        String?            @unique
+  serviceRequestId String?            @unique
+  amount           Decimal            @db.Decimal(10, 2)
+  currency         String             @default("DZD")
+  method           PaymentMethod
+  status           PaymentStatus      @default(PENDING)
+  providerRef      String?
+  invoiceUrl       String?
+  paidAt           DateTime?
+  createdAt        DateTime           @default(now())
+
+  user           User            @relation(fields: [userId], references: [id])
+  subscription   Subscription?   @relation(fields: [subscriptionId], references: [id])
+  booking        Booking?        @relation(fields: [bookingId], references: [id])
+  serviceRequest ServiceRequest? @relation(fields: [serviceRequestId], references: [id])
+
+  @@index([status])
+  @@map("payments")
+}
+
+// ============================================
+// SERVICES ENTREPRENEURIAUX
+// ============================================
+
+model ServiceCatalogItem {
+  id          String          @id @default(cuid())
+  title       String
+  slug        String          @unique
+  category    ServiceCategory
+  description String          @db.Text
+  priceFrom   Decimal?        @db.Decimal(10, 2)
+  isActive    Boolean         @default(true)
+
+  requests ServiceRequest[]
+
+  @@map("service_catalog_items")
+}
+
+model ServiceRequest {
+  id              String               @id @default(cuid())
+  userId          String
+  serviceId       String
+  status          ServiceRequestStatus @default(NEW)
+  notes           String?              @db.Text
+  assignedAdminId String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  user    User               @relation(fields: [userId], references: [id])
+  service ServiceCatalogItem @relation(fields: [serviceId], references: [id])
+  payment Payment?
+
+  @@index([status])
+  @@map("service_requests")
+}
+
+// ============================================
+// MISE EN RELATION (MATCHING V1)
+// ============================================
+
+model Tag {
+  id       String      @id @default(cuid())
+  label    String      @unique
+  category TagCategory
+
+  profileTags ProfileTag[]
+
+  @@map("tags")
+}
+
+model ProfileTag {
+  id        String          @id @default(cuid())
+  profileId String
+  tagId     String
+  relation  TagRelationType
+
+  profile MemberProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  tag     Tag           @relation(fields: [tagId], references: [id])
+
+  @@unique([profileId, tagId, relation])
+  @@map("profile_tags")
+}
+
+model ConnectionSuggestion {
+  id              String           @id @default(cuid())
+  userId          String
+  suggestedUserId String
+  score           Int
+  reason          Json // ex: { type: "skill_match", detail: "Design <-> Développement" }
+  status          SuggestionStatus @default(NEW)
+  generatedAt     DateTime         @default(now())
+
+  user          User @relation("SuggestionOwner", fields: [userId], references: [id])
+  suggestedUser User @relation("SuggestedMember", fields: [suggestedUserId], references: [id])
+
+  @@unique([userId, suggestedUserId])
+  @@index([userId, status])
+  @@map("connection_suggestions")
+}
+
+model ConnectionRequest {
+  id         String                  @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  message    String                  @db.Text
+  status     ConnectionRequestStatus @default(PENDING)
+  createdAt  DateTime                @default(now())
+
+  fromUser User @relation("SentRequests", fields: [fromUserId], references: [id])
+  toUser   User @relation("ReceivedRequests", fields: [toUserId], references: [id])
+
+  @@index([toUserId, status])
+  @@map("connection_requests")
+}
+
+// ============================================
+// ÉVÉNEMENTS
+// ============================================
+
+model Event {
+  id          String    @id @default(cuid())
+  siteId      String
+  title       String
+  slug        String    @unique
+  description String    @db.Text
+  type        EventType
+  startAt     DateTime
+  endAt       DateTime
+  capacity    Int
+  coverImage  String?
+  isPublished Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  site          Site                 @relation(fields: [siteId], references: [id])
+  registrations EventRegistration[]
+
+  @@index([startAt])
+  @@map("events")
+}
+
+model EventRegistration {
+  id        String                  @id @default(cuid())
+  eventId   String
+  userId    String
+  status    EventRegistrationStatus @default(REGISTERED)
+  createdAt DateTime                @default(now())
+
+  event Event @relation(fields: [eventId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
+  @@map("event_registrations")
+}
+
+// ============================================
+// CONTENU & NOTIFICATIONS
+// ============================================
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  authorName  String
+  authorRole  String?
+  content     String   @db.Text
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("testimonials")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String // "booking_confirmed", "new_suggestion", "connection_request", ...
+  title     String
+  body      String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}

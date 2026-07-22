@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-body text-ink-600 bg-white antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading text-ink-900;
+    letter-spacing: -0.02em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .section-padding {
+    @apply py-14 md:py-24;
+  }
+
+  /* Eyebrow corporate — petit label capitale, filet fin devant. */
+  .eyebrow {
+    @apply inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-ink-500;
+  }
+  .eyebrow::before {
+    content: '';
+    @apply h-px w-6 bg-brand-orange;
+  }
+
+  /* Variante de l'eyebrow pour les sections sombres (bg-ink-900). */
+  .eyebrow-light {
+    @apply inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/60;
+  }
+  .eyebrow-light::before {
+    content: '';
+    @apply h-px w-6 bg-brand-orange;
+  }
+
+  /* Alterne le fond des sections sans jamais toucher au blanc pur ni au gris
+     générique — reste dans l'échelle ink pour une cohérence de teinte. */
+  .section-tint {
+    @apply bg-ink-900/[0.025];
+  }
+}
