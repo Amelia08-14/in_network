@@ -5,20 +5,20 @@ import { cn } from '@/lib/utils';
 // Utilisé à deux endroits seulement (Hero + bandeau CTA sombre) — un signature,
 // pas une texture répétée partout.
 const NODES = [
-  { x: 40, y: 210, r: 3.5 },
-  { x: 96, y: 96, r: 3 },
-  { x: 88, y: 320, r: 3 },
-  { x: 190, y: 40, r: 3 },
+  { x: 40, y: 210, r: 3.5, hub: false },
+  { x: 96, y: 96, r: 3, hub: false },
+  { x: 88, y: 320, r: 3, hub: false },
+  { x: 190, y: 40, r: 3, hub: false },
   { x: 210, y: 190, r: 6, hub: true },
-  { x: 200, y: 300, r: 3 },
-  { x: 240, y: 390, r: 3.5 },
-  { x: 330, y: 100, r: 3 },
-  { x: 350, y: 210, r: 3 },
+  { x: 200, y: 300, r: 3, hub: false },
+  { x: 240, y: 390, r: 3.5, hub: false },
+  { x: 330, y: 100, r: 3, hub: false },
+  { x: 350, y: 210, r: 3, hub: false },
   { x: 400, y: 300, r: 5, hub: true },
-  { x: 470, y: 240, r: 3 },
-  { x: 460, y: 350, r: 3 },
-  { x: 500, y: 130, r: 3 },
-  { x: 560, y: 190, r: 4 },
+  { x: 470, y: 240, r: 3, hub: false },
+  { x: 460, y: 350, r: 3, hub: false },
+  { x: 500, y: 130, r: 3, hub: false },
+  { x: 560, y: 190, r: 4, hub: false },
 ] as const;
 
 const EDGES: Array<[number, number]> = [
