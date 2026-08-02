@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { api } from '@/lib/api';
+import { api } from '@/lib/admin-api';
 import type { ApiListResponse } from '@/types';
 
 interface AdminMember {

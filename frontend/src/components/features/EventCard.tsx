@@ -1,7 +1,8 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { CalendarDays, MapPin, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge, EVENT_TYPE_ACCENT } from '@/components/ui/badge';
+import { Badge, EVENT_TYPE_ACCENT, EventOriginBadge } from '@/components/ui/badge';
 import { NetworkMotif } from '@/components/ui/network-motif';
 import type { EventItem } from '@/types';
 
@@ -20,18 +21,34 @@ export function EventCard({ event }: { event: EventItem }) {
     <Link href={`/evenements/${event.slug}`}>
       <Card accent={EVENT_TYPE_ACCENT[event.type] ?? 'none'} className="h-full overflow-hidden">
         <div className="relative flex h-32 items-center justify-center overflow-hidden bg-ink-900 text-white">
-          <NetworkMotif tone="white" className="absolute inset-0 h-full w-full opacity-70" />
-          <CalendarDays className="relative h-8 w-8 opacity-90" />
+          {event.coverImage ? (
+            <Image src={event.coverImage} alt="" fill sizes="400px" className="object-cover" />
+          ) : event.videoUrl ? (
+            <video
+              src={event.videoUrl}
+              muted
+              loop
+              autoPlay
+              playsInline
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            <>
+              <NetworkMotif tone="white" className="absolute inset-0 h-full w-full opacity-70" />
+              <CalendarDays className="relative h-8 w-8 opacity-90" />
+            </>
+          )}
         </div>
         <CardContent className="flex flex-col gap-2 pl-6">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <EventOriginBadge origin={event.origin} />
             <Badge variant="neutral">{TYPE_LABEL[event.type] ?? event.type}</Badge>
             {isPast && <Badge variant="neutral">Passé</Badge>}
             {!isPast && isFull && <Badge variant="startup">Complet</Badge>}
           </div>
           <h3 className="font-heading font-bold text-ink-900">{event.title}</h3>
           <p className="flex items-center gap-1.5 text-sm text-ink-500">
-            <MapPin className="h-3.5 w-3.5" />
+            <CalendarDays className="h-3.5 w-3.5" />
             {new Date(event.startAt).toLocaleDateString('fr-FR', {
               day: 'numeric',
               month: 'long',
@@ -39,7 +56,13 @@ export function EventCard({ event }: { event: EventItem }) {
               minute: '2-digit',
             })}
           </p>
-          {event._count && (
+          {event.location && (
+            <p className="flex items-center gap-1.5 text-sm text-ink-500">
+              <MapPin className="h-3.5 w-3.5" />
+              {event.location}
+            </p>
+          )}
+          {!isPast && event._count && (
             <p className="flex items-center gap-1.5 text-xs text-ink-500">
               <Users className="h-3.5 w-3.5" />
               {event._count.registrations}/{event.capacity} inscrits

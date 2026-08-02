@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation';
-import { CalendarDays, Users } from 'lucide-react';
+import Image from 'next/image';
+import { CalendarDays, MapPin, Users } from 'lucide-react';
 import { Container } from '@/components/ui/container';
-import { Badge } from '@/components/ui/badge';
+import { Badge, EventOriginBadge } from '@/components/ui/badge';
+import { ImageGallery } from '@/components/features/gallery/ImageGallery';
 import { serverGet } from '@/lib/server-api';
 import type { EventItem } from '@/types';
 import { EventRegisterButton } from './register-button';
@@ -12,11 +14,29 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
   const event = await serverGet<EventItem | null>(`/api/events/${params.slug}`, 900, null);
   if (!event) notFound();
 
+  const isPast = new Date(event.endAt) < new Date();
   const isFull = event._count ? event._count.registrations >= event.capacity : false;
 
   return (
     <Container className="section-padding max-w-3xl">
-      <Badge variant="neutral">{event.type}</Badge>
+      {event.videoUrl ? (
+        <div className="relative mb-8 aspect-[16/9] overflow-hidden rounded-card bg-ink-900">
+          <video src={event.videoUrl} controls playsInline className="h-full w-full object-cover">
+            Ton navigateur ne prend pas en charge la lecture vidéo.
+          </video>
+        </div>
+      ) : (
+        event.coverImage && (
+          <div className="relative mb-8 aspect-[16/9] overflow-hidden rounded-card bg-ink-900">
+            <Image src={event.coverImage} alt="" fill sizes="768px" className="object-cover" priority />
+          </div>
+        )
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <EventOriginBadge origin={event.origin} />
+        <Badge variant="neutral">{event.type}</Badge>
+      </div>
       <h1 className="mt-3 font-heading text-3xl font-bold text-ink-900">{event.title}</h1>
 
       <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-ink-500">
@@ -30,7 +50,13 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
             minute: '2-digit',
           })}
         </span>
-        {event._count && (
+        {event.location && (
+          <span className="flex items-center gap-1.5">
+            <MapPin className="h-4 w-4" />
+            {event.location}
+          </span>
+        )}
+        {!isPast && event._count && (
           <span className="flex items-center gap-1.5">
             <Users className="h-4 w-4" />
             {event._count.registrations}/{event.capacity} inscrits
@@ -38,11 +64,38 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
         )}
       </div>
 
+      {event.origin === 'CO_ORGANIZED' && event.coOrganizerName && (
+        <div className="mt-6 flex items-center gap-3 rounded-card border border-ink-900/[0.08] bg-ink-900/[0.03] p-4">
+          {event.coOrganizerLogoUrl && (
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white">
+              <Image src={event.coOrganizerLogoUrl} alt="" fill sizes="40px" className="object-contain" />
+            </div>
+          )}
+          <p className="text-sm text-ink-700">
+            Événement co-organisé avec <span className="font-semibold">{event.coOrganizerName}</span>
+          </p>
+        </div>
+      )}
+      {event.origin === 'EXTERNAL' && (
+        <div className="mt-6 rounded-card border border-ink-900/[0.08] bg-ink-900/[0.03] p-4">
+          <p className="text-sm text-ink-700">Événement externe relayé par IN NETWORK.</p>
+        </div>
+      )}
+
       <p className="mt-6 whitespace-pre-line text-ink-600">{event.description}</p>
 
-      <div className="mt-8">
-        <EventRegisterButton eventId={event.id} isFull={isFull} />
-      </div>
+      {event.gallery && event.gallery.length > 1 && (
+        <div className="mt-8">
+          <h2 className="mb-3 font-heading text-lg font-bold text-ink-900">Galerie photo</h2>
+          <ImageGallery images={event.gallery} />
+        </div>
+      )}
+
+      {!isPast && (
+        <div className="mt-8">
+          <EventRegisterButton eventId={event.id} isFull={isFull} />
+        </div>
+      )}
     </Container>
   );
 }

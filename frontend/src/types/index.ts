@@ -37,17 +37,39 @@ export interface MembershipPlan {
   features: string[];
 }
 
+export type EventOrigin = 'IN_EVENT' | 'EXTERNAL' | 'CO_ORGANIZED';
+export type EventStatus = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'ARCHIVED';
+
+export interface GalleryImageItem {
+  id: string;
+  url: string;
+  altText: string | null;
+  order: number;
+}
+
 export interface EventItem {
   id: string;
   title: string;
   slug: string;
   description: string;
   type: 'CONFERENCE' | 'ATELIER' | 'NETWORKING' | 'MASTERCLASS';
+  origin: EventOrigin;
+  status?: EventStatus;
+  location: string | null;
   startAt: string;
   endAt: string;
   capacity: number;
   coverImage: string | null;
+  videoUrl: string | null;
+  coOrganizerName: string | null;
+  coOrganizerLogoUrl: string | null;
+  gallery?: GalleryImageItem[];
   _count?: { registrations: number };
+}
+
+export interface PricingTier {
+  label: string;
+  price: number;
 }
 
 export interface ServiceCatalogItem {
@@ -57,18 +79,53 @@ export interface ServiceCatalogItem {
   category: string;
   description: string;
   priceFrom: string | null;
+  pricingTiers?: PricingTier[] | null;
+}
+
+export interface SpaceResource {
+  id: string;
+  name: string;
+  type: 'DESK' | 'PRIVATE_OFFICE' | 'MEETING_ROOM';
+  capacity: number;
+  monthlyRate: string | null;
+  hourlyRateMember: string | null;
+  halfDayRateMember: string | null;
+  dailyRateMember: string | null;
+  hourlyRateExternal: string | null;
+  halfDayRateExternal: string | null;
+  dailyRateExternal: string | null;
 }
 
 export interface ExpertSummary {
   id: string;
+  displayName: string;
+  photoUrl: string | null;
+  bio?: string | null;
   expertiseArea: string;
   servicesOffered: string[];
   hourlyRate: string | null;
   isVerified: boolean;
-  firstName?: string;
-  lastName?: string;
-  avatarUrl?: string | null;
   companyName?: string | null;
+}
+
+export interface EventMediaItem {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  altText: string | null;
+  eventId: string;
+  eventTitle: string;
+  eventSlug: string;
+  eventOrigin: EventOrigin;
+}
+
+export interface Partner {
+  id: string;
+  name: string;
+  logoUrl: string;
+  sector: string;
+  websiteUrl: string | null;
+  description: string | null;
 }
 
 export interface PaginationMeta {

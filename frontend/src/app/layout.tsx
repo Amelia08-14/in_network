@@ -1,19 +1,20 @@
 import type { Metadata } from 'next';
-import { Manrope, Inter } from 'next/font/google';
+import { Montserrat, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
-// Direction "Corporate épuré & moderne" : Manrope (titres, géométrique et
-// premium) + Inter (corps de texte, lisibilité maximale). Chargées via
-// next/font/google (auto-hébergées, sans requête externe au runtime).
-const manrope = Manrope({
+// Direction "Corporate futuriste" : Montserrat (titres — géométrique,
+// moderne, demandée explicitement par la cliente) + Plus Jakarta Sans
+// (corps de texte, lisibilité). Chargées via next/font/google (auto-
+// hébergées, sans requête externe au runtime).
+const montserrat = Montserrat({
   subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-heading',
   display: 'swap',
 });
 
-const inter = Inter({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
   variable: '--font-body',
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${manrope.variable} ${inter.variable}`}>
+    <html lang="fr" className={`${montserrat.variable} ${plusJakarta.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

@@ -16,6 +16,8 @@ const config: Config = {
           orange: '#D44835', // accent unique (CTA, highlights rares)
           blue: '#1D4ED8', // liens / accent froid corporate
           'violet-dark': '#0F1B2E', // surface sombre & texte titres → navy profond
+          paper: '#F5F0EB', // fond global premium minimaliste — beige chaud clair
+          'paper-deep': '#ECE3D6', // variante plus soutenue pour l'alternance de sections
         },
         // Échelle d'encre navy pour le nouveau système
         ink: {

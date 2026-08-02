@@ -77,4 +77,31 @@ export const api = {
     apiFetch<T>(path, { ...options, method: 'PUT', body }),
   patch: <T>(path: string, body?: unknown, options?: RequestOptions) =>
     apiFetch<T>(path, { ...options, method: 'PATCH', body }),
+  delete: <T>(path: string, options?: RequestOptions) => apiFetch<T>(path, { ...options, method: 'DELETE' }),
 };
+
+// Upload multipart (images admin) — hors apiFetch car le body n'est pas du JSON.
+export async function apiUpload(file: File, category: string): Promise<{ url: string }> {
+  const accessToken = getAccessTokenCookie();
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('category', category);
+
+  const response = await fetch(`${API_URL}/api/uploads`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorBody = (await response.json().catch(() => null)) as ApiErrorBody | null;
+    throw new ApiRequestError(
+      response.status,
+      errorBody?.error.code ?? 'UNKNOWN_ERROR',
+      errorBody?.error.message ?? "Échec de l'envoi du fichier",
+    );
+  }
+  const json = await response.json();
+  return json.data as { url: string };
+}

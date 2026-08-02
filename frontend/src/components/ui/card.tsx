@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 // cartonnée. La couleur encode une vraie catégorie (type de membre, catégorie
 // de service...), voir les maps ACCENT_* dans badge.tsx — ce n'est pas une
 // décoration gratuite.
-const ACCENT_MAP = {
+export const ACCENT_MAP = {
   orange: 'bg-brand-orange',
   blue: 'bg-brand-blue',
   ink: 'bg-ink-700',
@@ -16,6 +16,22 @@ const ACCENT_MAP = {
 
 export type CardAccent = keyof typeof ACCENT_MAP;
 
+// Variante texte de ACCENT_MAP — même mapping catégorie → couleur, ajusté
+// pour rester lisible en petit texte sur fond clair (les teintes "green"/
+// "yellow" du système sont trop claires pour du texte, cf. ratio de contraste).
+export const ACCENT_TEXT_MAP: Record<CardAccent, string> = {
+  orange: 'text-brand-orange',
+  blue: 'text-brand-blue',
+  ink: 'text-ink-700',
+  green: 'text-green-700',
+  yellow: 'text-amber-700',
+  none: 'text-ink-500',
+};
+
+// Architecture "double coque" (coque + noyau imbriqués) — la card n'est
+// jamais posée à plat sur le fond : une coque externe teintée (ring fin,
+// rayon large) enveloppe un noyau blanc au rayon plus serré, comme une pièce
+// de verre montée dans un cadre.
 export function Card({
   className,
   accent = 'none',
@@ -25,15 +41,17 @@ export function Card({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-card bg-white shadow-soft transition-all duration-200 hover:-translate-y-1 hover:rotate-[0.4deg] hover:shadow-soft-lg',
+        'group/card rounded-[1.75rem] bg-ink-900/[0.035] p-1.5 ring-1 ring-ink-900/[0.06] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:bg-ink-900/[0.05] hover:shadow-soft-lg hover:ring-ink-900/10',
         className,
       )}
       {...props}
     >
-      {accent !== 'none' && (
-        <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1', ACCENT_MAP[accent])} />
-      )}
-      {children}
+      <div className="relative h-full overflow-hidden rounded-[1.25rem] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+        {accent !== 'none' && (
+          <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1', ACCENT_MAP[accent])} />
+        )}
+        {children}
+      </div>
     </div>
   );
 }

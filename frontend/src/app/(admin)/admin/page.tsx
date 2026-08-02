@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Users, CreditCard, CalendarCheck, TrendingUp } from 'lucide-react';
 import { StatWidget } from '@/components/features/StatWidget';
-import { api } from '@/lib/api';
+import { api } from '@/lib/admin-api';
 
 interface AdminStats {
   totalMembers: number;

@@ -56,6 +56,7 @@ export const SERVICE_CATEGORY_ACCENT: Record<string, CardAccent> = {
   COMPTABILITE: 'green',
   JURIDIQUE: 'ink',
   MARKETING: 'yellow',
+  SECRETARIAT: 'green',
   AUTRE: 'none',
 };
 
@@ -65,3 +66,21 @@ export const EVENT_TYPE_ACCENT: Record<string, CardAccent> = {
   NETWORKING: 'orange',
   MASTERCLASS: 'ink',
 };
+
+// Catégorie d'organisation de l'événement (distincte du type ci-dessus) —
+// IN EVENT = organisé en interne, Externe = relayé, Co-organisé = partenariat.
+export const EVENT_ORIGIN_LABEL: Record<string, string> = {
+  IN_EVENT: 'IN EVENT',
+  EXTERNAL: 'Externe',
+  CO_ORGANIZED: 'Co-organisé',
+};
+
+export const EVENT_ORIGIN_VARIANT: Record<string, BadgeProps['variant']> = {
+  IN_EVENT: 'startup',
+  EXTERNAL: 'freelance',
+  CO_ORGANIZED: 'expert',
+};
+
+export function EventOriginBadge({ origin }: { origin: string }) {
+  return <Badge variant={EVENT_ORIGIN_VARIANT[origin] ?? 'neutral'}>{EVENT_ORIGIN_LABEL[origin] ?? origin}</Badge>;
+}

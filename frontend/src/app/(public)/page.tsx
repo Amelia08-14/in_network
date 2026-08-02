@@ -9,6 +9,7 @@ import { ServiceCard } from '@/components/features/ServiceCard';
 import { EventCard } from '@/components/features/EventCard';
 import { EmptyState } from '@/components/ui/empty-state';
 import { NetworkMotif } from '@/components/ui/network-motif';
+import { BrandTexture } from '@/components/ui/brand-texture';
 import { Reveal } from '@/components/ui/reveal';
 import { cn } from '@/lib/utils';
 import { serverGet } from '@/lib/server-api';
@@ -26,16 +27,19 @@ const PILLARS = [
     icon: Building2,
     title: "Un lieu, pas qu'un espace",
     description: 'Bureaux, salles de réunion et postes de travail pensés pour la productivité et la rencontre.',
+    featured: true,
   },
   {
     icon: Handshake,
     title: 'Un réseau qui vous met en relation',
     description: 'Un annuaire ciblé et un moteur de suggestions basé sur vos compétences et besoins réels.',
+    featured: false,
   },
   {
     icon: Rocket,
     title: 'Des services pour avancer',
-    description: 'Domiciliation, création d\'entreprise, comptabilité, juridique — un catalogue de services entrepreneuriaux.',
+    description: "Domiciliation, création d'entreprise, comptabilité, juridique — un catalogue entrepreneurial.",
+    featured: false,
   },
 ];
 
@@ -43,7 +47,7 @@ export const revalidate = 3600;
 
 export default async function HomePage() {
   const [members, services, events, testimonials] = await Promise.all([
-    serverGet<MemberProfileSummary[]>('/api/profiles?limit=4', 900, []),
+    serverGet<MemberProfileSummary[]>('/api/profiles?limit=6', 900, []),
     serverGet<ServiceCatalogItem[]>('/api/services', 3600, []),
     serverGet<EventItem[]>('/api/events', 900, []),
     serverGet<Testimonial[]>('/api/testimonials', 3600, []),
@@ -55,14 +59,49 @@ export default async function HomePage() {
 
       <section className="section-padding">
         <Container>
-          <div className="grid gap-10 md:grid-cols-3 md:gap-8">
+          <div className="grid gap-4 sm:grid-cols-3 sm:grid-rows-2">
             {PILLARS.map((pillar, i) => (
-              <Reveal key={pillar.title} delay={i * 90} className="flex flex-col gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-card bg-brand-orange/10 text-brand-orange">
-                  <pillar.icon className="h-5 w-5" strokeWidth={1.75} />
+              <Reveal
+                key={pillar.title}
+                delay={i * 90}
+                className={cn(
+                  'flex flex-col gap-4 rounded-card p-7',
+                  pillar.featured
+                    ? 'sm:col-span-2 sm:row-span-2 bg-ink-900 text-white justify-center'
+                    : 'sm:col-start-3 border border-ink-900/10 bg-white',
+                  !pillar.featured && i === 1 && 'sm:row-start-1',
+                  !pillar.featured && i === 2 && 'sm:row-start-2',
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div
+                    className={cn(
+                      'flex h-12 w-12 items-center justify-center rounded-card',
+                      pillar.featured ? 'bg-brand-orange/20 text-brand-orange' : 'bg-brand-orange/10 text-brand-orange',
+                    )}
+                  >
+                    <pillar.icon className="h-5 w-5" strokeWidth={1.75} />
+                  </div>
+                  <span
+                    className={cn(
+                      'font-heading text-xs font-semibold tracking-[0.2em]',
+                      pillar.featured ? 'text-white/40' : 'text-ink-900/20',
+                    )}
+                  >
+                    0{i + 1}
+                  </span>
                 </div>
-                <h3 className="mt-1 font-heading text-lg font-bold text-ink-900">{pillar.title}</h3>
-                <p className="text-sm leading-relaxed text-ink-500">{pillar.description}</p>
+                <h3
+                  className={cn(
+                    'font-heading font-bold',
+                    pillar.featured ? 'text-2xl text-white' : 'text-lg text-ink-900',
+                  )}
+                >
+                  {pillar.title}
+                </h3>
+                <p className={cn('text-sm leading-relaxed', pillar.featured ? 'max-w-sm text-white/70' : 'text-ink-500')}>
+                  {pillar.description}
+                </p>
               </Reveal>
             ))}
           </div>
@@ -95,9 +134,9 @@ export default async function HomePage() {
               description="Les premiers membres apparaîtront ici dès leur inscription."
             />
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
               {members.map((profile, i) => (
-                <Reveal key={profile.id} delay={i * 70}>
+                <Reveal key={profile.id} delay={i * 60} className="w-[260px] shrink-0 snap-start">
                   <MemberCard profile={profile} />
                 </Reveal>
               ))}
@@ -136,7 +175,6 @@ export default async function HomePage() {
         <section className="section-padding section-tint">
           <Container>
             <Reveal className="mb-10">
-              <span className="eyebrow mb-3">Agenda</span>
               <h2 className="font-heading text-3xl font-bold text-ink-900 md:text-4xl">
                 Prochains <span className="text-brand-orange">événements</span>
               </h2>
@@ -156,6 +194,7 @@ export default async function HomePage() {
         <section className="relative overflow-hidden bg-ink-900">
           <NetworkMotif
             tone="white"
+            variant="sparse"
             className="pointer-events-none absolute -right-20 -top-20 h-[380px] w-[500px] opacity-40"
           />
           <Container className="section-padding relative">
@@ -167,7 +206,7 @@ export default async function HomePage() {
                 <Reveal key={t.id} delay={i * 90}>
                   <figure className="relative h-full rounded-card border border-white/10 bg-white/[0.04] p-7 backdrop-blur">
                     <Quote className="h-6 w-6 text-brand-orange" strokeWidth={2} />
-                    <blockquote className="mt-3 text-lg leading-relaxed text-white/90">
+                    <blockquote className="mt-3 line-clamp-3 text-lg leading-relaxed text-white/90">
                       {t.content}
                     </blockquote>
                     <figcaption className="mt-4 text-sm font-semibold text-white">
@@ -183,8 +222,10 @@ export default async function HomePage() {
       )}
 
       <section className="relative overflow-hidden border-t border-white/[0.06] bg-ink-900 text-white">
+        <BrandTexture />
         <NetworkMotif
           tone="white"
+          variant="default"
           className="pointer-events-none absolute -left-24 -bottom-24 h-[420px] w-[560px] opacity-50"
         />
         <Container className="section-padding relative">

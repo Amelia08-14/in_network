@@ -5,11 +5,30 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    position: relative;
+  }
+
+  /* Texture de marque du groupe (La Maison IN Groupe) en couche globale fixe
+     derrière tout le site — même technique que in-academy.dz : motif
+     background.svg tuilé, soft-light, très discret, sous le contenu. */
+  html::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image: url('/background/background.svg');
+    background-size: 460px 460px;
+    background-repeat: repeat;
+    opacity: 0.5;
+    mix-blend-mode: soft-light;
+    pointer-events: none;
   }
 
   body {
-    @apply font-body text-ink-600 bg-white antialiased;
+    @apply font-body text-ink-600 bg-brand-paper antialiased;
     text-rendering: optimizeLegibility;
+    position: relative;
+    z-index: 1;
   }
 
   h1,
@@ -18,6 +37,11 @@
   h4 {
     @apply font-heading text-ink-900;
     letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -54,8 +78,9 @@
   }
 
   /* Alterne le fond des sections sans jamais toucher au blanc pur ni au gris
-     générique — reste dans l'échelle ink pour une cohérence de teinte. */
+     générique — reste dans la même famille chaude que le fond global
+     (bg-brand-paper) pour ne jamais mélanger teintes froides et chaudes. */
   .section-tint {
-    @apply bg-ink-900/[0.025];
+    @apply bg-brand-paper-deep;
   }
 }

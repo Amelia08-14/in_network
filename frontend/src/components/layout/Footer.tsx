@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Container } from '@/components/ui/container';
 import { Logo } from './Logo';
 import { NetworkMotif } from '@/components/ui/network-motif';
+import { BrandTexture } from '@/components/ui/brand-texture';
 
 const COLUMNS = [
   {
@@ -33,6 +34,7 @@ const COLUMNS = [
 export function Footer() {
   return (
     <footer className="relative overflow-hidden bg-ink-900 text-white/80">
+      <BrandTexture />
       <NetworkMotif
         tone="white"
         className="pointer-events-none absolute -right-16 -top-16 h-[420px] w-[560px] opacity-60"
