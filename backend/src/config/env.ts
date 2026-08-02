@@ -8,9 +8,12 @@ function required(name: string, fallback?: string): string {
   return value;
 }
 
+const port = Number(process.env.PORT ?? 4000);
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
-  port: Number(process.env.PORT ?? 4000),
+  port,
+  publicApiUrl: process.env.PUBLIC_API_URL ?? `http://localhost:${port}`,
   corsOrigin: (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
     .split(',')
     .map((origin) => origin.trim())

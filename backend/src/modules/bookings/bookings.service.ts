@@ -35,7 +35,7 @@ export async function createBooking(userId: string, spaceId: string, startAt: st
       throw ApiError.conflict('Ce créneau est déjà réservé pour cet espace');
     }
 
-    const hourlyRate = space.hourlyRate ? Number(space.hourlyRate) : 0;
+    const hourlyRate = space.hourlyRateMember ? Number(space.hourlyRateMember) : 0;
     const price = hourlyRate * hoursBetween(start, end);
 
     return tx.booking.create({

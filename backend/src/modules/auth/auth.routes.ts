@@ -14,6 +14,9 @@ import {
   loginHandler,
   refreshHandler,
   logoutHandler,
+  adminLoginHandler,
+  adminRefreshHandler,
+  adminLogoutHandler,
   verifyEmailHandler,
   resendVerificationHandler,
   forgotPasswordHandler,
@@ -27,6 +30,11 @@ authRouter.post('/register', authRateLimit, validate({ body: registerSchema }), 
 authRouter.post('/login', authRateLimit, validate({ body: loginSchema }), loginHandler);
 authRouter.post('/refresh', authRateLimit, refreshHandler);
 authRouter.post('/logout', logoutHandler);
+
+// Session admin indépendante (cookie refresh distinct) — cf. auth.controller.ts
+authRouter.post('/admin/login', authRateLimit, validate({ body: loginSchema }), adminLoginHandler);
+authRouter.post('/admin/refresh', authRateLimit, adminRefreshHandler);
+authRouter.post('/admin/logout', adminLogoutHandler);
 authRouter.post('/verify-email', validate({ body: verifyEmailSchema }), verifyEmailHandler);
 authRouter.post('/resend-verification', requireAuth, resendVerificationHandler);
 authRouter.post(

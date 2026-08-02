@@ -5,7 +5,7 @@ import { ok } from '../../utils/apiResponse';
 
 export const plansRouter = Router();
 
-// CDC §1.4 — grille tarifaire non fournie, placeholders dans le seed (dépendance ouverte)
+// CDC §1.4 — grille tarifaire réelle transmise par la cliente (cf. seed.ts)
 plansRouter.get(
   '/',
   asyncHandler(async (_req, res) => {

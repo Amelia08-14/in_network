@@ -82,6 +82,7 @@ enum ServiceCategory {
   COMPTABILITE
   JURIDIQUE
   MARKETING
+  SECRETARIAT
   AUTRE
 }
 
@@ -122,10 +123,43 @@ enum EventType {
   MASTERCLASS
 }
 
+// Catégorie d'organisation de l'événement (distincte du type CONFERENCE/ATELIER/...)
+enum EventOrigin {
+  IN_EVENT // organisé en interne par IN NETWORK
+  EXTERNAL // événement externe relayé sur la plateforme
+  CO_ORGANIZED // co-organisé avec un partenaire
+}
+
+enum EventStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
 enum EventRegistrationStatus {
   REGISTERED
   ATTENDED
   CANCELLED
+}
+
+enum GalleryOwnerType {
+  EVENT
+  SITE
+}
+
+enum GalleryItemType {
+  IMAGE
+  VIDEO
+}
+
+// Cible d'une demande (formulaire "Demander ce service" / "Demander" sur un
+// tarif d'espace ou une formule d'abonnement) — un seul modèle de demande,
+// un seul dashboard admin, quelle que soit la nature du catalogue visé.
+enum InquiryTargetType {
+  SERVICE
+  SPACE
+  PLAN
 }
 
 // ============================================
@@ -133,33 +167,33 @@ enum EventRegistrationStatus {
 // ============================================
 
 model User {
-  id                 String    @id @default(cuid())
-  email              String    @unique
-  emailVerified      DateTime?
-  emailVerifyToken   String?
-  emailVerifyExpires DateTime?
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  emailVerified        DateTime?
+  emailVerifyToken     String?
+  emailVerifyExpires   DateTime?
   passwordResetToken   String?
   passwordResetExpires DateTime?
-  passwordHash       String
-  phone              String?
-  role               Role      @default(MEMBER)
-  isActive           Boolean   @default(true)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  passwordHash         String
+  phone                String?
+  role                 Role      @default(MEMBER)
+  isActive             Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  profile                     MemberProfile?
-  expertProfile                ExpertProfile?
-  subscriptions                Subscription[]
-  bookings                     Booking[]
-  payments                     Payment[]
-  serviceRequests               ServiceRequest[]
-  eventRegistrations            EventRegistration[]
-  notifications                Notification[]
-  refreshTokens                 RefreshToken[]
-  sentConnectionRequests        ConnectionRequest[] @relation("SentRequests")
-  receivedConnectionRequests     ConnectionRequest[] @relation("ReceivedRequests")
-  suggestionsFor                 ConnectionSuggestion[] @relation("SuggestionOwner")
-  suggestionsAs                   ConnectionSuggestion[] @relation("SuggestedMember")
+  profile                    MemberProfile?
+  expertProfile              ExpertProfile?
+  subscriptions              Subscription[]
+  bookings                   Booking[]
+  payments                   Payment[]
+  serviceRequests            ServiceRequest[]
+  eventRegistrations         EventRegistration[]
+  notifications              Notification[]
+  refreshTokens              RefreshToken[]
+  sentConnectionRequests     ConnectionRequest[]    @relation("SentRequests")
+  receivedConnectionRequests ConnectionRequest[]    @relation("ReceivedRequests")
+  suggestionsFor             ConnectionSuggestion[] @relation("SuggestionOwner")
+  suggestionsAs              ConnectionSuggestion[] @relation("SuggestedMember")
 
   @@index([email])
   @@index([role])
@@ -167,12 +201,12 @@ model User {
 }
 
 model RefreshToken {
-  id         String    @id @default(cuid())
-  userId     String
-  tokenHash  String    @unique
-  expiresAt  DateTime
-  revokedAt  DateTime?
-  createdAt  DateTime  @default(now())
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -181,23 +215,23 @@ model RefreshToken {
 }
 
 model MemberProfile {
-  id           String     @id @default(cuid())
-  userId       String     @unique
-  firstName    String
-  lastName     String
-  memberType   MemberType @default(FREELANCE)
-  companyName  String?
-  jobTitle     String?
-  bio          String?    @db.Text
-  avatarUrl    String?
-  website      String?
-  linkedinUrl  String?
-  isPublic     Boolean    @default(true)
-  siteId       String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id          String     @id @default(cuid())
+  userId      String     @unique
+  firstName   String
+  lastName    String
+  memberType  MemberType @default(FREELANCE)
+  companyName String?
+  jobTitle    String?
+  bio         String?    @db.Text
+  avatarUrl   String?
+  website     String?
+  linkedinUrl String?
+  isPublic    Boolean    @default(true)
+  siteId      String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   site Site         @relation(fields: [siteId], references: [id])
   tags ProfileTag[]
 
@@ -208,14 +242,18 @@ model MemberProfile {
 
 model ExpertProfile {
   id              String   @id @default(cuid())
-  userId          String   @unique
+  userId          String?  @unique // optionnel : fiche annuaire sans compte utilisateur
+  displayName     String // nom affiché (fallback quand pas de compte lié)
+  photoUrl        String?
+  bio             String?  @db.Text
   expertiseArea   String
   servicesOffered Json // string[] (MySQL: pas de scalar list natif)
   hourlyRate      Decimal? @db.Decimal(10, 2)
   isVerified      Boolean  @default(false)
   isPublic        Boolean  @default(true)
+  order           Int      @default(0)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("expert_profiles")
 }
@@ -240,19 +278,26 @@ model Site {
 }
 
 model SpaceResource {
-  id          String    @id @default(cuid())
-  siteId      String
-  type        SpaceType
-  name        String
-  capacity    Int       @default(1)
-  hourlyRate  Decimal?  @db.Decimal(10, 2)
-  dailyRate   Decimal?  @db.Decimal(10, 2)
-  monthlyRate Decimal?  @db.Decimal(10, 2)
-  photos      Json? // string[] (MySQL: pas de scalar list natif)
-  isActive    Boolean   @default(true)
+  id                  String    @id @default(cuid())
+  siteId              String
+  type                SpaceType
+  name                String
+  capacity            Int       @default(1)
+  // Bureaux/domiciliation : tarif mensuel unique
+  monthlyRate         Decimal?  @db.Decimal(10, 2)
+  // Salles de réunion : double grille tarifaire (membre IN NETWORK vs. externe)
+  hourlyRateMember    Decimal?  @db.Decimal(10, 2)
+  halfDayRateMember   Decimal?  @db.Decimal(10, 2)
+  dailyRateMember     Decimal?  @db.Decimal(10, 2)
+  hourlyRateExternal  Decimal?  @db.Decimal(10, 2)
+  halfDayRateExternal Decimal?  @db.Decimal(10, 2)
+  dailyRateExternal   Decimal?  @db.Decimal(10, 2)
+  photos              Json? // string[] (MySQL: pas de scalar list natif)
+  isActive            Boolean   @default(true)
 
-  site     Site      @relation(fields: [siteId], references: [id])
+  site     Site             @relation(fields: [siteId], references: [id])
   bookings Booking[]
+  requests ServiceRequest[]
 
   @@index([siteId, type])
   @@map("space_resources")
@@ -263,29 +308,30 @@ model SpaceResource {
 // ============================================
 
 model MembershipPlan {
-  id                   String            @id @default(cuid())
+  id                   String           @id @default(cuid())
   name                 String
   billingCycle         PlanBillingCycle
-  price                Decimal           @db.Decimal(10, 2)
-  currency             String            @default("DZD")
-  includedMeetingHours Int               @default(0)
+  price                Decimal          @db.Decimal(10, 2)
+  currency             String           @default("DZD")
+  includedMeetingHours Int              @default(0)
   features             Json // liste de features affichées
-  isActive             Boolean           @default(true)
+  isActive             Boolean          @default(true)
 
   subscriptions Subscription[]
+  requests      ServiceRequest[]
 
   @@map("membership_plans")
 }
 
 model Subscription {
-  id         String             @id @default(cuid())
-  userId     String
-  planId     String
-  status     SubscriptionStatus @default(PENDING_PAYMENT)
-  startDate  DateTime
-  endDate    DateTime
-  autoRenew  Boolean            @default(false)
-  createdAt  DateTime           @default(now())
+  id        String             @id @default(cuid())
+  userId    String
+  planId    String
+  status    SubscriptionStatus @default(PENDING_PAYMENT)
+  startDate DateTime
+  endDate   DateTime
+  autoRenew Boolean            @default(false)
+  createdAt DateTime           @default(now())
 
   user    User           @relation(fields: [userId], references: [id])
   plan    MembershipPlan @relation(fields: [planId], references: [id])
@@ -348,34 +394,50 @@ model Payment {
 // ============================================
 
 model ServiceCatalogItem {
-  id          String          @id @default(cuid())
-  title       String
-  slug        String          @unique
-  category    ServiceCategory
-  description String          @db.Text
-  priceFrom   Decimal?        @db.Decimal(10, 2)
-  isActive    Boolean         @default(true)
+  id           String          @id @default(cuid())
+  title        String
+  slug         String          @unique
+  category     ServiceCategory
+  description  String          @db.Text
+  priceFrom    Decimal?        @db.Decimal(10, 2)
+  pricingTiers Json? // [{ label: string, price: number }] pour les grilles à paliers
+  isActive     Boolean         @default(true)
 
   requests ServiceRequest[]
 
   @@map("service_catalog_items")
 }
 
+// Demande générique déclenchée par un formulaire "Demander" — catalogue de
+// services entrepreneuriaux, tarif d'espace ou formule d'abonnement. userId
+// est optionnel : un visiteur non-inscrit peut soumettre une demande via ses
+// coordonnées (guest*) ; la contrainte "userId OU guestName+guestEmail" est
+// appliquée au niveau applicatif (zod), pas en DB.
 model ServiceRequest {
   id              String               @id @default(cuid())
-  userId          String
-  serviceId       String
+  userId          String?
+  targetType      InquiryTargetType    @default(SERVICE)
+  serviceId       String?
+  spaceId         String?
+  planId          String?
   status          ServiceRequestStatus @default(NEW)
   notes           String?              @db.Text
+  guestName       String?
+  guestEmail      String?
+  guestPhone      String?
+  guestCompany    String?
   assignedAdminId String?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
-  user    User               @relation(fields: [userId], references: [id])
-  service ServiceCatalogItem @relation(fields: [serviceId], references: [id])
+  user    User?               @relation(fields: [userId], references: [id])
+  service ServiceCatalogItem? @relation(fields: [serviceId], references: [id])
+  space   SpaceResource?      @relation(fields: [spaceId], references: [id])
+  plan    MembershipPlan?     @relation(fields: [planId], references: [id])
   payment Payment?
 
   @@index([status])
+  @@index([targetType])
   @@map("service_requests")
 }
 
@@ -443,24 +505,58 @@ model ConnectionRequest {
 // ============================================
 
 model Event {
-  id          String    @id @default(cuid())
-  siteId      String
-  title       String
-  slug        String    @unique
-  description String    @db.Text
-  type        EventType
-  startAt     DateTime
-  endAt       DateTime
-  capacity    Int
-  coverImage  String?
-  isPublished Boolean   @default(false)
-  createdAt   DateTime  @default(now())
+  id                 String      @id @default(cuid())
+  siteId             String?
+  title              String
+  slug               String      @unique
+  description        String      @db.Text
+  type               EventType
+  origin             EventOrigin @default(IN_EVENT)
+  status             EventStatus @default(DRAFT)
+  location           String? // lieu libre, utile pour les événements externes sans Site rattaché
+  startAt            DateTime
+  endAt              DateTime
+  capacity           Int
+  coverImage         String?
+  videoUrl           String? // clip de récap pour un événement déjà réalisé (bibliothèque vidéo client)
+  coOrganizerName    String?
+  coOrganizerLogoUrl String?
+  createdAt          DateTime    @default(now())
 
-  site          Site                 @relation(fields: [siteId], references: [id])
+  site          Site?               @relation(fields: [siteId], references: [id])
   registrations EventRegistration[]
 
   @@index([startAt])
+  @@index([origin, status])
   @@map("events")
+}
+
+model GalleryImage {
+  id        String           @id @default(cuid())
+  url       String
+  type      GalleryItemType  @default(IMAGE)
+  altText   String?
+  order     Int              @default(0)
+  ownerType GalleryOwnerType
+  ownerId   String
+  createdAt DateTime         @default(now())
+
+  @@index([ownerType, ownerId])
+  @@map("gallery_images")
+}
+
+model Partner {
+  id          String   @id @default(cuid())
+  name        String
+  logoUrl     String
+  sector      String
+  websiteUrl  String?
+  description String?  @db.Text
+  isPublished Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@map("partners")
 }
 
 model EventRegistration {
@@ -482,12 +578,14 @@ model EventRegistration {
 // ============================================
 
 model Testimonial {
-  id          String   @id @default(cuid())
-  authorName  String
-  authorRole  String?
-  content     String   @db.Text
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  authorName   String
+  authorRole   String?
+  content      String?  @db.Text // optionnel : un témoignage vidéo peut n'avoir aucun texte
+  videoUrl     String?
+  thumbnailUrl String?
+  isPublished  Boolean  @default(false)
+  createdAt    DateTime @default(now())
 
   @@map("testimonials")
 }

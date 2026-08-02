@@ -13,3 +13,15 @@ sitesRouter.get(
     ok(res, sites);
   }),
 );
+
+// Galerie photo du lieu (locaux/équipe) — alimentée depuis le dashboard admin.
+sitesRouter.get(
+  '/:id/gallery',
+  asyncHandler(async (req, res) => {
+    const images = await prisma.galleryImage.findMany({
+      where: { ownerType: 'SITE', ownerId: req.params.id },
+      orderBy: { order: 'asc' },
+    });
+    ok(res, images);
+  }),
+);

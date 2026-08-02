@@ -22,6 +22,8 @@ import { connectionsRouter } from './modules/connections/connections.routes';
 import { paymentsRouter } from './modules/payments/payments.routes';
 import { adminRouter } from './modules/admin/admin.routes';
 import { testimonialsRouter } from './modules/testimonials/testimonials.routes';
+import { partnersRouter } from './modules/partners/partners.routes';
+import { uploadsRouter, UPLOADS_DIR } from './modules/uploads/uploads.routes';
 
 export const app = express();
 
@@ -39,6 +41,17 @@ app.use(apiRateLimit);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', env: env.nodeEnv }));
 
+// Images uploadées (événements, experts, partenaires) — servies en statique,
+// avec CORP ouvert pour que le frontend (autre origine en dev) puisse les charger.
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  },
+  express.static(UPLOADS_DIR),
+);
+
 app.use('/api/auth', authRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/experts', expertsRouter);
@@ -53,7 +66,9 @@ app.use('/api/events', eventsRouter);
 app.use('/api/connections', connectionsRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/uploads', uploadsRouter);
 app.use('/api/testimonials', testimonialsRouter);
+app.use('/api/partners', partnersRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -21,7 +21,7 @@ expertsRouter.get(
 
     const where = {
       isPublic: true,
-      user: { isActive: true },
+      OR: [{ userId: null }, { user: { isActive: true } }],
       ...(search ? { expertiseArea: { contains: search } } : {}),
     };
 
@@ -30,7 +30,7 @@ expertsRouter.get(
       prisma.expertProfile.findMany({
         where,
         include: { user: { include: { profile: true } } },
-        orderBy: { isVerified: 'desc' },
+        orderBy: [{ order: 'asc' }, { isVerified: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -38,14 +38,14 @@ expertsRouter.get(
 
     const data = experts.map((e) => ({
       id: e.id,
+      displayName: e.displayName,
+      photoUrl: e.photoUrl ?? e.user?.profile?.avatarUrl ?? null,
+      bio: e.bio,
       expertiseArea: e.expertiseArea,
       servicesOffered: e.servicesOffered,
       hourlyRate: e.hourlyRate,
       isVerified: e.isVerified,
-      firstName: e.user.profile?.firstName,
-      lastName: e.user.profile?.lastName,
-      avatarUrl: e.user.profile?.avatarUrl,
-      companyName: e.user.profile?.companyName,
+      companyName: e.user?.profile?.companyName,
     }));
 
     okPaginated(res, data, buildPaginationMeta(page, limit, total));
@@ -63,15 +63,14 @@ expertsRouter.get(
 
     ok(res, {
       id: expert.id,
+      displayName: expert.displayName,
+      photoUrl: expert.photoUrl ?? expert.user?.profile?.avatarUrl ?? null,
+      bio: expert.bio ?? expert.user?.profile?.bio ?? null,
       expertiseArea: expert.expertiseArea,
       servicesOffered: expert.servicesOffered,
       hourlyRate: expert.hourlyRate,
       isVerified: expert.isVerified,
-      firstName: expert.user.profile?.firstName,
-      lastName: expert.user.profile?.lastName,
-      avatarUrl: expert.user.profile?.avatarUrl,
-      bio: expert.user.profile?.bio,
-      companyName: expert.user.profile?.companyName,
+      companyName: expert.user?.profile?.companyName,
     });
   }),
 );
