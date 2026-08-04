@@ -572,6 +572,13 @@ adminRouter.patch(
     ok(res, testimonial);
   }),
 );
+adminRouter.delete(
+  '/testimonials/:id',
+  asyncHandler(async (req, res) => {
+    await prisma.testimonial.delete({ where: { id: req.params.id } });
+    ok(res, { id: req.params.id });
+  }),
+);
 
 // --- Messages de contact (formulaire /contact) ---
 adminRouter.get(

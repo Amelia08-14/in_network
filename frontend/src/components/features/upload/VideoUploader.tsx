@@ -13,7 +13,7 @@ export function VideoUploader({
 }: {
   value: string | null | undefined;
   onChange: (url: string | null) => void;
-  category: 'events';
+  category: 'events' | 'testimonials';
   label?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);

@@ -105,12 +105,24 @@ export const addEventImageSchema = z.object({
   order: z.number().int().min(0).default(0),
 });
 
-export const createTestimonialSchema = z.object({
-  authorName: z.string().min(1),
+export const createTestimonialSchema = z
+  .object({
+    authorName: z.string().min(1),
+    authorRole: z.string().optional(),
+    content: z.string().min(1).optional(),
+    videoUrl: z.string().url().optional(),
+    thumbnailUrl: z.string().url().optional(),
+  })
+  .refine((data) => !!data.content || !!data.videoUrl, {
+    message: 'Un témoignage doit avoir un texte ou une vidéo',
+    path: ['content'],
+  });
+export const updateTestimonialSchema = z.object({
+  authorName: z.string().min(1).optional(),
   authorRole: z.string().optional(),
-  content: z.string().min(1),
-});
-export const updateTestimonialSchema = createTestimonialSchema.partial().extend({
+  content: z.string().min(1).optional(),
+  videoUrl: z.string().url().optional(),
+  thumbnailUrl: z.string().url().optional(),
   isPublished: z.boolean().optional(),
 });
 

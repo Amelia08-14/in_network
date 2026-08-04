@@ -10,7 +10,7 @@ import { ok, ApiError } from '../../utils/apiResponse';
 
 export const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 
-const ALLOWED_CATEGORIES = new Set(['events', 'experts', 'partners', 'sites']);
+const ALLOWED_CATEGORIES = new Set(['events', 'experts', 'partners', 'sites', 'testimonials']);
 const ALLOWED_VIDEO_MIME = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
 
 const upload = multer({
