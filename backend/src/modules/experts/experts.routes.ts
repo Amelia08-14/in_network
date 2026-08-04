@@ -4,6 +4,8 @@ import { prisma } from '../../lib/prisma';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, okPaginated, buildPaginationMeta, ApiError } from '../../utils/apiResponse';
 import { validate } from '../../middleware/validate';
+import { requireAuth } from '../../middleware/auth';
+import { createConnectionRequest } from '../connections/connections.service';
 
 const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -12,6 +14,10 @@ const listQuerySchema = z.object({
 });
 
 export const expertsRouter = Router();
+
+const expertConnectionSchema = z.object({
+  message: z.string().trim().min(1).max(1000),
+});
 
 expertsRouter.get(
   '/',
@@ -72,5 +78,52 @@ expertsRouter.get(
       isVerified: expert.isVerified,
       companyName: expert.user?.profile?.companyName,
     });
+  }),
+);
+
+expertsRouter.post(
+  '/:id/connection-request',
+  requireAuth,
+  validate({ body: expertConnectionSchema }),
+  asyncHandler(async (req, res) => {
+    if (!req.user) throw ApiError.unauthorized();
+
+    const expert = await prisma.expertProfile.findUnique({ where: { id: req.params.id } });
+    if (!expert || !expert.isPublic) throw ApiError.notFound('Expert introuvable');
+
+    if (expert.userId) {
+      const request = await createConnectionRequest(req.user.id, expert.userId, req.body.message);
+      return ok(res, { request, routedTo: 'EXPERT' }, 201);
+    }
+
+    const requester = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { profile: true },
+    });
+    if (!requester) throw ApiError.unauthorized();
+
+    const requesterName = requester.profile
+      ? `${requester.profile.firstName} ${requester.profile.lastName}`.trim()
+      : requester.email;
+    const request = await prisma.contactMessage.create({
+      data: {
+        name: requesterName,
+        email: requester.email,
+        message: [
+          `Demande de mise en relation avec l'expert ${expert.displayName}.`,
+          '',
+          req.body.message,
+        ].join('\n'),
+      },
+    });
+    const trackedRequest = await prisma.expertConnectionRequest.create({
+      data: {
+        requesterUserId: req.user.id,
+        expertProfileId: expert.id,
+        message: req.body.message,
+      },
+    });
+
+    return ok(res, { request: trackedRequest, routedTo: 'TEAM' }, 201);
   }),
 );

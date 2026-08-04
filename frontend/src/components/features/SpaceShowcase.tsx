@@ -19,7 +19,9 @@ const FEATURES = [
 // qu'elles sont disponibles — jamais de photo banque en attendant.
 export async function SpaceShowcase() {
   const images = await getPrimarySiteGallery();
-  const [main, second, third] = images;
+  // Filtré aux images : la galerie du lieu contient aussi des vidéos
+  // (visite en vidéo, logo animé) qui ne peuvent pas passer par next/image.
+  const [main, second, third] = images.filter((img) => img.type === 'IMAGE');
 
   return (
     <section className="section-padding">

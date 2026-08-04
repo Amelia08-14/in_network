@@ -13,7 +13,7 @@ function PartnerLogo({ partner }: { partner: Partner }) {
 export function PartnerCard({ partner }: { partner: Partner }) {
   const content = (
     <Card accent="blue" className="h-full">
-      <CardContent className="flex h-full flex-col gap-3 pl-6">
+      <CardContent className="flex h-full flex-col gap-3">
         <PartnerLogo partner={partner} />
         <div>
           <p className="font-heading font-bold text-ink-900">{partner.name}</p>

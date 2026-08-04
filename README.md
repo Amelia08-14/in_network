@@ -1,13 +1,23 @@
 # IN NETWORK — Plateforme digitale (MVP V1)
 
-Monorepo à deux applications, conformément au CDC Technique (§2 Vue d'ensemble) adapté à ton
-environnement de dev/déploiement :
+Monorepo à deux applications :
 
 ```
 in_network/
 ├── backend/    Node.js + Express + TypeScript + Prisma + MySQL (API REST)
-└── frontend/   Next.js 14 (App Router) + TypeScript + Tailwind CSS + shadcn-style UI
+└── frontend/   Next.js 14 (App Router) + TypeScript + Tailwind CSS — site public, espace membre
+                (/dashboard) et back-office admin (/admin), même app
 ```
+
+L'admin vit dans la même app Next.js que le site public, sous `/admin` — pas de process ni de
+domaine séparé (même principe que in_academy sur ce poste). La séparation reste réelle malgré le
+même codebase : `/admin` affiche une porte de connexion inline (pas de redirection vers une page
+`/login`) tant qu'aucune session admin valide n'existe, cette session (cookies
+`in_network_admin_access` / `in_network_admin_refresh`) est totalement indépendante de la session
+membre (`in_network_access` / `in_network_refresh`) même dans le même navigateur, et un compte
+MEMBER qui se connecte via `/admin` est immédiatement déconnecté côté client — la vraie barrière
+de sécurité restant `requireRole('ADMIN', 'SUPER_ADMIN')` côté API sur toutes les routes
+`/api/admin/*`.
 
 ## Écarts assumés par rapport au CDC technique original
 
@@ -102,6 +112,12 @@ npm run dev                        # démarre le site sur http://localhost:3000
 Ouvre `http://localhost:3000`. Le site fonctionne même si le backend est temporairement injoignable
 (les pages catalogue retombent sur un état vide plutôt que de planter).
 
+Ouvre `http://localhost:3000/admin` pour le back-office — la porte de connexion s'affiche
+directement à cette URL (pas de redirection) tant qu'aucune session admin valide n'existe.
+Connecte-toi avec le compte admin du seed (`admin@innetwork.dz` / `ChangeMe123!`). Cette session
+est indépendante de celle du dashboard membre (`/dashboard`) : les deux peuvent être ouvertes en
+même temps dans le même navigateur sans se marcher dessus.
+
 ### 1.4 Modifier le schéma de données
 
 Après toute modification de `backend/prisma/schema.prisma` :
@@ -161,12 +177,14 @@ pm2 save
 ```
 
 `next.config.mjs` utilise `output: 'standalone'` : le build produit un serveur Node autonome dans
-`.next/standalone`, ce que `ecosystem.config.js` référence directement.
+`.next/standalone`, ce que `ecosystem.config.js` référence directement. `/admin` fait partie de ce
+même build — aucune étape de déploiement supplémentaire pour le back-office.
 
 ### 2.5 Nginx (reverse proxy + HTTPS)
 
-Voir `deploy/nginx.innetwork.conf` fourni dans ce repo — deux server blocks (frontend sur le domaine
-principal, backend sur le sous-domaine `api.`). Puis :
+Voir `deploy/nginx.innetwork.conf` fourni dans ce repo — un server block pour le domaine principal
+(frontend, qui sert aussi `/admin` et `/dashboard`), un second pour le backend sur le sous-domaine
+`api.`. Puis :
 
 ```bash
 sudo cp deploy/nginx.innetwork.conf /etc/nginx/sites-available/innetwork

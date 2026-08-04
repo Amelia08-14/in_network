@@ -5,9 +5,13 @@ import { cn } from '@/lib/utils';
 // Trois variantes (densité/orientation différentes) pour que le motif reste
 // reconnaissable sans être un copier-coller identique à chaque usage
 // (Hero, bandeau CTA, footer, section galerie...).
-type NodeDef = { x: number; y: number; r: number; hub: boolean };
+export type NodeDef = { x: number; y: number; r: number; hub: boolean };
+export type MotifVariant = 'default' | 'dense' | 'sparse';
 
-const VARIANTS: Record<'default' | 'dense' | 'sparse', { nodes: NodeDef[]; edges: Array<[number, number]> }> = {
+// Exporté pour AnimatedNetworkMotif (components/ui/animated-network-motif.tsx)
+// — même graphe de données, deux rendus (statique ici, animé côté Hero) :
+// une seule source de vérité pour la topologie du motif signature.
+export const VARIANTS: Record<MotifVariant, { nodes: NodeDef[]; edges: Array<[number, number]> }> = {
   default: {
     nodes: [
       { x: 40, y: 210, r: 3.5, hub: false },
@@ -102,14 +106,7 @@ export function NetworkMotif({
       </g>
       <g>
         {nodes.map((n, i) => (
-          <circle
-            key={i}
-            cx={n.x}
-            cy={n.y}
-            r={n.r}
-            className={cn(n.hub ? hubClass : dotClass, n.hub && 'motion-safe:animate-pulse')}
-            style={n.hub ? { animationDelay: `${i * 250}ms`, transformOrigin: `${n.x}px ${n.y}px` } : undefined}
-          />
+          <circle key={i} cx={n.x} cy={n.y} r={n.r} className={n.hub ? hubClass : dotClass} />
         ))}
       </g>
     </svg>

@@ -69,7 +69,7 @@ eventsRouter.get(
       for (const img of galleryByEvent[event.id] ?? []) {
         if (seenUrls.has(img.url)) continue;
         seenUrls.add(img.url);
-        items.push({ id: img.id, type: 'image', url: img.url, altText: img.altText, ...base });
+        items.push({ id: img.id, type: img.type === 'VIDEO' ? 'video' : 'image', url: img.url, altText: img.altText, ...base });
       }
     }
     ok(res, items);
@@ -133,7 +133,9 @@ eventsRouter.get(
   }),
 );
 
-async function attachGalleries(eventIds: string[]): Promise<Record<string, { id: string; url: string; altText: string | null; order: number }[]>> {
+async function attachGalleries(
+  eventIds: string[],
+): Promise<Record<string, { id: string; url: string; type: 'IMAGE' | 'VIDEO'; altText: string | null; order: number }[]>> {
   if (eventIds.length === 0) return {};
   const images = await prisma.galleryImage.findMany({
     where: { ownerType: 'EVENT', ownerId: { in: eventIds } },

@@ -67,6 +67,14 @@ export const updateBookingStatusSchema = z.object({
   status: z.nativeEnum(BookingStatus),
 });
 
+export const updateContactMessageSchema = z.object({
+  isRead: z.boolean(),
+});
+
+export const replyContactMessageSchema = z.object({
+  reply: z.string().trim().min(1).max(5000),
+});
+
 export const addSiteImageSchema = z.object({
   url: z.string().url(),
   altText: z.string().optional(),

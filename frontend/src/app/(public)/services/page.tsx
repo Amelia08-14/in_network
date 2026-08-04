@@ -1,5 +1,7 @@
 import { Container } from '@/components/ui/container';
-import { ServiceCard } from '@/components/features/ServiceCard';
+import { Card, CardContent } from '@/components/ui/card';
+import { ServicesFilterGrid } from '@/components/features/ServicesFilterGrid';
+import { InquiryForm } from '@/components/features/InquiryForm';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { serverGet } from '@/lib/server-api';
@@ -19,14 +21,41 @@ export default async function ServicesPage() {
         description="Domiciliation, création d'entreprise, comptabilité, juridique, marketing — des prestataires de confiance pour t'accompagner."
       />
 
+      {services.length > 0 && (
+        <Card accent="orange" className="mb-10">
+          <CardContent className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-heading text-lg font-bold text-ink-900">Tu ne sais pas quel service choisir ?</p>
+              <p className="mt-1 text-sm text-ink-500">
+                Dis-nous ce dont tu as besoin, on te met en relation avec le bon prestataire.
+              </p>
+            </div>
+            <InquiryForm
+              targetType="SERVICE"
+              targetId={services[0].id}
+              options={services.map((service) => ({
+                key: service.id,
+                targetId: service.id,
+                label: service.title,
+                subOptions: service.pricingTiers?.map((tier, index) => ({
+                  key: `${service.id}-${index}`,
+                  label: `${tier.label} — ${tier.price.toLocaleString('fr-FR')} DZD`,
+                  noteHint: `Sous-service sélectionné : ${tier.label}\nTarif indicatif : ${tier.price.toLocaleString('fr-FR')} DZD`,
+                })),
+              }))}
+              ctaLabel="Demander un service"
+              ctaVariant="primary"
+              ctaSize="lg"
+              className="shrink-0"
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {services.length === 0 ? (
         <EmptyState title="Catalogue en préparation" />
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((service) => (
-            <ServiceCard key={service.id} service={service} />
-          ))}
-        </div>
+        <ServicesFilterGrid services={services} />
       )}
     </Container>
   );

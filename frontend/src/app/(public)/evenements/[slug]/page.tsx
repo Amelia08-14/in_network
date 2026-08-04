@@ -84,12 +84,30 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
 
       <p className="mt-6 whitespace-pre-line text-ink-600">{event.description}</p>
 
-      {event.gallery && event.gallery.length > 1 && (
-        <div className="mt-8">
-          <h2 className="mb-3 font-heading text-lg font-bold text-ink-900">Galerie photo</h2>
-          <ImageGallery images={event.gallery} />
-        </div>
-      )}
+      {(() => {
+        const photos = event.gallery?.filter((item) => item.type === 'IMAGE') ?? [];
+        const extraVideos = event.gallery?.filter((item) => item.type === 'VIDEO' && item.url !== event.videoUrl) ?? [];
+        return (
+          <>
+            {photos.length > 1 && (
+              <div className="mt-8">
+                <h2 className="mb-3 font-heading text-lg font-bold text-ink-900">Galerie photo</h2>
+                <ImageGallery images={photos} />
+              </div>
+            )}
+            {extraVideos.length > 0 && (
+              <div className="mt-8">
+                <h2 className="mb-3 font-heading text-lg font-bold text-ink-900">Autres vidéos</h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {extraVideos.map((item) => (
+                    <video key={item.id} src={item.url} controls playsInline className="aspect-video w-full rounded-card bg-black object-cover" />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {!isPast && (
         <div className="mt-8">

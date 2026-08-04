@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { InquiryForm } from '@/components/features/InquiryForm';
 import { serverGet } from '@/lib/server-api';
 import { cn } from '@/lib/utils';
 import type { MembershipPlan, ServiceCatalogItem, SpaceResource } from '@/types';
@@ -51,31 +52,44 @@ export default async function TarifsPage() {
       {plans.length === 0 ? (
         <EmptyState title="Grille tarifaire en cours de finalisation" description="Contacte-nous pour connaître nos offres actuelles." />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan) => (
-            <Card
-              key={plan.id}
-              accent={CYCLE_ACCENT[plan.billingCycle as keyof typeof CYCLE_ACCENT] ?? 'none'}
-              className="flex flex-col"
-            >
-              <CardContent className="flex flex-1 flex-col gap-4 pl-6">
+            <Card key={plan.id} accent={CYCLE_ACCENT[plan.billingCycle as keyof typeof CYCLE_ACCENT] ?? 'none'}>
+              <CardContent className="flex flex-col gap-5">
                 <div>
                   <h3 className="font-heading text-lg font-bold text-ink-900">{plan.name}</h3>
-                  <p className="mt-2 font-heading text-3xl font-bold text-brand-orange">
-                    {Number(plan.price).toLocaleString('fr-FR')} <span className="text-sm font-normal text-ink-500">{plan.currency} HT</span>
+                  <p className="mt-2 flex items-baseline gap-1.5">
+                    <span className="font-heading text-3xl font-bold text-ink-900">
+                      {Number(plan.price).toLocaleString('fr-FR')}
+                    </span>
+                    <span className="text-xs font-medium text-ink-500">
+                      {plan.currency} HT {CYCLE_LABEL[plan.billingCycle]}
+                    </span>
                   </p>
-                  <p className="text-xs text-ink-500">{CYCLE_LABEL[plan.billingCycle]}</p>
                 </div>
-                <ul className="flex-1 space-y-2 text-sm text-ink-600">
-                  {(plan.features ?? []).map((feature) => (
-                    <li key={feature} className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent-green" /> {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/register" className={cn(buttonVariants({ variant: 'primary' }), 'w-full')}>
-                  Choisir cette formule
-                </Link>
+
+                {plan.features && plan.features.length > 0 && (
+                  <ul className="space-y-2 border-t border-dashed border-ink-900/10 pt-4 text-sm text-ink-600">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent-green" /> {feature}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="flex flex-col items-center gap-3 pt-1">
+                  <Link href="/register" className={cn(buttonVariants({ variant: 'primary' }), 'w-full')}>
+                    Choisir cette formule
+                  </Link>
+                  <InquiryForm
+                    targetType="PLAN"
+                    targetId={plan.id}
+                    ctaLabel="Une question ?"
+                    ctaVariant="link"
+                    ctaSize="sm"
+                  />
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -124,6 +138,19 @@ export default async function TarifsPage() {
               </tbody>
             </table>
           </div>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            {spaces.map((space) => (
+              <InquiryForm
+                key={space.id}
+                targetType="SPACE"
+                targetId={space.id}
+                ctaLabel={`Réserver ${space.name}`}
+                ctaVariant="outline"
+                ctaSize="sm"
+              />
+            ))}
+          </div>
         </section>
       )}
 
@@ -134,7 +161,7 @@ export default async function TarifsPage() {
           <div className="grid gap-6 md:grid-cols-2">
             {secondaryServices.map((service) => (
               <Card key={service.id} accent="green">
-                <CardContent className="pl-6">
+                <CardContent>
                   <h3 className="font-heading text-lg font-bold text-ink-900">{service.title}</h3>
                   <p className="mt-2 text-sm text-ink-600">{service.description}</p>
                   <ul className="mt-4 space-y-2 border-t border-ink-900/[0.06] pt-4 text-sm">
@@ -145,6 +172,24 @@ export default async function TarifsPage() {
                       </li>
                     ))}
                   </ul>
+                  <InquiryForm
+                    targetType="SERVICE"
+                    targetId={service.id}
+                    options={[service, ...services.filter((item) => item.id !== service.id)].map((item) => ({
+                      key: item.id,
+                      targetId: item.id,
+                      label: item.title,
+                      subOptions: item.pricingTiers?.map((tier, index) => ({
+                        key: `${item.id}-${index}`,
+                        label: `${tier.label} — ${tier.price.toLocaleString('fr-FR')} DZD`,
+                        noteHint: `Sous-service sélectionné : ${tier.label}\nTarif indicatif : ${tier.price.toLocaleString('fr-FR')} DZD`,
+                      })),
+                    }))}
+                    ctaLabel="Demander ce service"
+                    ctaVariant="outline"
+                    ctaSize="sm"
+                    className="mt-4"
+                  />
                 </CardContent>
               </Card>
             ))}

@@ -14,8 +14,30 @@ interface AdminServiceRequest {
   status: 'NEW' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
   notes: string | null;
   createdAt: string;
-  service: { title: string };
-  user: { email: string; profile: { firstName: string; lastName: string } | null };
+  targetType: 'SERVICE' | 'SPACE' | 'PLAN';
+  service: { title: string } | null;
+  space: { name: string } | null;
+  plan: { name: string } | null;
+  user: { email: string; profile: { firstName: string; lastName: string } | null } | null;
+  guestName: string | null;
+  guestEmail: string | null;
+  guestPhone: string | null;
+  guestCompany: string | null;
+}
+
+const TARGET_TYPE_LABEL: Record<AdminServiceRequest['targetType'], string> = {
+  SERVICE: 'Service',
+  SPACE: 'Espace',
+  PLAN: 'Formule',
+};
+
+function targetLabel(req: AdminServiceRequest) {
+  return req.service?.title ?? req.space?.name ?? req.plan?.name ?? '—';
+}
+
+function requesterLabel(req: AdminServiceRequest) {
+  if (req.user) return req.user.profile ? `${req.user.profile.firstName} ${req.user.profile.lastName}` : req.user.email;
+  return req.guestName ?? 'Visiteur';
 }
 
 const STATUS_LABEL: Record<AdminServiceRequest['status'], string> = {
@@ -66,8 +88,9 @@ export default function AdminServiceRequestsPage() {
               <table className="w-full text-sm">
                 <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-accent-gray">
                   <tr>
-                    <th className="px-5 py-3">Membre</th>
-                    <th className="px-5 py-3">Service</th>
+                    <th className="px-5 py-3">Demandeur</th>
+                    <th className="px-5 py-3">Type</th>
+                    <th className="px-5 py-3">Cible</th>
                     <th className="px-5 py-3">Notes</th>
                     <th className="px-5 py-3">Reçue le</th>
                     <th className="px-5 py-3">Statut</th>
@@ -77,9 +100,15 @@ export default function AdminServiceRequestsPage() {
                   {data.data.map((req) => (
                     <tr key={req.id}>
                       <td className="px-5 py-3 font-medium text-gray-800">
-                        {req.user.profile ? `${req.user.profile.firstName} ${req.user.profile.lastName}` : req.user.email}
+                        {requesterLabel(req)}
+                        {!req.user && (req.guestEmail || req.guestPhone || req.guestCompany) && (
+                          <span className="block text-xs font-normal text-gray-400">
+                            {[req.guestEmail, req.guestPhone, req.guestCompany].filter(Boolean).join(' · ')}
+                          </span>
+                        )}
                       </td>
-                      <td className="px-5 py-3 text-gray-600">{req.service.title}</td>
+                      <td className="px-5 py-3 text-gray-500">{TARGET_TYPE_LABEL[req.targetType]}</td>
+                      <td className="px-5 py-3 text-gray-600">{targetLabel(req)}</td>
                       <td className="px-5 py-3 max-w-xs truncate text-gray-500">{req.notes ?? '—'}</td>
                       <td className="px-5 py-3 text-gray-500">{new Date(req.createdAt).toLocaleDateString('fr-FR')}</td>
                       <td className="px-5 py-3">

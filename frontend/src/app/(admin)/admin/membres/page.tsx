@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { Eye, Search } from 'lucide-react';
+import { MemberDetailsPanel } from '@/components/features/MemberDetailsPanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,7 @@ export default function AdminMembresPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-members', search, page],
@@ -96,6 +98,14 @@ export default function AdminMembresPage() {
                       <td className="px-5 py-3 text-right">
                         <Button
                           size="sm"
+                          variant="ghost"
+                          className="mr-2"
+                          onClick={() => setSelectedMemberId(member.id)}
+                        >
+                          <Eye className="h-4 w-4" /> Détails
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => toggleMutation.mutate({ id: member.id, isActive: !member.isActive })}
                         >
@@ -124,6 +134,11 @@ export default function AdminMembresPage() {
           </Button>
         </div>
       )}
+      <MemberDetailsPanel
+        memberId={selectedMemberId}
+        onClose={() => setSelectedMemberId(null)}
+        onStatusChanged={() => queryClient.invalidateQueries({ queryKey: ['admin-members'] })}
+      />
     </div>
   );
 }

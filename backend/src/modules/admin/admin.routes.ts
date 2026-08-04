@@ -26,7 +26,10 @@ import {
   updatePartnerSchema,
   updateBookingStatusSchema,
   addSiteImageSchema,
+  updateContactMessageSchema,
+  replyContactMessageSchema,
 } from './admin.schema';
+import { sendEmail } from '../../lib/email';
 
 export const adminRouter = Router();
 
@@ -201,6 +204,42 @@ adminRouter.patch(
       data: { isActive: req.body.isActive },
     });
     ok(res, { id: member.id, isActive: member.isActive });
+  }),
+);
+adminRouter.post(
+  '/contact-messages/:id/reply',
+  validate({ body: replyContactMessageSchema }),
+  asyncHandler(async (req, res) => {
+    const message = await prisma.contactMessage.findUnique({ where: { id: req.params.id } });
+    if (!message) throw ApiError.notFound('Message introuvable');
+
+    const escapeHtml = (value: string) =>
+      value.replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+      })[char] ?? char);
+
+    await sendEmail({
+      to: message.email,
+      subject: 'Réponse de l’équipe IN NETWORK',
+      html: `<p>Bonjour ${escapeHtml(message.name)},</p><p>${escapeHtml(req.body.reply).replace(/\n/g, '<br>')}</p><p>L’équipe IN NETWORK</p>`,
+    });
+
+    const updated = await prisma.contactMessage.update({
+      where: { id: message.id },
+      data: { replyText: req.body.reply, repliedAt: new Date(), isRead: true },
+    });
+    ok(res, updated);
+  }),
+);
+adminRouter.delete(
+  '/contact-messages/:id',
+  asyncHandler(async (req, res) => {
+    await prisma.contactMessage.delete({ where: { id: req.params.id } });
+    res.status(204).send();
   }),
 );
 
@@ -531,5 +570,34 @@ adminRouter.patch(
       data: req.body,
     });
     ok(res, testimonial);
+  }),
+);
+
+// --- Messages de contact (formulaire /contact) ---
+adminRouter.get(
+  '/contact-messages',
+  validate({ query: listQuerySchema }),
+  asyncHandler(async (req, res) => {
+    const { page, limit } = req.query as unknown as { page: number; limit: number };
+    const [total, messages] = await Promise.all([
+      prisma.contactMessage.count(),
+      prisma.contactMessage.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+    okPaginated(res, messages, buildPaginationMeta(page, limit, total));
+  }),
+);
+adminRouter.patch(
+  '/contact-messages/:id',
+  validate({ body: updateContactMessageSchema }),
+  asyncHandler(async (req, res) => {
+    const message = await prisma.contactMessage.update({
+      where: { id: req.params.id },
+      data: req.body,
+    });
+    ok(res, message);
   }),
 );

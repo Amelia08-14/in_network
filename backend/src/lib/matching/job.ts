@@ -25,6 +25,50 @@ async function buildCandidatePool(): Promise<MatchCandidate[]> {
   }));
 }
 
+async function writeSuggestionsForUser(userId: string, pool: MatchCandidate[]) {
+  const blockedRelations = await prisma.connectionRequest.findMany({
+    where: {
+      OR: [{ fromUserId: userId }, { toUserId: userId }],
+      status: { in: ['PENDING', 'ACCEPTED'] },
+    },
+    select: { fromUserId: true, toUserId: true },
+  });
+  const blockedUserIds = new Set(
+    blockedRelations.map((request) =>
+      request.fromUserId === userId ? request.toUserId : request.fromUserId,
+    ),
+  );
+  const suggestions = matchingEngine
+    .generateSuggestions(userId, pool)
+    .filter((suggestion) => suggestion.score >= env.matchingScoreThreshold)
+    .filter((suggestion) => !blockedUserIds.has(suggestion.suggestedUserId))
+    .slice(0, TOP_N_PER_MEMBER);
+
+  for (const suggestion of suggestions) {
+    await prisma.connectionSuggestion.upsert({
+      where: {
+        userId_suggestedUserId: {
+          userId: suggestion.userId,
+          suggestedUserId: suggestion.suggestedUserId,
+        },
+      },
+      update: {
+        score: suggestion.score,
+        reason: suggestion.reason,
+        generatedAt: new Date(),
+      },
+      create: suggestion,
+    });
+  }
+  return suggestions.length;
+}
+
+export async function runMatchingForUser(userId: string) {
+  const pool = await buildCandidatePool();
+  const suggestionsWritten = await writeSuggestionsForUser(userId, pool);
+  return { suggestionsWritten };
+}
+
 // CDC §8.3 — recalcul planifié (nuit) plutôt qu'à la volée à chaque visite,
 // pour ne pas imposer une charge de calcul inutile sur un facteur qui ne
 // varie pas d'une minute à l'autre.
@@ -33,28 +77,7 @@ export async function runMatchingJob(): Promise<{ usersProcessed: number; sugges
   let suggestionsWritten = 0;
 
   for (const candidate of pool) {
-    const suggestions = matchingEngine
-      .generateSuggestions(candidate.userId, pool)
-      .filter((s) => s.score >= env.matchingScoreThreshold)
-      .slice(0, TOP_N_PER_MEMBER);
-
-    for (const suggestion of suggestions) {
-      await prisma.connectionSuggestion.upsert({
-        where: {
-          userId_suggestedUserId: {
-            userId: suggestion.userId,
-            suggestedUserId: suggestion.suggestedUserId,
-          },
-        },
-        update: {
-          score: suggestion.score,
-          reason: suggestion.reason,
-          generatedAt: new Date(),
-        },
-        create: suggestion,
-      });
-      suggestionsWritten += 1;
-    }
+    suggestionsWritten += await writeSuggestionsForUser(candidate.userId, pool);
   }
 
   return { usersProcessed: pool.length, suggestionsWritten };

@@ -12,6 +12,9 @@ import {
   listRequestsHandler,
   createRequestHandler,
   respondRequestHandler,
+  deleteRequestHandler,
+  deleteExpertRequestHandler,
+  refreshMyMatchingHandler,
   runMatchingHandler,
 } from './connections.controller';
 
@@ -30,6 +33,7 @@ connectionsRouter.post(
   requireRole('ADMIN', 'SUPER_ADMIN'),
   runMatchingHandler,
 );
+connectionsRouter.post('/matching/refresh', requireAuth, refreshMyMatchingHandler);
 connectionsRouter.get('/requests', requireAuth, listRequestsHandler);
 connectionsRouter.post(
   '/requests',
@@ -43,3 +47,5 @@ connectionsRouter.patch(
   validate({ body: respondConnectionRequestSchema }),
   respondRequestHandler,
 );
+connectionsRouter.delete('/requests/:id', requireAuth, deleteRequestHandler);
+connectionsRouter.delete('/expert-requests/:id', requireAuth, deleteExpertRequestHandler);

@@ -194,6 +194,7 @@ model User {
   receivedConnectionRequests ConnectionRequest[]    @relation("ReceivedRequests")
   suggestionsFor             ConnectionSuggestion[] @relation("SuggestionOwner")
   suggestionsAs              ConnectionSuggestion[] @relation("SuggestedMember")
+  expertConnectionRequests   ExpertConnectionRequest[]
 
   @@index([email])
   @@index([role])
@@ -254,8 +255,25 @@ model ExpertProfile {
   order           Int      @default(0)
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectionRequests ExpertConnectionRequest[]
 
   @@map("expert_profiles")
+}
+
+model ExpertConnectionRequest {
+  id              String   @id @default(cuid())
+  requesterUserId String
+  expertProfileId String
+  message         String   @db.Text
+  status          String   @default("PENDING")
+  createdAt       DateTime @default(now())
+
+  requester User          @relation(fields: [requesterUserId], references: [id], onDelete: Cascade)
+  expert    ExpertProfile @relation(fields: [expertProfileId], references: [id], onDelete: Cascade)
+
+  @@index([requesterUserId, createdAt])
+  @@index([expertProfileId, status])
+  @@map("expert_connection_requests")
 }
 
 // ============================================
@@ -603,4 +621,21 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+// Formulaire /contact — boîte de réception simple, pas de cycle de statut ni
+// de rattachement à un compte (contrairement à ServiceRequest, qui cible un
+// service/espace/formule précis). Un visiteur, un message.
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  replyText String?  @db.Text
+  repliedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+  @@map("contact_messages")
 }

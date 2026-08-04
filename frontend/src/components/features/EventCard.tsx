@@ -4,6 +4,7 @@ import { CalendarDays, MapPin, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge, EVENT_TYPE_ACCENT, EventOriginBadge } from '@/components/ui/badge';
 import { NetworkMotif } from '@/components/ui/network-motif';
+import { MotionSafeVideo } from '@/components/ui/motion-safe-video';
 import type { EventItem } from '@/types';
 
 const TYPE_LABEL: Record<string, string> = {
@@ -24,11 +25,8 @@ export function EventCard({ event }: { event: EventItem }) {
           {event.coverImage ? (
             <Image src={event.coverImage} alt="" fill sizes="400px" className="object-cover" />
           ) : event.videoUrl ? (
-            <video
+            <MotionSafeVideo
               src={event.videoUrl}
-              muted
-              loop
-              autoPlay
               playsInline
               className="absolute inset-0 h-full w-full object-cover"
             />
@@ -39,7 +37,7 @@ export function EventCard({ event }: { event: EventItem }) {
             </>
           )}
         </div>
-        <CardContent className="flex flex-col gap-2 pl-6">
+        <CardContent className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <EventOriginBadge origin={event.origin} />
             <Badge variant="neutral">{TYPE_LABEL[event.type] ?? event.type}</Badge>

@@ -25,6 +25,8 @@ export interface MemberProfileSummary {
   skillsOffered?: string[];
   skillsWanted?: string[];
   email?: string;
+  isPublic?: boolean;
+  updatedAt?: string;
 }
 
 export interface MembershipPlan {
@@ -43,6 +45,7 @@ export type EventStatus = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'ARCHIVED';
 export interface GalleryImageItem {
   id: string;
   url: string;
+  type: 'IMAGE' | 'VIDEO';
   altText: string | null;
   order: number;
 }

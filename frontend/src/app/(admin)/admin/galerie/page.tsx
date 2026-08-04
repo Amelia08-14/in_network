@@ -2,10 +2,11 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
-import { Trash2 } from 'lucide-react';
+import { Play, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ImageUploader } from '@/components/features/upload/ImageUploader';
+import { MotionSafeVideo } from '@/components/ui/motion-safe-video';
 import { api } from '@/lib/admin-api';
 import type { GalleryImageItem } from '@/types';
 
@@ -74,7 +75,16 @@ export default function AdminGaleriePage() {
             <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 lg:grid-cols-4">
               {images.map((image) => (
                 <div key={image.id} className="group relative aspect-square overflow-hidden rounded-card bg-gray-100">
-                  <Image src={image.url} alt={image.altText ?? ''} fill sizes="200px" className="object-cover" />
+                  {image.type === 'VIDEO' ? (
+                    <>
+                      <MotionSafeVideo src={image.url} playsInline className="absolute inset-0 h-full w-full object-cover" />
+                      <div className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white">
+                        <Play className="h-3 w-3 fill-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <Image src={image.url} alt={image.altText ?? ''} fill sizes="200px" className="object-cover" />
+                  )}
                   <button
                     onClick={() => deleteMutation.mutate(image.id)}
                     className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100"

@@ -11,8 +11,13 @@ import type { EventItem } from '@/types';
 interface ServiceRequestItem {
   id: string;
   notes: string | null;
-  service: { title: string };
-  user: { email: string; profile: { firstName: string; lastName: string } | null };
+  targetType: 'SERVICE' | 'SPACE' | 'PLAN';
+  service: { title: string } | null;
+  space: { name: string } | null;
+  plan: { name: string } | null;
+  user: { email: string; profile: { firstName: string; lastName: string } | null } | null;
+  guestName: string | null;
+  guestEmail: string | null;
 }
 
 interface PaymentItem {
@@ -31,6 +36,18 @@ interface ValidationsResponse {
 
 function userLabel(user: { email: string; profile: { firstName: string; lastName: string } | null }) {
   return user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : user.email;
+}
+
+// Une demande est soit rattachée à un compte (user), soit soumise par un
+// visiteur non connecté (guestName/guestEmail) — cf. services.routes.ts.
+function requesterLabel(req: ServiceRequestItem) {
+  if (req.user) return userLabel(req.user);
+  if (req.guestName) return `${req.guestName} (visiteur)${req.guestEmail ? ` · ${req.guestEmail}` : ''}`;
+  return 'Visiteur';
+}
+
+function targetLabel(req: ServiceRequestItem) {
+  return req.service?.title ?? req.space?.name ?? req.plan?.name ?? 'Demande';
 }
 
 export default function AdminValidationsPage() {
@@ -115,8 +132,8 @@ export default function AdminValidationsPage() {
                 {serviceRequests.map((req) => (
                   <div key={req.id} className="flex items-center gap-4 p-5">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-800">{req.service.title}</p>
-                      <p className="text-sm text-gray-500">{userLabel(req.user)}</p>
+                      <p className="font-medium text-gray-800">{targetLabel(req)}</p>
+                      <p className="text-sm text-gray-500">{requesterLabel(req)}</p>
                       {req.notes && <p className="mt-1 text-sm text-gray-600">{req.notes}</p>}
                     </div>
                     <Button size="sm" onClick={() => resolveServiceRequest.mutate(req.id)}>

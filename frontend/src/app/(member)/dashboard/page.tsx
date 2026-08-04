@@ -56,7 +56,7 @@ export default function DashboardOverviewPage() {
           hint={activeSubscription ? `Jusqu'au ${new Date(activeSubscription.endDate).toLocaleDateString('fr-FR')}` : 'Choisis une formule'}
         />
         <StatWidget icon={CalendarCheck} label="Réservations à venir" value={upcomingBookings.length} />
-        <StatWidget icon={Sparkles} label="Suggestions" value={suggestions?.length ?? 0} hint="Membres à contacter" />
+        <StatWidget icon={Sparkles} label="Matching networking" value={suggestions?.length ?? 0} hint="Profils professionnels suggérés" />
         <StatWidget icon={Users2} label="Rôle" value="Membre" />
       </div>
 

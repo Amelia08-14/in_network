@@ -98,7 +98,7 @@ export default function AProposPage() {
         <div className="grid gap-5 md:grid-cols-3">
           {HORIZONS.map((horizon) => (
             <Card key={horizon.title} accent="orange" className="h-full">
-              <CardContent className="flex h-full flex-col gap-3 pl-6">
+              <CardContent className="flex h-full flex-col gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-card bg-brand-orange/10 text-brand-orange">
                   <horizon.icon className="h-5 w-5" strokeWidth={1.75} />
                 </div>

@@ -28,10 +28,12 @@ export const ACCENT_TEXT_MAP: Record<CardAccent, string> = {
   none: 'text-ink-500',
 };
 
-// Architecture "double coque" (coque + noyau imbriqués) — la card n'est
-// jamais posée à plat sur le fond : une coque externe teintée (ring fin,
-// rayon large) enveloppe un noyau blanc au rayon plus serré, comme une pièce
-// de verre montée dans un cadre.
+// Card à plat, chaude et douce — grand rayon, bordure fine, ombre discrète
+// qui se creuse légèrement au survol. La tranche de couleur (accent) reste
+// le langage "carte de visite" du site pour les catégories réelles (type de
+// membre, catégorie de service...), mais posée sur une seule coque simple
+// plutôt qu'un double-bezel imbriqué — plus proche du registre de référence
+// (cards agence chaleureuses) que d'un bijou premium à facettes.
 export function Card({
   className,
   accent = 'none',
@@ -41,17 +43,15 @@ export function Card({
   return (
     <div
       className={cn(
-        'group/card rounded-[1.75rem] bg-ink-900/[0.035] p-1.5 ring-1 ring-ink-900/[0.06] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:bg-ink-900/[0.05] hover:shadow-soft-lg hover:ring-ink-900/10',
+        'group/card relative overflow-hidden rounded-2xl border border-ink-900/[0.07] bg-white shadow-soft transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-ink-900/[0.12] hover:shadow-soft-lg',
         className,
       )}
       {...props}
     >
-      <div className="relative h-full overflow-hidden rounded-[1.25rem] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-        {accent !== 'none' && (
-          <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1', ACCENT_MAP[accent])} />
-        )}
-        {children}
-      </div>
+      {accent !== 'none' && (
+        <span aria-hidden className={cn('absolute inset-x-0 top-0 h-1', ACCENT_MAP[accent])} />
+      )}
+      {children}
     </div>
   );
 }

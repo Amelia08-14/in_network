@@ -5,6 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Play, X, ArrowUpRight } from 'lucide-react';
 import { EVENT_ORIGIN_LABEL, EVENT_ORIGIN_VARIANT, Badge } from '@/components/ui/badge';
+import { MotionSafeVideo } from '@/components/ui/motion-safe-video';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import type { EventMediaItem } from '@/types';
 
@@ -13,14 +15,85 @@ import type { EventMediaItem } from '@/types';
 // (spans variables) pour ne pas retomber sur une grille uniforme.
 const SPAN_PATTERN = ['row-span-2', 'row-span-1', 'row-span-1', 'row-span-2', 'row-span-1', 'row-span-1'];
 
+const ORIGIN_TABS: { label: string; value: EventMediaItem['eventOrigin'] | 'ALL' }[] = [
+  { label: 'Tous', value: 'ALL' },
+  { label: EVENT_ORIGIN_LABEL.IN_EVENT, value: 'IN_EVENT' },
+  { label: EVENT_ORIGIN_LABEL.EXTERNAL, value: 'EXTERNAL' },
+  { label: EVENT_ORIGIN_LABEL.CO_ORGANIZED, value: 'CO_ORGANIZED' },
+];
+
+const TYPE_TABS: { label: string; value: 'ALL' | 'image' | 'video' }[] = [
+  { label: 'Tout', value: 'ALL' },
+  { label: 'Photos', value: 'image' },
+  { label: 'Vidéos', value: 'video' },
+];
+
+function FilterPill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'rounded-pill px-4 py-2 text-sm font-semibold transition-colors',
+        active ? 'bg-ink-900 text-white' : 'bg-ink-900/[0.05] text-ink-700 hover:bg-ink-900/[0.09]',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function EventMediaWall({ items }: { items: EventMediaItem[] }) {
+  const [origin, setOrigin] = useState<(typeof ORIGIN_TABS)[number]['value']>('ALL');
+  const [type, setType] = useState<(typeof TYPE_TABS)[number]['value']>('ALL');
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const active = openIndex !== null ? items[openIndex] : null;
+
+  const filtered = items.filter(
+    (item) => (origin === 'ALL' || item.eventOrigin === origin) && (type === 'ALL' || item.type === type),
+  );
+  const active = openIndex !== null ? filtered[openIndex] : null;
+
+  function setOriginFilter(value: (typeof ORIGIN_TABS)[number]['value']) {
+    setOrigin(value);
+    setOpenIndex(null);
+  }
+  function setTypeFilter(value: (typeof TYPE_TABS)[number]['value']) {
+    setType(value);
+    setOpenIndex(null);
+  }
 
   return (
     <>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-2">
+          {ORIGIN_TABS.map((tab) => (
+            <FilterPill key={tab.label} active={tab.value === origin} onClick={() => setOriginFilter(tab.value)}>
+              {tab.label}
+            </FilterPill>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {TYPE_TABS.map((tab) => (
+            <FilterPill key={tab.label} active={tab.value === type} onClick={() => setTypeFilter(tab.value)}>
+              {tab.label}
+            </FilterPill>
+          ))}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState title="Aucun média pour ce filtre" description="Essaie une autre combinaison de filtres." />
+      ) : (
       <div className="grid auto-rows-[180px] grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {items.map((item, i) => (
+        {filtered.map((item, i) => (
           <button
             key={item.id}
             type="button"
@@ -31,12 +104,10 @@ export function EventMediaWall({ items }: { items: EventMediaItem[] }) {
             )}
           >
             {item.type === 'video' ? (
-              <video
+              <MotionSafeVideo
                 src={item.url}
-                muted
-                loop
-                autoPlay
                 playsInline
+                showControlsOnReducedMotion={false}
                 className="absolute inset-0 h-full w-full object-cover opacity-90 transition-opacity duration-300 group-hover:opacity-100"
               />
             ) : (
@@ -63,6 +134,7 @@ export function EventMediaWall({ items }: { items: EventMediaItem[] }) {
           </button>
         ))}
       </div>
+      )}
 
       {active && (
         <div

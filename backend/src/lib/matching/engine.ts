@@ -21,17 +21,24 @@ export interface MatchingEngine {
   generateSuggestions(userId: string, pool: MatchCandidate[]): ConnectionSuggestionInput[];
 }
 
-function jaccard(a: string[], b: string[]): number {
-  const setA = new Set(a);
-  const setB = new Set(b);
-  if (setA.size === 0 && setB.size === 0) return 0;
-  const intersection = [...setA].filter((x) => setB.has(x));
-  const union = new Set([...setA, ...setB]);
-  return union.size === 0 ? 0 : intersection.length / union.size;
+function normalize(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+function coverage(needs: string[], offers: string[]): number {
+  if (needs.length === 0 || offers.length === 0) return 0;
+  const normalizedOffers = new Set(offers.map(normalize));
+  const matches = needs.map(normalize).filter((need) => normalizedOffers.has(need));
+  return matches.length / new Set(needs.map(normalize)).size;
 }
 
 function sectorOverlap(a: MatchCandidate, b: MatchCandidate): number {
-  return a.sectors.some((s) => b.sectors.includes(s)) ? 1 : 0;
+  const otherSectors = new Set(b.sectors.map(normalize));
+  return a.sectors.some((sector) => otherSectors.has(normalize(sector))) ? 1 : 0;
 }
 
 // Table de bonus fixe (CDC §8.2) — point de départ, à ajuster après
@@ -60,11 +67,13 @@ function memberTypeComplementarity(a: MemberType, b: MemberType): number {
 }
 
 function buildReason(a: MatchCandidate, b: MatchCandidate): { type: string; detail: string } {
-  const needMatch = a.skillsWanted.find((skill) => b.skillsOffered.includes(skill));
+  const offeredByB = new Set(b.skillsOffered.map(normalize));
+  const wantedByB = new Set(b.skillsWanted.map(normalize));
+  const needMatch = a.skillsWanted.find((skill) => offeredByB.has(normalize(skill)));
   if (needMatch) {
     return { type: 'skill_match', detail: `Tu recherches "${needMatch}", que ce membre propose` };
   }
-  const offerMatch = a.skillsOffered.find((skill) => b.skillsWanted.includes(skill));
+  const offerMatch = a.skillsOffered.find((skill) => wantedByB.has(normalize(skill)));
   if (offerMatch) {
     return { type: 'skill_match', detail: `Ce membre recherche "${offerMatch}", que tu proposes` };
   }
@@ -83,8 +92,8 @@ export class RuleBasedMatchingEngine implements MatchingEngine {
       .filter((other) => other.userId !== userId)
       .map((other) => {
         const score =
-          0.35 * jaccard(me.skillsWanted, other.skillsOffered) +
-          0.35 * jaccard(me.skillsOffered, other.skillsWanted) +
+          0.45 * coverage(me.skillsWanted, other.skillsOffered) +
+          0.25 * coverage(other.skillsWanted, me.skillsOffered) +
           0.2 * sectorOverlap(me, other) +
           0.1 * memberTypeComplementarity(me.memberType, other.memberType);
 

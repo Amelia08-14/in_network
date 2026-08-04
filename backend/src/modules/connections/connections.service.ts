@@ -20,7 +20,7 @@ export async function updateSuggestionStatus(userId: string, id: string, status:
 }
 
 export async function listMyConnectionRequests(userId: string) {
-  const [received, sent] = await Promise.all([
+  const [received, sent, expertSent] = await Promise.all([
     prisma.connectionRequest.findMany({
       where: { toUserId: userId },
       include: { fromUser: { include: { profile: true } } },
@@ -31,8 +31,13 @@ export async function listMyConnectionRequests(userId: string) {
       include: { toUser: { include: { profile: true } } },
       orderBy: { createdAt: 'desc' },
     }),
+    prisma.expertConnectionRequest.findMany({
+      where: { requesterUserId: userId },
+      include: { expert: true },
+      orderBy: { createdAt: 'desc' },
+    }),
   ]);
-  return { received, sent };
+  return { received, sent, expertSent };
 }
 
 export async function createConnectionRequest(fromUserId: string, toUserId: string, message: string) {
@@ -40,6 +45,11 @@ export async function createConnectionRequest(fromUserId: string, toUserId: stri
 
   const target = await prisma.user.findUnique({ where: { id: toUserId } });
   if (!target || !target.isActive) throw ApiError.notFound('Membre introuvable');
+
+  const existing = await prisma.connectionRequest.findFirst({
+    where: { fromUserId, toUserId, status: 'PENDING' },
+  });
+  if (existing) throw ApiError.conflict('Une demande est déjà en attente pour ce membre');
 
   const request = await prisma.connectionRequest.create({
     data: { fromUserId, toUserId, message },
@@ -55,6 +65,29 @@ export async function createConnectionRequest(fromUserId: string, toUserId: stri
   });
 
   return request;
+}
+
+export async function deleteConnectionRequest(userId: string, id: string) {
+  const request = await prisma.connectionRequest.findUnique({ where: { id } });
+  if (!request) throw ApiError.notFound('Demande introuvable');
+  if (request.status === 'ACCEPTED') {
+    throw ApiError.conflict('Une connexion acceptée ne peut pas être supprimée');
+  }
+  const canDelete =
+    request.fromUserId === userId ||
+    (request.toUserId === userId && request.status === 'DECLINED');
+  if (!canDelete) throw ApiError.forbidden('Suppression non autorisée');
+
+  return prisma.connectionRequest.delete({ where: { id } });
+}
+
+export async function deleteExpertConnectionRequest(userId: string, id: string) {
+  const request = await prisma.expertConnectionRequest.findUnique({ where: { id } });
+  if (!request || request.requesterUserId !== userId) throw ApiError.notFound('Demande introuvable');
+  if (request.status === 'ACCEPTED') {
+    throw ApiError.conflict('Une demande acceptée ne peut pas être supprimée');
+  }
+  return prisma.expertConnectionRequest.delete({ where: { id } });
 }
 
 // CDC §6.2 — quand une demande est acceptée, les deux profils reçoivent les

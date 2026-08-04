@@ -24,6 +24,7 @@ import { adminRouter } from './modules/admin/admin.routes';
 import { testimonialsRouter } from './modules/testimonials/testimonials.routes';
 import { partnersRouter } from './modules/partners/partners.routes';
 import { uploadsRouter, UPLOADS_DIR } from './modules/uploads/uploads.routes';
+import { contactRouter } from './modules/contact/contact.routes';
 
 export const app = express();
 
@@ -69,6 +70,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/uploads', uploadsRouter);
 app.use('/api/testimonials', testimonialsRouter);
 app.use('/api/partners', partnersRouter);
+app.use('/api/contact', contactRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

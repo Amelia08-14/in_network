@@ -62,7 +62,20 @@ export default function AnnuairePage() {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-ink-500">Chargement de l'annuaire...</p>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="animate-pulse rounded-2xl border border-ink-900/[0.07] bg-white p-5">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 shrink-0 rounded-2xl bg-ink-900/[0.06]" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-3/4 rounded bg-ink-900/[0.06]" />
+                  <div className="h-3 w-1/2 rounded bg-ink-900/[0.06]" />
+                </div>
+              </div>
+              <div className="mt-4 h-3 w-1/3 rounded bg-ink-900/[0.06]" />
+            </div>
+          ))}
+        </div>
       ) : !data || data.data.length === 0 ? (
         <EmptyState title="Aucun membre ne correspond à ta recherche" />
       ) : (

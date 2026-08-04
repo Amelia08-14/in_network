@@ -16,6 +16,7 @@ import {
   Handshake,
   MessageSquareQuote,
   Images,
+  Mail,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,6 +42,7 @@ const NAV_ITEMS: AdminNavItem[] = [
   { href: '/admin/partenaires', label: 'Partenaires', icon: Handshake },
   { href: '/admin/temoignages', label: 'Témoignages', icon: MessageSquareQuote },
   { href: '/admin/galerie', label: 'Galerie du lieu', icon: Images },
+  { href: '/admin/contact', label: 'Messages de contact', icon: Mail },
 ];
 
 // Porte de connexion admin — même principe que in_academy (frontend/app/(admin)/layout.tsx
