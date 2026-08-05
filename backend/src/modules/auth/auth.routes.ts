@@ -47,3 +47,4 @@ authRouter.post(
 );
 authRouter.post('/reset-password', validate({ body: resetPasswordSchema }), resetPasswordHandler);
 authRouter.get('/me', requireAuth, meHandler);
+authRouter.post('/change-password', requireAuth, validate({ body: changePasswordSchema }), changePasswordHandler);
