@@ -28,6 +28,14 @@ import { contactRouter } from './modules/contact/contact.routes';
 
 export const app = express();
 
+// Derrière Nginx (reverse proxy) en prod : sans ça, req.protocol vaut
+// toujours 'http' (la connexion Nginx -> Node est en clair en interne), même
+// pour un visiteur en HTTPS. Ça cassait silencieusement les URLs générées à
+// l'upload (backend/src/modules/uploads/uploads.routes.ts utilise
+// req.protocol) — enregistrées en http:// alors que le site est en https://,
+// rejetées ensuite par l'optimiseur d'images Next.js (contenu mixte).
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(
   cors({
