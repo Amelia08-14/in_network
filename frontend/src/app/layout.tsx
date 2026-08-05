@@ -28,6 +28,9 @@ export const metadata: Metadata = {
   },
   description:
     "IN NETWORK : espace de coworking, mise en réseau et services entrepreneuriaux à Hydra, Alger.",
+  icons: {
+    icon: '/in_icon.ico',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
