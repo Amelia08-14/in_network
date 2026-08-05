@@ -1,12 +1,12 @@
 'use client';
 
+import { useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import { Play, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { ImageUploader } from '@/components/features/upload/ImageUploader';
-import { VideoUploader } from '@/components/features/upload/VideoUploader';
+import { GalleryBulkUploader } from '@/components/features/upload/GalleryBulkUploader';
 import { MotionSafeVideo } from '@/components/ui/motion-safe-video';
 import { api } from '@/lib/admin-api';
 import type { GalleryImageItem } from '@/types';
@@ -33,9 +33,13 @@ export default function AdminGaleriePage() {
     enabled: Boolean(site),
   });
 
+  // Compteur local (pas `images?.length`, qui reste figé tant que la query
+  // n'a pas refetch) pour que chaque fichier d'un envoi groupé reçoive un
+  // ordre distinct plutôt que de tous partager le même.
+  const orderCounter = useRef(0);
   const addMutation = useMutation({
     mutationFn: (url: string) =>
-      api.post(`/api/admin/sites/${site!.id}/images`, { url, order: images?.length ?? 0 }),
+      api.post(`/api/admin/sites/${site!.id}/images`, { url, order: (images?.length ?? 0) + orderCounter.current++ }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-site-images', site?.id] }),
   });
 
@@ -55,19 +59,8 @@ export default function AdminGaleriePage() {
 
       {site && (
         <Card>
-          <CardContent className="flex flex-col gap-6 sm:flex-row">
-            <ImageUploader
-              value={null}
-              onChange={(url) => url && addMutation.mutate(url)}
-              category="sites"
-              label="Ajouter une photo"
-            />
-            <VideoUploader
-              value={null}
-              onChange={(url) => url && addMutation.mutate(url)}
-              category="sites"
-              label="Ajouter une vidéo"
-            />
+          <CardContent>
+            <GalleryBulkUploader category="sites" onUploaded={async (url) => { await addMutation.mutateAsync(url); }} />
           </CardContent>
         </Card>
       )}

@@ -5,6 +5,18 @@ import { validate } from '../../middleware/validate';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, okPaginated, buildPaginationMeta, ApiError } from '../../utils/apiResponse';
 import * as paymentsService from '../payments/payments.service';
+
+// Détermine IMAGE/VIDEO depuis l'extension plutôt que de faire confiance au
+// client — l'URL vient toujours de POST /api/uploads (uploads.routes.ts) qui
+// produit des extensions prévisibles (.webp pour les images, .mp4/.webm pour
+// les vidéos). Évite qu'une vidéo envoyée sans "type" explicite ne se
+// retrouve stockée comme IMAGE (valeur par défaut du schema Prisma) et
+// s'affiche cassée sur le site public.
+const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov']);
+function inferGalleryType(url: string): 'IMAGE' | 'VIDEO' {
+  const ext = url.slice(url.lastIndexOf('.')).toLowerCase();
+  return VIDEO_EXTENSIONS.has(ext) ? 'VIDEO' : 'IMAGE';
+}
 import {
   listQuerySchema,
   toggleActiveSchema,
@@ -316,7 +328,7 @@ adminRouter.post(
   validate({ body: addSiteImageSchema }),
   asyncHandler(async (req, res) => {
     const image = await prisma.galleryImage.create({
-      data: { ...req.body, ownerType: 'SITE', ownerId: req.params.id },
+      data: { ...req.body, type: inferGalleryType(req.body.url), ownerType: 'SITE', ownerId: req.params.id },
     });
     ok(res, image, 201);
   }),
@@ -471,7 +483,7 @@ adminRouter.post(
   validate({ body: addEventImageSchema }),
   asyncHandler(async (req, res) => {
     const image = await prisma.galleryImage.create({
-      data: { ...req.body, ownerType: 'EVENT', ownerId: req.params.id },
+      data: { ...req.body, type: inferGalleryType(req.body.url), ownerType: 'EVENT', ownerId: req.params.id },
     });
     ok(res, image, 201);
   }),
