@@ -8,6 +8,7 @@ import {
   verifyEmailSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  changePasswordSchema,
 } from './auth.schema';
 import {
   registerHandler,
@@ -22,6 +23,7 @@ import {
   forgotPasswordHandler,
   resetPasswordHandler,
   meHandler,
+  changePasswordHandler,
 } from './auth.controller';
 
 export const authRouter = Router();

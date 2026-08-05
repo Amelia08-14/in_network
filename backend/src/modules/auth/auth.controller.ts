@@ -105,3 +105,9 @@ export const meHandler = asyncHandler(async (req: Request, res: Response) => {
   const me = await authService.getMe(req.user.id);
   ok(res, me);
 });
+
+export const changePasswordHandler = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw ApiError.unauthorized();
+  await authService.changePassword(req.user.id, req.body.currentPassword, req.body.newPassword);
+  ok(res, { success: true });
+});

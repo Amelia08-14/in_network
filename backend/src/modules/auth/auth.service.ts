@@ -199,6 +199,24 @@ export async function resetPassword(token: string, newPassword: string) {
   });
 }
 
+export async function changePassword(userId: string, currentPassword: string, newPassword: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw ApiError.notFound();
+
+  const validPassword = await comparePassword(currentPassword, user.passwordHash);
+  if (!validPassword) throw ApiError.unauthorized('Mot de passe actuel incorrect');
+
+  const passwordHash = await hashPassword(newPassword);
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+
+  // Comme pour resetPassword : toute session ailleurs est invalidée par sécurité,
+  // seule la session courante (access token déjà émis) reste valide jusqu'à son expiration.
+  await prisma.refreshToken.updateMany({
+    where: { userId: user.id, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
+
 export async function getMe(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },

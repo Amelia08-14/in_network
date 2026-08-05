@@ -6,6 +6,7 @@ import { Play, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ImageUploader } from '@/components/features/upload/ImageUploader';
+import { VideoUploader } from '@/components/features/upload/VideoUploader';
 import { MotionSafeVideo } from '@/components/ui/motion-safe-video';
 import { api } from '@/lib/admin-api';
 import type { GalleryImageItem } from '@/types';
@@ -54,12 +55,18 @@ export default function AdminGaleriePage() {
 
       {site && (
         <Card>
-          <CardContent>
+          <CardContent className="flex flex-col gap-6 sm:flex-row">
             <ImageUploader
               value={null}
               onChange={(url) => url && addMutation.mutate(url)}
               category="sites"
               label="Ajouter une photo"
+            />
+            <VideoUploader
+              value={null}
+              onChange={(url) => url && addMutation.mutate(url)}
+              category="sites"
+              label="Ajouter une vidéo"
             />
           </CardContent>
         </Card>
