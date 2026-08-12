@@ -27,7 +27,7 @@ export default async function EvenementsPage({
 }) {
   const activeOrigin = TABS.find((t) => t.value === searchParams.origin)?.value;
   const query = activeOrigin ? `?origin=${activeOrigin}` : '';
-  const events = await serverGet<EventItem[]>(`/api/events${query}`, 900, []);
+  const events = await serverGet<EventItem[]>(`/api/events${query}`, 900, [], 'events');
 
   return (
     <Container className="section-padding">

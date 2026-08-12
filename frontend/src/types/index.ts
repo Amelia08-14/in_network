@@ -85,6 +85,14 @@ export interface ServiceCatalogItem {
   pricingTiers?: PricingTier[] | null;
 }
 
+export interface Site {
+  id: string;
+  name: string;
+  city: string;
+  address: string;
+  isActive: boolean;
+}
+
 export interface SpaceResource {
   id: string;
   name: string;

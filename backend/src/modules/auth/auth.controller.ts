@@ -58,7 +58,7 @@ export const logoutHandler = asyncHandler(async (req: Request, res: Response) =>
 
 // --- Session admin (/admin dans la même app, cookie refresh dédié) ---
 export const adminLoginHandler = asyncHandler(async (req: Request, res: Response) => {
-  const { accessToken, refreshToken, user } = await authService.login(req.body);
+  const { accessToken, refreshToken, user } = await authService.adminLogin(req.body);
   setRefreshCookie(res, refreshToken, ADMIN_REFRESH_COOKIE);
   ok(res, { accessToken, user });
 });
@@ -67,7 +67,7 @@ export const adminRefreshHandler = asyncHandler(async (req: Request, res: Respon
   const token = req.cookies?.[ADMIN_REFRESH_COOKIE];
   if (!token) throw ApiError.unauthorized('Aucune session à rafraîchir');
 
-  const { accessToken, refreshToken, user } = await authService.refresh(token);
+  const { accessToken, refreshToken, user } = await authService.adminRefresh(token);
   setRefreshCookie(res, refreshToken, ADMIN_REFRESH_COOKIE);
   ok(res, { accessToken, user });
 });

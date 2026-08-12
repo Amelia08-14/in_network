@@ -227,7 +227,10 @@ model MemberProfile {
   avatarUrl   String?
   website     String?
   linkedinUrl String?
-  isPublic    Boolean    @default(true)
+  // Faux par défaut : un profil n'apparaît dans l'annuaire public qu'après
+  // validation Admin (retour QA — un membre devenait visible/actif sans
+  // aucune validation). L'Admin bascule ce champ à true depuis /admin/validations.
+  isPublic    Boolean    @default(false)
   siteId      String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt

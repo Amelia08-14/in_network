@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ImageUploader } from '@/components/features/upload/ImageUploader';
 import { api, ApiRequestError } from '@/lib/admin-api';
+import { revalidatePublic } from '@/lib/revalidate-public';
 import type { ApiListResponse, Partner } from '@/types';
 
 interface AdminPartner extends Partner {
@@ -26,6 +27,7 @@ export default function AdminPartenairesPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-partners'],
@@ -53,15 +55,21 @@ export default function AdminPartenairesPage() {
   const publishMutation = useMutation({
     mutationFn: ({ id, isPublished }: { id: string; isPublished: boolean }) =>
       api.patch(`/api/admin/partners/${id}`, { isPublished }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-partners'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-partners'] });
+      revalidatePublic('partners');
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/api/admin/partners/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-partners'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-partners'] });
+      revalidatePublic('partners');
+    },
   });
 
-  const partners = data?.data ?? [];
+  const partners = (data?.data ?? []).filter((p) => p.name.toLowerCase().includes(search.trim().toLowerCase()));
 
   return (
     <div className="space-y-6">
@@ -111,12 +119,22 @@ export default function AdminPartenairesPage() {
         </Card>
       )}
 
+      <div className="relative max-w-sm">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Input
+          className="pl-9"
+          placeholder="Rechercher un partenaire..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
             <p className="p-5 text-sm text-gray-500">Chargement...</p>
           ) : partners.length === 0 ? (
-            <EmptyState title="Aucun partenaire" />
+            <EmptyState title={search ? 'Aucun partenaire ne correspond à la recherche' : 'Aucun partenaire'} />
           ) : (
             <div className="divide-y divide-gray-100">
               {partners.map((partner) => (

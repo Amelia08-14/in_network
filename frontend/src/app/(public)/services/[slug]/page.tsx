@@ -10,8 +10,8 @@ export const revalidate = 3600;
 
 export default async function ServiceDetailPage({ params }: { params: { slug: string } }) {
   const [service, allServices] = await Promise.all([
-    serverGet<ServiceCatalogItem | null>(`/api/services/${params.slug}`, 3600, null),
-    serverGet<ServiceCatalogItem[]>('/api/services', 3600, []),
+    serverGet<ServiceCatalogItem | null>(`/api/services/${params.slug}`, 3600, null, 'services'),
+    serverGet<ServiceCatalogItem[]>('/api/services', 3600, [], 'services'),
   ]);
   if (!service) notFound();
   const selectableServices = [service, ...allServices.filter((item) => item.id !== service.id)];

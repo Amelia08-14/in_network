@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge, EVENT_ORIGIN_LABEL } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ImageUploader } from '@/components/features/upload/ImageUploader';
 import { VideoUploader } from '@/components/features/upload/VideoUploader';
 import { api, ApiRequestError } from '@/lib/admin-api';
+import { revalidatePublic } from '@/lib/revalidate-public';
 import { slugify } from '@/lib/utils';
 import type { ApiListResponse, EventItem, EventOrigin, EventStatus } from '@/types';
 
@@ -44,8 +45,21 @@ const EMPTY_FORM = {
   videoUrl: null as string | null,
 };
 
+function toDatetimeLocal(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function EditEventRow({ event, onClose }: { event: EventItem; onClose: () => void }) {
   const queryClient = useQueryClient();
+  const [title, setTitle] = useState(event.title);
+  const [type, setType] = useState(event.type);
+  const [origin, setOrigin] = useState<EventOrigin>(event.origin);
+  const [location, setLocation] = useState(event.location ?? '');
+  const [startAt, setStartAt] = useState(toDatetimeLocal(event.startAt));
+  const [endAt, setEndAt] = useState(toDatetimeLocal(event.endAt));
+  const [capacity, setCapacity] = useState(event.capacity);
   const [description, setDescription] = useState(event.description);
   const [coverImage, setCoverImage] = useState<string | null>(event.coverImage);
   const [videoUrl, setVideoUrl] = useState<string | null>(event.videoUrl);
@@ -55,13 +69,21 @@ function EditEventRow({ event, onClose }: { event: EventItem; onClose: () => voi
   const updateMutation = useMutation({
     mutationFn: () =>
       api.patch(`/api/admin/events/${event.id}`, {
+        title,
+        type,
+        origin,
+        location: location || undefined,
+        startAt: new Date(startAt).toISOString(),
+        endAt: new Date(endAt).toISOString(),
+        capacity: Number(capacity),
         description,
         coverImage: coverImage || undefined,
         videoUrl: videoUrl || undefined,
-        coOrganizerName: event.origin === 'CO_ORGANIZED' ? coOrganizerName || undefined : undefined,
+        coOrganizerName: origin === 'CO_ORGANIZED' ? coOrganizerName || undefined : undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+      revalidatePublic('events');
       onClose();
     },
     onError: (e) => setError(e instanceof ApiRequestError ? e.message : 'Erreur lors de la mise à jour'),
@@ -71,16 +93,58 @@ function EditEventRow({ event, onClose }: { event: EventItem; onClose: () => voi
     <tr>
       <td colSpan={6} className="bg-gray-50 p-5">
         <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Titre</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div>
+              <Label>Catégorie</Label>
+              <Select value={origin} onChange={(e) => setOrigin(e.target.value as EventOrigin)}>
+                {Object.entries(EVENT_ORIGIN_LABEL).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Label>Type</Label>
+              <Select value={type} onChange={(e) => setType(e.target.value as EventItem['type'])}>
+                {['CONFERENCE', 'ATELIER', 'NETWORKING', 'MASTERCLASS'].map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Label>Lieu</Label>
+              <Input value={location} onChange={(e) => setLocation(e.target.value)} />
+            </div>
+            <div>
+              <Label>Début</Label>
+              <Input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+            </div>
+            <div>
+              <Label>Fin</Label>
+              <Input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
+            </div>
+            <div>
+              <Label>Capacité</Label>
+              <Input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
+            </div>
+            {origin === 'CO_ORGANIZED' && (
+              <div>
+                <Label>Nom du co-organisateur</Label>
+                <Input value={coOrganizerName} onChange={(e) => setCoOrganizerName(e.target.value)} />
+              </div>
+            )}
+          </div>
           <div>
             <Label>Description</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
-          {event.origin === 'CO_ORGANIZED' && (
-            <div className="max-w-sm">
-              <Label>Nom du co-organisateur</Label>
-              <Input value={coOrganizerName} onChange={(e) => setCoOrganizerName(e.target.value)} />
-            </div>
-          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <ImageUploader value={coverImage} onChange={setCoverImage} category="events" label="Visuel de couverture" />
             <VideoUploader value={videoUrl} onChange={setVideoUrl} category="events" label="Vidéo récap" />
@@ -106,6 +170,7 @@ export default function AdminEvenementsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-events'],
@@ -130,6 +195,7 @@ export default function AdminEvenementsPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+      revalidatePublic('events');
       setForm(EMPTY_FORM);
       setShowForm(false);
       setFormError(null);
@@ -140,10 +206,13 @@ export default function AdminEvenementsPage() {
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: EventStatus }) =>
       api.patch(`/api/admin/events/${id}`, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-events'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+      revalidatePublic('events');
+    },
   });
 
-  const events = data?.data ?? [];
+  const events = (data?.data ?? []).filter((e) => e.title.toLowerCase().includes(search.trim().toLowerCase()));
 
   return (
     <div className="space-y-6">
@@ -233,12 +302,22 @@ export default function AdminEvenementsPage() {
         </Card>
       )}
 
+      <div className="relative max-w-sm">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Input
+          className="pl-9"
+          placeholder="Rechercher un événement..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
             <p className="p-5 text-sm text-gray-500">Chargement...</p>
           ) : events.length === 0 ? (
-            <EmptyState title="Aucun événement" />
+            <EmptyState title={search ? 'Aucun événement ne correspond à la recherche' : 'Aucun événement'} />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

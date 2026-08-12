@@ -11,7 +11,7 @@ export const revalidate = 900;
 export const metadata = { title: 'Galerie des événements' };
 
 export default async function EvenementsGaleriePage() {
-  const items = await serverGet<EventMediaItem[]>('/api/events/gallery', 900, []);
+  const items = await serverGet<EventMediaItem[]>('/api/events/gallery', 900, [], 'events');
 
   return (
     <Container className="section-padding">

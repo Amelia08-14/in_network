@@ -29,6 +29,15 @@ interface Booking {
   status: string;
   space: { name: string };
 }
+interface ServiceRequestItem {
+  id: string;
+  createdAt: string;
+  status: string;
+  notes: string | null;
+  service: { title: string } | null;
+  space: { name: string } | null;
+  plan: { name: string } | null;
+}
 
 const STATUS_VARIANT: Record<string, 'success' | 'neutral' | 'startup'> = {
   CONFIRMED: 'success',
@@ -36,6 +45,23 @@ const STATUS_VARIANT: Record<string, 'success' | 'neutral' | 'startup'> = {
   CANCELLED: 'startup',
   COMPLETED: 'neutral',
 };
+
+const REQUEST_STATUS_VARIANT: Record<string, 'success' | 'neutral' | 'startup'> = {
+  NEW: 'neutral',
+  IN_PROGRESS: 'success',
+  DONE: 'success',
+  CANCELLED: 'startup',
+};
+const REQUEST_STATUS_LABEL: Record<string, string> = {
+  NEW: 'Nouvelle',
+  IN_PROGRESS: 'En cours',
+  DONE: 'Traitée',
+  CANCELLED: 'Annulée',
+};
+
+function requestTargetLabel(r: ServiceRequestItem) {
+  return r.service?.title ?? r.space?.name ?? r.plan?.name ?? 'Demande';
+}
 
 export default function ReservationsPage() {
   const queryClient = useQueryClient();
@@ -55,6 +81,10 @@ export default function ReservationsPage() {
     queryKey: ['availability', spaceId, date],
     queryFn: () => api.get<{ data: { slots: Slot[] } }>(`/api/spaces/${spaceId}/availability?date=${date}`).then((r) => r.data),
     enabled: Boolean(spaceId && date),
+  });
+  const { data: serviceRequests } = useQuery({
+    queryKey: ['my-service-requests'],
+    queryFn: () => api.get<{ data: ServiceRequestItem[] }>('/api/services/requests/mine').then((r) => r.data),
   });
 
   const bookMutation = useMutation({
@@ -144,6 +174,34 @@ export default function ReservationsPage() {
                       </button>
                     )}
                   </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <div className="p-5">
+          <CardTitle>Mes demandes de service</CardTitle>
+        </div>
+        <CardContent className="pt-0">
+          {!serviceRequests || serviceRequests.length === 0 ? (
+            <EmptyState icon={CalendarCheck} title="Aucune demande de service" />
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {serviceRequests.map((r) => (
+                <li key={r.id} className="flex items-center justify-between py-3 text-sm">
+                  <div>
+                    <p className="font-medium text-gray-700">{requestTargetLabel(r)}</p>
+                    <p className="text-xs text-accent-gray">
+                      {new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </p>
+                    {r.notes && <p className="mt-1 text-xs text-accent-gray">{r.notes}</p>}
+                  </div>
+                  <Badge variant={REQUEST_STATUS_VARIANT[r.status] ?? 'neutral'}>
+                    {REQUEST_STATUS_LABEL[r.status] ?? r.status}
+                  </Badge>
                 </li>
               ))}
             </ul>

@@ -80,7 +80,7 @@ export async function register(input: RegisterInput) {
 }
 
 function verifyLink(token: string) {
-  return `${env.corsOrigin}/auth/verify-email?token=${token}`;
+  return `${env.corsOrigin}/verify-email?token=${token}`;
 }
 
 export async function login(input: LoginInput) {
@@ -89,6 +89,28 @@ export async function login(input: LoginInput) {
 
   const validPassword = await comparePassword(input.password, user.passwordHash);
   if (!validPassword) throw ApiError.unauthorized('Email ou mot de passe incorrect');
+
+  const tokens = await issueTokenPair(user.id, user.role);
+  return { user: publicUser(user), ...tokens };
+}
+
+// Faille RBAC critique remontée par QA : POST /api/auth/admin/login réutilisait
+// login() sans jamais vérifier le rôle côté serveur — un compte MEMBER pouvait
+// obtenir un token d'accès valide via ce endpoint, la seule barrière étant un
+// contrôle client (AdminLoginScreen) qui se contournait facilement. On vérifie
+// désormais le mot de passe puis le rôle AVANT d'émettre le moindre token,
+// pour qu'un compte non-admin ne puisse jamais obtenir de session admin, quel
+// que soit l'état du frontend.
+export async function adminLogin(input: LoginInput) {
+  const user = await prisma.user.findUnique({ where: { email: input.email } });
+  if (!user || !user.isActive) throw ApiError.unauthorized('Email ou mot de passe incorrect');
+
+  const validPassword = await comparePassword(input.password, user.passwordHash);
+  if (!validPassword) throw ApiError.unauthorized('Email ou mot de passe incorrect');
+
+  if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+    throw ApiError.forbidden('Ce compte ne dispose pas des droits administrateur');
+  }
 
   const tokens = await issueTokenPair(user.id, user.role);
   return { user: publicUser(user), ...tokens };
@@ -112,6 +134,41 @@ export async function refresh(refreshToken: string) {
   if (!user || !user.isActive) throw ApiError.unauthorized();
 
   // Rotation: on révoque l'ancien refresh token et on en émet un nouveau
+  await prisma.refreshToken.update({
+    where: { id: stored.id },
+    data: { revokedAt: new Date() },
+  });
+
+  const tokens = await issueTokenPair(user.id, user.role);
+  return { user: publicUser(user), ...tokens };
+}
+
+// Même logique que refresh(), avec une re-vérification du rôle à chaque
+// rafraîchissement : si un compte admin est rétrogradé en cours de session,
+// le prochain refresh révoque la session au lieu de simplement la reconduire
+// avec l'ancien rôle figé dans le token précédent.
+export async function adminRefresh(refreshToken: string) {
+  let payload: { sub: string };
+  try {
+    payload = verifyRefreshToken(refreshToken);
+  } catch {
+    throw ApiError.unauthorized('Refresh token invalide');
+  }
+
+  const tokenHash = hashToken(refreshToken);
+  const stored = await prisma.refreshToken.findUnique({ where: { tokenHash } });
+  if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
+    throw ApiError.unauthorized('Session expirée, reconnecte-toi');
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+  if (!user || !user.isActive) throw ApiError.unauthorized();
+
+  if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+    await prisma.refreshToken.update({ where: { id: stored.id }, data: { revokedAt: new Date() } });
+    throw ApiError.forbidden('Ce compte ne dispose plus des droits administrateur');
+  }
+
   await prisma.refreshToken.update({
     where: { id: stored.id },
     data: { revokedAt: new Date() },
@@ -176,7 +233,7 @@ export async function forgotPassword(email: string) {
   await sendEmail({
     to: user.email,
     subject: 'IN NETWORK — réinitialisation de mot de passe',
-    html: `<p>Réinitialise ton mot de passe : <a href="${env.corsOrigin}/auth/reset-password?token=${passwordResetToken}">lien de réinitialisation</a></p><p>Ce lien expire dans 1h.</p>`,
+    html: `<p>Réinitialise ton mot de passe : <a href="${env.corsOrigin}/reset-password?token=${passwordResetToken}">lien de réinitialisation</a></p><p>Ce lien expire dans 1h.</p>`,
   });
 }
 

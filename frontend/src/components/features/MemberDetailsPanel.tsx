@@ -23,9 +23,14 @@ interface MemberDetail {
     website: string | null;
     linkedinUrl: string | null;
     isPublic: boolean;
+    tags: Array<{ relation: 'OFFER' | 'NEED'; tag: { label: string; category: 'SKILL' | 'SECTOR' } }>;
   } | null;
   subscriptions: Array<{ id: string; status: string; startDate: string; endDate: string }>;
   bookings: Array<{ id: string; status: string; startAt: string; endAt: string }>;
+}
+
+function tagsByRelation(profile: MemberDetail['profile'], category: 'SKILL' | 'SECTOR', relation: 'OFFER' | 'NEED') {
+  return (profile?.tags ?? []).filter((t) => t.tag.category === category && t.relation === relation).map((t) => t.tag.label);
 }
 
 export function MemberDetailsPanel({
@@ -83,7 +88,32 @@ export function MemberDetailsPanel({
                 <div><dt className="text-ink-500">Email</dt><dd className="mt-1 break-all font-medium text-ink-900">{member.email}</dd></div>
                 <div><dt className="text-ink-500">Téléphone</dt><dd className="mt-1 font-medium text-ink-900">{member.phone || 'Non renseigné'}</dd></div>
                 <div><dt className="text-ink-500">Entreprise</dt><dd className="mt-1 font-medium text-ink-900">{member.profile?.companyName || 'Non renseignée'}</dd></div>
+                <div><dt className="text-ink-500">Poste</dt><dd className="mt-1 font-medium text-ink-900">{member.profile?.jobTitle || 'Non renseigné'}</dd></div>
                 <div><dt className="text-ink-500">Type</dt><dd className="mt-1 font-medium text-ink-900">{member.profile?.memberType || 'Non renseigné'}</dd></div>
+                <div>
+                  <dt className="text-ink-500">Site web</dt>
+                  <dd className="mt-1 break-all font-medium text-ink-900">
+                    {member.profile?.website ? (
+                      <a href={member.profile.website} target="_blank" rel="noreferrer" className="text-brand-orange hover:underline">
+                        {member.profile.website}
+                      </a>
+                    ) : (
+                      'Non renseigné'
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-ink-500">LinkedIn</dt>
+                  <dd className="mt-1 break-all font-medium text-ink-900">
+                    {member.profile?.linkedinUrl ? (
+                      <a href={member.profile.linkedinUrl} target="_blank" rel="noreferrer" className="text-brand-orange hover:underline">
+                        {member.profile.linkedinUrl}
+                      </a>
+                    ) : (
+                      'Non renseigné'
+                    )}
+                  </dd>
+                </div>
                 <div><dt className="text-ink-500">Email vérifié</dt><dd className="mt-1 font-medium text-ink-900">{member.emailVerified ? 'Oui' : 'Non'}</dd></div>
                 <div><dt className="text-ink-500">Inscription</dt><dd className="mt-1 font-medium text-ink-900">{new Date(member.createdAt).toLocaleDateString('fr-FR')}</dd></div>
               </dl>
@@ -95,6 +125,47 @@ export function MemberDetailsPanel({
                 <p className="mt-3 whitespace-pre-line rounded-2xl border border-ink-900/[0.08] p-4 text-sm leading-relaxed text-ink-600">{member.profile.bio}</p>
               </section>
             )}
+
+            {(() => {
+              const sectors = tagsByRelation(member.profile, 'SECTOR', 'OFFER');
+              const skillsOffered = tagsByRelation(member.profile, 'SKILL', 'OFFER');
+              const skillsWanted = tagsByRelation(member.profile, 'SKILL', 'NEED');
+              if (!sectors.length && !skillsOffered.length && !skillsWanted.length) return null;
+              return (
+                <section className="space-y-4">
+                  {sectors.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Secteur(s) d&apos;activité</h3>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {sectors.map((s) => (
+                          <Badge key={s} variant="neutral">{s}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {skillsOffered.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Compétences proposées</h3>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {skillsOffered.map((s) => (
+                          <Badge key={s} variant="success">{s}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {skillsWanted.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Compétences recherchées</h3>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {skillsWanted.map((s) => (
+                          <Badge key={s} variant="startup">{s}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-ink-900/[0.08] p-4"><p className="text-sm text-ink-500">Abonnements</p><p className="mt-1 text-3xl font-bold text-ink-900">{member.subscriptions.length}</p></div>

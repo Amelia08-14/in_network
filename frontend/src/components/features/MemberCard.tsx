@@ -12,8 +12,8 @@ export function MemberCard({ profile }: { profile: MemberProfileSummary }) {
   const initials = `${profile.firstName[0] ?? ''}${profile.lastName[0] ?? ''}`;
 
   return (
-    <Link href={`/annuaire/${profile.id}`} className="group block h-full">
-      <Card accent={MEMBER_TYPE_ACCENT[profile.memberType] ?? 'none'} className="h-full">
+    <Link href={`/annuaire/${profile.id}`} className="group block h-full min-w-0">
+      <Card accent={MEMBER_TYPE_ACCENT[profile.memberType] ?? 'none'} className="h-full min-w-0">
         <CardContent className="flex h-full flex-col gap-4">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-ink-900 to-brand-orange text-white">
@@ -37,10 +37,13 @@ export function MemberCard({ profile }: { profile: MemberProfileSummary }) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <MemberTypeBadge memberType={profile.memberType} />
             {profile.sectors.slice(0, 2).map((sector) => (
-              <span key={sector} className="rounded-pill bg-ink-900/[0.05] px-2.5 py-0.5 text-xs text-ink-600">
+              <span
+                key={sector}
+                className="max-w-[9rem] truncate rounded-pill bg-ink-900/[0.05] px-2.5 py-0.5 text-xs text-ink-600"
+              >
                 {sector}
               </span>
             ))}

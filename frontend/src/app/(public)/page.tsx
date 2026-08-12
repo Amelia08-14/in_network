@@ -69,10 +69,10 @@ export const revalidate = 3600;
 
 export default async function HomePage() {
   const [members, services, events, testimonials] = await Promise.all([
-    serverGet<MemberProfileSummary[]>('/api/profiles?limit=6', 900, []),
-    serverGet<ServiceCatalogItem[]>('/api/services', 3600, []),
-    serverGet<EventItem[]>('/api/events', 900, []),
-    serverGet<Testimonial[]>('/api/testimonials', 3600, []),
+    serverGet<MemberProfileSummary[]>('/api/profiles?limit=6', 900, [], 'profiles'),
+    serverGet<ServiceCatalogItem[]>('/api/services', 3600, [], 'services'),
+    serverGet<EventItem[]>('/api/events', 900, [], 'events'),
+    serverGet<Testimonial[]>('/api/testimonials', 3600, [], 'testimonials'),
   ]);
 
   const featuredTestimonial = testimonials.find((t) => !t.videoUrl && t.content) ?? null;

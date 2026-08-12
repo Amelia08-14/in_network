@@ -33,9 +33,9 @@ function formatDzd(value: string | null): string {
 
 export default async function TarifsPage() {
   const [plans, spaces, services] = await Promise.all([
-    serverGet<MembershipPlan[]>('/api/plans', 3600, []),
-    serverGet<SpaceResource[]>('/api/spaces?type=MEETING_ROOM', 3600, []),
-    serverGet<ServiceCatalogItem[]>('/api/services', 3600, []),
+    serverGet<MembershipPlan[]>('/api/plans', 3600, [], 'plans'),
+    serverGet<SpaceResource[]>('/api/spaces?type=MEETING_ROOM', 3600, [], 'spaces'),
+    serverGet<ServiceCatalogItem[]>('/api/services', 3600, [], 'services'),
   ]);
 
   const secondaryServices = services.filter((s) => s.pricingTiers && s.pricingTiers.length > 0);
@@ -79,15 +79,13 @@ export default async function TarifsPage() {
                 )}
 
                 <div className="flex flex-col items-center gap-3 pt-1">
-                  <Link href="/register" className={cn(buttonVariants({ variant: 'primary' }), 'w-full')}>
-                    Choisir cette formule
-                  </Link>
                   <InquiryForm
                     targetType="PLAN"
                     targetId={plan.id}
-                    ctaLabel="Une question ?"
-                    ctaVariant="link"
-                    ctaSize="sm"
+                    ctaLabel="Choisir cette formule"
+                    ctaVariant="primary"
+                    className="w-full"
+                    loggedOutHref="/register"
                   />
                 </div>
               </CardContent>

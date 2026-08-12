@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { api, ApiRequestError } from '@/lib/admin-api';
+import { revalidatePublic } from '@/lib/revalidate-public';
 import { slugify } from '@/lib/utils';
 import type { ApiListResponse, PricingTier, ServiceCatalogItem } from '@/types';
 
@@ -48,6 +49,7 @@ export default function AdminServicesPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-services'] });
+      revalidatePublic('services');
       setForm(EMPTY_FORM);
       setShowForm(false);
       setFormError(null);

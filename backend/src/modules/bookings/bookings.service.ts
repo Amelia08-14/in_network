@@ -35,7 +35,15 @@ export async function createBooking(userId: string, spaceId: string, startAt: st
       throw ApiError.conflict('Ce créneau est déjà réservé pour cet espace');
     }
 
-    const hourlyRate = space.hourlyRateMember ? Number(space.hourlyRateMember) : 0;
+    // Retour QA : une réservation pouvait se créer avec un prix de 0 DZD
+    // silencieux quand hourlyRateMember n'était pas configuré pour l'espace
+    // (valait alors 0 par défaut au lieu de bloquer). Un espace sans tarif
+    // horaire membre configuré ne doit jamais produire de réservation
+    // gratuite — on bloque explicitement plutôt que de laisser passer.
+    if (!space.hourlyRateMember || Number(space.hourlyRateMember) <= 0) {
+      throw ApiError.badRequest("Cet espace n'a pas de tarif horaire configuré — contacte l'administration");
+    }
+    const hourlyRate = Number(space.hourlyRateMember);
     const price = hourlyRate * hoursBetween(start, end);
 
     return tx.booking.create({

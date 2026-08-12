@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
-import { attachUserIfPresent, requireAuth } from '../../middleware/auth';
+import { requireAuth } from '../../middleware/auth';
 import { inquiryRateLimit } from '../../middleware/rateLimit';
 import { validate } from '../../middleware/validate';
 import { asyncHandler } from '../../utils/asyncHandler';
@@ -44,22 +44,17 @@ servicesRouter.get(
   }),
 );
 
-// Formulaire "Demander" public — catalogue de services, tarif d'espace ou
-// formule d'abonnement, discriminé par targetType. Un visiteur non connecté
-// peut soumettre via ses coordonnées (guestName/guestEmail) ; un membre
-// connecté est rattaché automatiquement via req.user, sans avoir à ressaisir
-// ses coordonnées (attachUserIfPresent ne bloque jamais la requête).
+// Formulaire "Demander" — catalogue de services, tarif d'espace ou formule
+// d'abonnement, discriminé par targetType. Réservé aux membres connectés
+// (retour QA E2E#3/#5 : une demande sans compte n'est plus autorisée).
 servicesRouter.post(
   '/requests',
   inquiryRateLimit,
-  attachUserIfPresent,
+  requireAuth,
   validate({ body: createInquirySchema }),
   asyncHandler(async (req, res) => {
-    const { targetType, serviceId, spaceId, planId, notes, guestName, guestEmail, guestPhone, guestCompany } = req.body;
-
-    if (!req.user && !(guestName && guestEmail)) {
-      throw ApiError.badRequest('Indique ton nom et ton email, ou connecte-toi pour envoyer la demande');
-    }
+    if (!req.user) throw ApiError.unauthorized();
+    const { targetType, serviceId, spaceId, planId, notes } = req.body;
 
     if (targetType === 'SERVICE') {
       const service = await prisma.serviceCatalogItem.findUnique({ where: { id: serviceId } });
@@ -74,16 +69,12 @@ servicesRouter.post(
 
     const request = await prisma.serviceRequest.create({
       data: {
-        userId: req.user?.id,
+        userId: req.user.id,
         targetType,
         serviceId: targetType === 'SERVICE' ? serviceId : undefined,
         spaceId: targetType === 'SPACE' ? spaceId : undefined,
         planId: targetType === 'PLAN' ? planId : undefined,
         notes,
-        guestName: req.user ? undefined : guestName,
-        guestEmail: req.user ? undefined : guestEmail,
-        guestPhone: req.user ? undefined : guestPhone,
-        guestCompany: req.user ? undefined : guestCompany,
       },
     });
     ok(res, request, 201);

@@ -17,7 +17,7 @@ const EXPERTISE_LABELS = [
 ];
 
 export default async function ExpertsPage() {
-  const experts = await serverGet<ExpertSummary[]>('/api/experts?limit=24', 3600, []);
+  const experts = await serverGet<ExpertSummary[]>('/api/experts?limit=24', 3600, [], 'experts');
 
   return (
     <>

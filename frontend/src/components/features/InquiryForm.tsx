@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,6 +41,11 @@ interface InquiryFormProps {
   ctaVariant?: 'primary' | 'secondary' | 'outline' | 'link';
   ctaSize?: 'sm' | 'md' | 'lg';
   className?: string;
+  /** Destination pour un visiteur non connecté (défaut /login). Pour une
+   * formule d'abonnement (targetType PLAN), passer /register : choisir une
+   * formule implique de créer un compte, pas de se connecter à un compte
+   * existant. */
+  loggedOutHref?: string;
 }
 
 const TARGET_FIELD: Record<InquiryTargetType, 'serviceId' | 'spaceId' | 'planId'> = {
@@ -51,10 +56,10 @@ const TARGET_FIELD: Record<InquiryTargetType, 'serviceId' | 'spaceId' | 'planId'
 
 // Formulaire "Demander" générique — services entrepreneuriaux, espaces
 // (salles de réunion) ou formules d'abonnement, cf. POST /api/services/requests
-// (backend/src/modules/services/services.routes.ts). Visiteur non connecté :
-// coordonnées saisies à la main. Membre connecté : rattaché automatiquement
-// via le token d'accès, pas de champ à ressaisir.
-export function InquiryForm({ targetType, targetId, options, ctaLabel = 'Demander', ctaVariant = 'primary', ctaSize = 'lg', className }: InquiryFormProps) {
+// (backend/src/modules/services/services.routes.ts). Réservé aux membres
+// connectés (retour QA E2E#3/#5 : le mode "invité" a été retiré — un visiteur
+// non connecté est renvoyé vers /login au lieu de pouvoir soumettre).
+export function InquiryForm({ targetType, targetId, options, ctaLabel = 'Demander', ctaVariant = 'primary', ctaSize = 'lg', className, loggedOutHref = '/login' }: InquiryFormProps) {
   const user = useAuthStore((s) => s.user);
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,7 +69,7 @@ export function InquiryForm({ targetType, targetId, options, ctaLabel = 'Demande
   const [selectedSubOptionKey, setSelectedSubOptionKey] = useState(
     () => options?.[0]?.subOptions?.[0]?.key ?? '',
   );
-  const [form, setForm] = useState({ guestName: '', guestEmail: '', guestPhone: '', guestCompany: '', notes: '' });
+  const [notes, setNotes] = useState('');
   const activeOption = options?.find((o) => o.key === selectedOptionKey);
   const activeSubOption = activeOption?.subOptions?.find((o) => o.key === selectedSubOptionKey);
   const activeTargetId = options && options.length > 0 ? (activeOption?.targetId ?? targetId) : targetId;
@@ -85,16 +90,8 @@ export function InquiryForm({ targetType, targetId, options, ctaLabel = 'Demande
         [TARGET_FIELD[targetType]]: activeTargetId,
         notes: [
           activeSubOption?.noteHint ?? activeOption?.noteHint,
-          form.notes.trim() || undefined,
+          notes.trim() || undefined,
         ].filter(Boolean).join('\n\n') || undefined,
-        ...(user
-          ? {}
-          : {
-              guestName: form.guestName,
-              guestEmail: form.guestEmail,
-              guestPhone: form.guestPhone || undefined,
-              guestCompany: form.guestCompany || undefined,
-            }),
       });
       setIsDone(true);
     } catch (err) {
@@ -109,11 +106,22 @@ export function InquiryForm({ targetType, targetId, options, ctaLabel = 'Demande
       <Card accent="green" className={className}>
         <CardContent className="flex items-center gap-3">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-accent-green" />
-          <p className="text-sm text-ink-700">
-            Demande envoyée — l&apos;équipe IN NETWORK te recontacte rapidement{!user && form.guestEmail ? ` à ${form.guestEmail}` : ''}.
-          </p>
+          <p className="text-sm text-ink-700">Demande envoyée — l&apos;équipe IN NETWORK te recontacte rapidement.</p>
         </CardContent>
       </Card>
+    );
+  }
+
+  // Visiteur non connecté : on ne montre jamais le formulaire.
+  if (!user) {
+    return (
+      <Link
+        href={loggedOutHref}
+        className={cn(buttonVariants({ variant: ctaVariant, size: ctaSize }), className)}
+        title="Connecte-toi pour envoyer une demande"
+      >
+        {ctaLabel}
+      </Link>
     );
   }
 
@@ -164,56 +172,14 @@ export function InquiryForm({ targetType, targetId, options, ctaLabel = 'Demande
               </p>
             </div>
           )}
-          {!user && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor={`${activeTargetId}-guestName`}>Nom complet</Label>
-                <Input
-                  id={`${activeTargetId}-guestName`}
-                  required
-                  value={form.guestName}
-                  onChange={(e) => setForm({ ...form, guestName: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor={`${activeTargetId}-guestEmail`}>Email</Label>
-                <Input
-                  id={`${activeTargetId}-guestEmail`}
-                  type="email"
-                  required
-                  value={form.guestEmail}
-                  onChange={(e) => setForm({ ...form, guestEmail: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor={`${activeTargetId}-guestPhone`}>Téléphone</Label>
-                <Input
-                  id={`${activeTargetId}-guestPhone`}
-                  type="tel"
-                  value={form.guestPhone}
-                  onChange={(e) => setForm({ ...form, guestPhone: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor={`${activeTargetId}-guestCompany`}>Société</Label>
-                <Input
-                  id={`${activeTargetId}-guestCompany`}
-                  value={form.guestCompany}
-                  onChange={(e) => setForm({ ...form, guestCompany: e.target.value })}
-                />
-              </div>
-            </div>
-          )}
           <div>
             <Label htmlFor={`${activeTargetId}-notes`}>Message (optionnel)</Label>
             <Textarea
               id={`${activeTargetId}-notes`}
               rows={3}
               placeholder="Précise ta demande, tes disponibilités..."
-              value={form.notes}
-              onChange={(e) => {
-                setForm({ ...form, notes: e.target.value });
-              }}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
             />
           </div>
           {error && <p className="text-sm text-brand-orange">{error}</p>}

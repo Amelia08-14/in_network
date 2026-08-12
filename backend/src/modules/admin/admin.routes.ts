@@ -133,11 +133,11 @@ function countBy<T>(items: T[], getKey: (item: T) => string) {
   return Array.from(counts.entries()).map(([label, count]) => ({ label, count }));
 }
 
-// --- Validations (hub central : événements/services/paiements en attente) ---
+// --- Validations (hub central : événements/services/paiements/membres en attente) ---
 adminRouter.get(
   '/validations',
   asyncHandler(async (_req, res) => {
-    const [pendingEvents, pendingServiceRequests, pendingBankTransfers] = await Promise.all([
+    const [pendingEvents, pendingServiceRequests, pendingBankTransfers, pendingMembers] = await Promise.all([
       prisma.event.findMany({ where: { status: 'PENDING_REVIEW' }, orderBy: { startAt: 'asc' } }),
       prisma.serviceRequest.findMany({
         where: { status: 'NEW' },
@@ -149,8 +149,23 @@ adminRouter.get(
         include: { user: { include: { profile: true } } },
         orderBy: { createdAt: 'asc' },
       }),
+      prisma.memberProfile.findMany({
+        where: { isPublic: false },
+        include: { user: { select: { email: true, emailVerified: true } } },
+        orderBy: { createdAt: 'asc' },
+      }),
     ]);
-    ok(res, { pendingEvents, pendingServiceRequests, pendingBankTransfers });
+    ok(res, { pendingEvents, pendingServiceRequests, pendingBankTransfers, pendingMembers });
+  }),
+);
+adminRouter.patch(
+  '/members/:id/approve',
+  asyncHandler(async (req, res) => {
+    const profile = await prisma.memberProfile.update({
+      where: { userId: req.params.id },
+      data: { isPublic: true },
+    });
+    ok(res, profile);
   }),
 );
 
@@ -199,7 +214,12 @@ adminRouter.get(
   asyncHandler(async (req, res) => {
     const member = await prisma.user.findUnique({
       where: { id: req.params.id },
-      include: { profile: true, expertProfile: true, subscriptions: true, bookings: true },
+      include: {
+        profile: { include: { tags: { include: { tag: true } } } },
+        expertProfile: true,
+        subscriptions: true,
+        bookings: true,
+      },
     });
     if (!member) throw ApiError.notFound('Membre introuvable');
     const { passwordHash, emailVerifyToken, passwordResetToken, ...safe } = member;
@@ -285,6 +305,14 @@ adminRouter.patch(
       include: { user: { include: { profile: true } }, space: true },
     });
     ok(res, booking);
+  }),
+);
+
+// --- Sites (mono-site actuellement, mais modélisé multi-site) ---
+adminRouter.get(
+  '/sites',
+  asyncHandler(async (_req, res) => {
+    ok(res, await prisma.site.findMany({ orderBy: { createdAt: 'asc' } }));
   }),
 );
 

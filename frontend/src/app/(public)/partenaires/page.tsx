@@ -10,7 +10,7 @@ export const revalidate = 3600;
 export const metadata = { title: 'Partenaires' };
 
 export default async function PartenairesPage() {
-  const partners = await serverGet<Partner[]>('/api/partners', 3600, []);
+  const partners = await serverGet<Partner[]>('/api/partners', 3600, [], 'partners');
 
   return (
     <Container className="section-padding">

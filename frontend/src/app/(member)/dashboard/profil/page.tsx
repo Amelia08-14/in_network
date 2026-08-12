@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { api, ApiRequestError } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import type { MemberProfileSummary } from '@/types';
 
 export default function ProfilPage() {
@@ -27,7 +29,7 @@ export default function ProfilPage() {
     skillsWanted: '',
     sectors: '',
   });
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -57,10 +59,14 @@ export default function ProfilPage() {
         sectors: form.sectors.split(',').map((s) => s.trim()).filter(Boolean),
       }),
     onSuccess: () => {
-      setMessage('Profil mis à jour.');
+      setMessage({ text: 'Profil mis à jour.', kind: 'success' });
       queryClient.invalidateQueries({ queryKey: ['my-profile'] });
     },
-    onError: (e) => setMessage(e instanceof ApiRequestError ? e.message : 'Erreur lors de la mise à jour'),
+    onError: (e) =>
+      setMessage({
+        text: e instanceof ApiRequestError ? e.message : 'Erreur lors de la mise à jour',
+        kind: 'error',
+      }),
   });
 
   if (isLoading) return <p className="text-sm text-gray-500">Chargement...</p>;
@@ -123,7 +129,17 @@ export default function ProfilPage() {
               <Input id="sectors" value={form.sectors} onChange={(e) => setForm({ ...form, sectors: e.target.value })} />
             </div>
 
-            {message && <p className="text-sm text-brand-violet">{message}</p>}
+            {message && (
+              <p
+                className={cn(
+                  'flex items-center gap-1.5 text-sm',
+                  message.kind === 'success' ? 'text-accent-green' : 'text-brand-orange',
+                )}
+              >
+                {message.kind === 'success' && <CheckCircle2 className="h-4 w-4 shrink-0" />}
+                {message.text}
+              </p>
+            )}
 
             <Button type="submit" variant="primary" disabled={mutation.isPending}>
               {mutation.isPending ? 'Enregistrement...' : 'Enregistrer'}

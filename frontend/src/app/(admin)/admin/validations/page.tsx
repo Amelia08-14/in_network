@@ -28,10 +28,20 @@ interface PaymentItem {
   user: { email: string; profile: { firstName: string; lastName: string } | null };
 }
 
+interface PendingMemberItem {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  memberType: string;
+  companyName: string | null;
+  user: { email: string; emailVerified: string | null };
+}
+
 interface ValidationsResponse {
   pendingEvents: EventItem[];
   pendingServiceRequests: ServiceRequestItem[];
   pendingBankTransfers: PaymentItem[];
+  pendingMembers: PendingMemberItem[];
 }
 
 function userLabel(user: { email: string; profile: { firstName: string; lastName: string } | null }) {
@@ -73,12 +83,17 @@ export default function AdminValidationsPage() {
     mutationFn: (id: string) => api.post(`/api/admin/payments/${id}/confirm`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-validations'] }),
   });
+  const approveMember = useMutation({
+    mutationFn: (userId: string) => api.patch(`/api/admin/members/${userId}/approve`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-validations'] }),
+  });
 
   if (isLoading) return <p className="text-sm text-gray-500">Chargement...</p>;
 
   const events = data?.pendingEvents ?? [];
   const serviceRequests = data?.pendingServiceRequests ?? [];
   const payments = data?.pendingBankTransfers ?? [];
+  const members = data?.pendingMembers ?? [];
 
   return (
     <div className="space-y-8">
@@ -86,6 +101,39 @@ export default function AdminValidationsPage() {
         <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Validations</h1>
         <p className="mt-1 text-sm text-gray-500">Tout ce qui attend une décision admin, au même endroit.</p>
       </div>
+
+      <section>
+        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">
+          Nouveaux membres ({members.length})
+        </h2>
+        <Card>
+          <CardContent className="p-0">
+            {members.length === 0 ? (
+              <EmptyState title="Rien à valider" className="py-8" />
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {members.map((m) => (
+                  <div key={m.userId} className="flex items-center gap-4 p-5">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-800">
+                        {m.firstName} {m.lastName}
+                        {m.companyName && <span className="font-normal text-gray-500"> — {m.companyName}</span>}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {m.user.email} · {m.memberType}
+                        {!m.user.emailVerified && <span className="ml-1.5 text-brand-orange">· email non vérifié</span>}
+                      </p>
+                    </div>
+                    <Button size="sm" onClick={() => approveMember.mutate(m.userId)}>
+                      Approuver
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
       <section>
         <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">

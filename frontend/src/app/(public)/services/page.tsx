@@ -11,7 +11,7 @@ export const revalidate = 3600;
 export const metadata = { title: 'Catalogue de services' };
 
 export default async function ServicesPage() {
-  const services = await serverGet<ServiceCatalogItem[]>('/api/services', 3600, []);
+  const services = await serverGet<ServiceCatalogItem[]>('/api/services', 3600, [], 'services');
 
   return (
     <Container className="section-padding">
