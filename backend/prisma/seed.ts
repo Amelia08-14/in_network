@@ -21,8 +21,8 @@ const REAL_MEDIA_DIR =
 // Médias réels déposés directement par la cliente dans le repo (galerie du
 // lieu + galerie par catégorie d'événement) — source d'ingestion pour cette
 // phase, plus besoin de passer par le scratchpad Drive.
-const GALERIE_DIR = path.join(process.cwd(), '..', 'frontend', 'public', 'galerie');
-const GALERIE_EVENT_DIR = path.join(process.cwd(), '..', 'frontend', 'public', 'galerie_event');
+const GALERIE_DIR = path.join(process.cwd(), 'prisma', 'seed-media', 'galerie');
+const GALERIE_EVENT_DIR = path.join(process.cwd(), 'prisma', 'seed-media', 'galerie_event');
 const VIDEO_EXT = new Set(['.mp4', '.mov', '.webm']);
 
 function slugifyFile(name: string): string {
@@ -353,7 +353,7 @@ async function main() {
 
   // --- Événements réels — "Listing des events.xlsx" (21 lignes : titre + type
   // IN/Externe/Co-organisation, aucune date/description/capacité fournie) ---
-  // croisées avec les dossiers réels frontend/public/galerie_event/event_{in,ext,co}.
+  // croisées avec les dossiers réels prisma/seed-media/galerie_event/event_{in,ext,co}.
   // Faute de date/description réelles, ces événements sont importés en
   // PENDING_REVIEW (invisibles sur le site public tant qu'un admin ne les
   // publie pas avec les vraies infos) — seuls le titre, l'origine et les
