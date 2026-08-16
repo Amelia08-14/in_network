@@ -1,5 +1,5 @@
 export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER';
-export type MemberType = 'FREELANCE' | 'STARTUP' | 'PME' | 'DIASPORA' | 'AUTRE';
+export type MemberType = 'FREELANCE' | 'STARTUP' | 'ENTREPRISE';
 
 export interface AuthUser {
   id: string;

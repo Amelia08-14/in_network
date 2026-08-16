@@ -62,7 +62,7 @@ export default function AProposPage() {
             <p>
               Avant d&apos;être une plateforme, IN NETWORK est d&apos;abord un lieu — un espace de coworking
               pensé pour la rencontre autant que pour la productivité. Notre réseau réunit des profils
-              complémentaires : freelances, startups, PME, membres de la diaspora, experts et partenaires.
+              complémentaires : freelances, startups, entreprises, experts et partenaires.
             </p>
             <p>
               Notre rôle est de faciliter ces rencontres, à travers un annuaire ciblé et un moteur de mise

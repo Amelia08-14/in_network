@@ -24,7 +24,7 @@ const registerSchema = z
     firstName: z.string().min(1, 'Prénom requis'),
     lastName: z.string().min(1, 'Nom requis'),
     phone: z.string().optional(),
-    memberType: z.enum(['FREELANCE', 'STARTUP', 'PME', 'DIASPORA', 'AUTRE']),
+    memberType: z.enum(['FREELANCE', 'STARTUP', 'ENTREPRISE']),
     companyName: z.string().optional(),
     jobTitle: z.string().optional(),
   })
@@ -43,9 +43,7 @@ const STEPS = [
 const MEMBER_TYPES = [
   { value: 'FREELANCE', label: 'Freelance' },
   { value: 'STARTUP', label: 'Startup' },
-  { value: 'PME', label: 'PME' },
-  { value: 'DIASPORA', label: 'Diaspora' },
-  { value: 'AUTRE', label: 'Autre' },
+  { value: 'ENTREPRISE', label: 'Entreprise' },
 ];
 
 export default function RegisterPage() {
@@ -71,6 +69,10 @@ export default function RegisterPage() {
   }
 
   async function onSubmit(values: RegisterForm) {
+    if (step !== STEPS.length - 1) {
+      setStep(STEPS.length - 1);
+      return;
+    }
     setServerError(null);
     setSubmitting(true);
     try {

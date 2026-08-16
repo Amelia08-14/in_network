@@ -16,8 +16,7 @@ const MEMBER_TYPES = [
   { value: '', label: 'Tous les profils' },
   { value: 'FREELANCE', label: 'Freelance' },
   { value: 'STARTUP', label: 'Startup' },
-  { value: 'PME', label: 'PME' },
-  { value: 'DIASPORA', label: 'Diaspora' },
+  { value: 'ENTREPRISE', label: 'Entreprise' },
 ];
 
 export default function AnnuairePage() {

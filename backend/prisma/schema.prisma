@@ -27,9 +27,7 @@ enum Role {
 enum MemberType {
   FREELANCE
   STARTUP
-  PME
-  DIASPORA
-  AUTRE
+  ENTREPRISE
 }
 
 enum SpaceType {

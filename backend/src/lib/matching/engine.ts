@@ -45,20 +45,11 @@ function sectorOverlap(a: MatchCandidate, b: MatchCandidate): number {
 // observation des taux d'acceptation réels par tranche de score.
 const COMPLEMENTARITY: Record<string, number> = {
   'FREELANCE|STARTUP': 1,
-  'FREELANCE|PME': 0.7,
-  'FREELANCE|DIASPORA': 0.6,
-  'FREELANCE|AUTRE': 0.4,
+  'FREELANCE|ENTREPRISE': 0.7,
   'FREELANCE|FREELANCE': 0.3,
   'STARTUP|STARTUP': 0.3,
-  'STARTUP|PME': 0.8,
-  'STARTUP|DIASPORA': 0.6,
-  'STARTUP|AUTRE': 0.4,
-  'PME|PME': 0.3,
-  'PME|DIASPORA': 0.5,
-  'PME|AUTRE': 0.4,
-  'DIASPORA|DIASPORA': 0.3,
-  'DIASPORA|AUTRE': 0.4,
-  'AUTRE|AUTRE': 0.3,
+  'STARTUP|ENTREPRISE': 0.8,
+  'ENTREPRISE|ENTREPRISE': 0.3,
 };
 
 function memberTypeComplementarity(a: MemberType, b: MemberType): number {

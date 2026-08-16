@@ -3,14 +3,13 @@ import { cn } from '@/lib/utils';
 import type { CardAccent } from './card';
 
 // CDC §3.4 — élément signature : badge de couleur dynamique selon memberType
-// (freelance = bleu, startup = orange, PME = violet, expert = vert).
+// (freelance = bleu, startup = orange, entreprise = violet, expert = vert).
 const badgeVariants = cva('inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-semibold', {
   variants: {
     variant: {
       freelance: 'bg-brand-blue/10 text-brand-blue',
       startup: 'bg-brand-orange/10 text-brand-orange',
-      pme: 'bg-brand-violet/10 text-brand-violet',
-      diaspora: 'bg-accent-yellow/20 text-yellow-800',
+      entreprise: 'bg-brand-violet/10 text-brand-violet',
       expert: 'bg-accent-green/20 text-green-800',
       neutral: 'bg-ink-900/[0.06] text-ink-700',
       success: 'bg-accent-green/20 text-green-800',
@@ -30,9 +29,7 @@ export function Badge({ className, variant, ...props }: BadgeProps) {
 const MEMBER_TYPE_VARIANT: Record<string, BadgeProps['variant']> = {
   FREELANCE: 'freelance',
   STARTUP: 'startup',
-  PME: 'pme',
-  DIASPORA: 'diaspora',
-  AUTRE: 'neutral',
+  ENTREPRISE: 'entreprise',
 };
 
 export function MemberTypeBadge({ memberType }: { memberType: string }) {
@@ -45,9 +42,7 @@ export function MemberTypeBadge({ memberType }: { memberType: string }) {
 export const MEMBER_TYPE_ACCENT: Record<string, CardAccent> = {
   FREELANCE: 'blue',
   STARTUP: 'orange',
-  PME: 'ink',
-  DIASPORA: 'yellow',
-  AUTRE: 'none',
+  ENTREPRISE: 'ink',
 };
 
 export const SERVICE_CATEGORY_ACCENT: Record<string, CardAccent> = {
