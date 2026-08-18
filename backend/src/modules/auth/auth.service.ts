@@ -69,18 +69,22 @@ export async function register(input: RegisterInput) {
     include: { profile: true },
   });
 
-  await sendEmail({
+  // Envoi non bloquant : un aléa du serveur SMTP de l'hébergeur ne doit
+  // jamais faire échouer la création de compte (retour QA #4 — l'inscription
+  // échouait précisément à cause de ça). L'utilisateur peut toujours
+  // redemander l'email via /resend-verification si celui-ci n'arrive pas.
+  sendEmail({
     to: user.email,
     subject: 'Bienvenue sur IN NETWORK — confirme ton email',
     html: `<p>Bonjour ${input.firstName},</p><p>Confirme ton adresse email en suivant ce lien : <a href="${verifyLink(emailVerifyToken)}">${verifyLink(emailVerifyToken)}</a></p><p>Ce lien expire dans 24h.</p>`,
-  });
+  }).catch((err) => console.error("[auth] échec d'envoi de l'email de bienvenue", err));
 
   const tokens = await issueTokenPair(user.id, user.role);
   return { user: publicUser(user), ...tokens };
 }
 
 function verifyLink(token: string) {
-  return `${env.corsOrigin}/verify-email?token=${token}`;
+  return `${env.appUrl}/verify-email?token=${token}`;
 }
 
 export async function login(input: LoginInput) {
@@ -209,11 +213,11 @@ export async function resendVerification(userId: string) {
     data: { emailVerifyToken, emailVerifyExpires: new Date(Date.now() + EMAIL_VERIFY_TTL_MS) },
   });
 
-  await sendEmail({
+  sendEmail({
     to: user.email,
     subject: 'IN NETWORK — confirme ton email',
     html: `<p>Confirme ton adresse email : <a href="${verifyLink(emailVerifyToken)}">${verifyLink(emailVerifyToken)}</a></p>`,
-  });
+  }).catch((err) => console.error("[auth] échec d'envoi de l'email de vérification", err));
 }
 
 export async function forgotPassword(email: string) {
@@ -230,11 +234,11 @@ export async function forgotPassword(email: string) {
     },
   });
 
-  await sendEmail({
+  sendEmail({
     to: user.email,
     subject: 'IN NETWORK — réinitialisation de mot de passe',
-    html: `<p>Réinitialise ton mot de passe : <a href="${env.corsOrigin}/reset-password?token=${passwordResetToken}">lien de réinitialisation</a></p><p>Ce lien expire dans 1h.</p>`,
-  });
+    html: `<p>Réinitialise ton mot de passe : <a href="${env.appUrl}/reset-password?token=${passwordResetToken}">lien de réinitialisation</a></p><p>Ce lien expire dans 1h.</p>`,
+  }).catch((err) => console.error("[auth] échec d'envoi de l'email de reset mdp", err));
 }
 
 export async function resetPassword(token: string, newPassword: string) {

@@ -18,6 +18,12 @@ export const env = {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
+  // URL canonique unique du frontend, utilisée pour générer les liens envoyés
+  // par email (vérification, reset). Distincte de corsOrigin (qui peut
+  // contenir plusieurs origines autorisées, ex. www + non-www) — un lien ne
+  // doit jamais être construit à partir de ce tableau (bug QA : le lien
+  // contenait littéralement "https://www.in-network.dz,https://in-network.dz/...").
+  appUrl: process.env.APP_URL ?? 'http://localhost:3000',
   databaseUrl: required('DATABASE_URL'),
 
   jwt: {
@@ -29,6 +35,14 @@ export const env = {
 
   resendApiKey: process.env.RESEND_API_KEY ?? '',
   emailFrom: process.env.EMAIL_FROM ?? 'IN NETWORK <no-reply@innetwork.dz>',
+
+  smtp: {
+    host: process.env.SMTP_HOST ?? '',
+    port: Number(process.env.SMTP_PORT ?? 465),
+    secure: (process.env.SMTP_SECURE ?? 'true') === 'true',
+    user: process.env.SMTP_USER ?? '',
+    pass: process.env.SMTP_PASS ?? '',
+  },
 
   chargily: {
     apiKey: process.env.CHARGILY_API_KEY ?? '',

@@ -18,8 +18,15 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
   return jwt.verify(token, env.jwt.accessSecret) as AccessTokenPayload;
 }
 
+// jti aléatoire indispensable : sans lui, deux refresh tokens émis pour le
+// même utilisateur dans la même seconde (payload {sub} + iat identiques,
+// même secret) produisent le JWT signé EXACT MÊME STRING, donc le même hash
+// SHA256 — l'INSERT en base percutait alors la contrainte unique sur
+// tokenHash et faisait planter la requête (500 aléatoire, cf. QA #4 :
+// double-clic sur Connexion, onglets multiples, inscription suivie d'une
+// connexion immédiate...).
 export function signRefreshToken(payload: { sub: string }): string {
-  return jwt.sign(payload, env.jwt.refreshSecret, {
+  return jwt.sign({ ...payload, jti: randomToken(16) }, env.jwt.refreshSecret, {
     expiresIn: env.jwt.refreshExpiresIn,
   } as jwt.SignOptions);
 }
