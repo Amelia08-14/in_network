@@ -41,7 +41,7 @@ CDC) et le découpage des modules restent identiques à la spécification.
 Fondations complètes et fonctionnelles (Phase 0 + Phase 1 du plan de développement §13 du CDC), plus
 une bonne partie des phases suivantes déjà câblées :
 
-- Design system Tailwind (palette, typographie Roboto Slab + pile système Helvetica, tokens) — cf. CDC §3
+- Design system Tailwind (palette "Corporate épuré" navy+orange, typographie Montserrat + Plus Jakarta Sans, tokens) — remplace la proposition initiale Roboto Slab + Helvetica du CDC §3
 - Schéma Prisma complet (tous les modèles du CDC §4, adaptés MySQL)
 - Auth JWT (inscription, connexion, vérification email, mot de passe oublié, RBAC)
 - Annuaire des membres avec visibilité public/membre différenciée (CDC §6.2)

@@ -5,6 +5,22 @@ import { validate } from '../../middleware/validate';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, okPaginated, buildPaginationMeta, ApiError } from '../../utils/apiResponse';
 import * as paymentsService from '../payments/payments.service';
+import { notifyBookingStatus } from '../bookings/bookings.service';
+
+// Plusieurs listings admin incluaient `user: { include: { profile: true } }`,
+// ce qui renvoie TOUS les champs scalaires de User dans la réponse JSON —
+// passwordHash, emailVerifyToken, passwordResetToken inclus. Un `select`
+// explicite (même pattern que /members) évite cette fuite.
+const SAFE_USER_SELECT = {
+  id: true,
+  email: true,
+  phone: true,
+  role: true,
+  isActive: true,
+  emailVerified: true,
+  createdAt: true,
+  profile: true,
+} as const;
 
 // Détermine IMAGE/VIDEO depuis l'extension plutôt que de faire confiance au
 // client — l'URL vient toujours de POST /api/uploads (uploads.routes.ts) qui
@@ -141,12 +157,12 @@ adminRouter.get(
       prisma.event.findMany({ where: { status: 'PENDING_REVIEW' }, orderBy: { startAt: 'asc' } }),
       prisma.serviceRequest.findMany({
         where: { status: 'NEW' },
-        include: { user: { include: { profile: true } }, service: true, space: true, plan: true },
+        include: { user: { select: SAFE_USER_SELECT }, service: true, space: true, plan: true },
         orderBy: { createdAt: 'asc' },
       }),
       prisma.payment.findMany({
         where: { status: 'PENDING', method: 'BANK_TRANSFER' },
-        include: { user: { include: { profile: true } } },
+        include: { user: { select: SAFE_USER_SELECT } },
         orderBy: { createdAt: 'asc' },
       }),
       prisma.memberProfile.findMany({
@@ -238,6 +254,40 @@ adminRouter.patch(
     ok(res, { id: member.id, isActive: member.isActive });
   }),
 );
+
+// Suppression définitive (retour client — remplace la simple désactivation).
+// Restreint aux comptes MEMBER : jamais d'auto-suppression ni de suppression
+// d'un autre admin via cette route. Plusieurs modèles liés à User n'ont pas
+// de onDelete: Cascade dans le schéma (Subscription, Booking, Payment,
+// ServiceRequest, EventRegistration, Notification, ConnectionRequest,
+// ConnectionSuggestion) — on les efface explicitement dans une transaction,
+// Payment en premier puisqu'il référence Booking/Subscription/ServiceRequest.
+// Le reste (RefreshToken, MemberProfile + ProfileTag, ExpertProfile,
+// ExpertConnectionRequest) est déjà en cascade au niveau du schéma.
+adminRouter.delete(
+  '/members/:id',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const member = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } });
+    if (!member) throw ApiError.notFound('Membre introuvable');
+    if (member.role !== 'MEMBER') throw ApiError.forbidden('Seuls les comptes membres peuvent être supprimés');
+
+    await prisma.$transaction([
+      prisma.payment.deleteMany({ where: { userId: id } }),
+      prisma.eventRegistration.deleteMany({ where: { userId: id } }),
+      prisma.notification.deleteMany({ where: { userId: id } }),
+      prisma.connectionRequest.deleteMany({ where: { OR: [{ fromUserId: id }, { toUserId: id }] } }),
+      prisma.connectionSuggestion.deleteMany({ where: { OR: [{ userId: id }, { suggestedUserId: id }] } }),
+      prisma.serviceRequest.deleteMany({ where: { userId: id } }),
+      prisma.booking.deleteMany({ where: { userId: id } }),
+      prisma.subscription.deleteMany({ where: { userId: id } }),
+      prisma.user.delete({ where: { id } }),
+    ]);
+
+    ok(res, { success: true });
+  }),
+);
+
 adminRouter.post(
   '/contact-messages/:id/reply',
   validate({ body: replyContactMessageSchema }),
@@ -284,7 +334,7 @@ adminRouter.get(
     const [total, bookings] = await Promise.all([
       prisma.booking.count(),
       prisma.booking.findMany({
-        include: { user: { include: { profile: true } }, space: true },
+        include: { user: { select: SAFE_USER_SELECT }, space: true },
         orderBy: { startAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -302,8 +352,11 @@ adminRouter.patch(
     const booking = await prisma.booking.update({
       where: { id: req.params.id },
       data: { status: req.body.status },
-      include: { user: { include: { profile: true } }, space: true },
+      include: { user: { select: SAFE_USER_SELECT }, space: true },
     });
+    // Retour QA : le membre n'était jamais notifié d'un changement de statut
+    // décidé par l'admin (confirmation/annulation d'une réservation de salle).
+    await notifyBookingStatus(booking.userId, booking.user.email, booking.space.name, booking.startAt, booking.endAt, booking.status);
     ok(res, booking);
   }),
 );
@@ -402,7 +455,7 @@ adminRouter.get(
     const [total, payments] = await Promise.all([
       prisma.payment.count(),
       prisma.payment.findMany({
-        include: { user: { include: { profile: true } } },
+        include: { user: { select: SAFE_USER_SELECT } },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -446,7 +499,7 @@ adminRouter.get(
     const [total, requests] = await Promise.all([
       prisma.serviceRequest.count(),
       prisma.serviceRequest.findMany({
-        include: { user: { include: { profile: true } }, service: true, space: true, plan: true },
+        include: { user: { select: SAFE_USER_SELECT }, service: true, space: true, plan: true },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,

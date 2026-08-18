@@ -7,24 +7,28 @@ interface SendEmailInput {
   html: string;
 }
 
-let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
+// Pool + timeouts courts : le serveur SMTP de l'hébergeur est parfois lent à
+// répondre (connexion TCP qui traîne) — sans ça une requête d'inscription/
+// reset restait accrochée ~20s avant d'échouer.
+function createSmtpTransporter() {
+  return nodemailer.createTransport({
+    host: env.smtp.host,
+    port: env.smtp.port,
+    secure: env.smtp.secure,
+    auth: { user: env.smtp.user, pass: env.smtp.pass },
+    pool: true,
+    maxConnections: 3,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
+  });
+}
 
-function getTransporter() {
+let transporter: ReturnType<typeof createSmtpTransporter> | undefined;
+
+function getTransporter(): ReturnType<typeof createSmtpTransporter> {
   if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: env.smtp.host,
-      port: env.smtp.port,
-      secure: env.smtp.secure,
-      auth: { user: env.smtp.user, pass: env.smtp.pass },
-      // Pool + timeouts courts : le serveur SMTP de l'hébergeur est parfois
-      // lent à répondre (connexion TCP qui traîne) — sans ça une requête
-      // d'inscription/reset restait accrochée ~20s avant d'échouer.
-      pool: true,
-      maxConnections: 3,
-      connectionTimeout: 10_000,
-      greetingTimeout: 10_000,
-      socketTimeout: 15_000,
-    });
+    transporter = createSmtpTransporter();
   }
   return transporter;
 }

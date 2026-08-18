@@ -1,5 +1,56 @@
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
+import { sendEmail } from '../../lib/email';
+
+const DATE_FMT = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
+
+function bookingEmailBody(spaceName: string, start: Date, end: Date, statusLabel: string): string {
+  return `<p>Ta réservation pour <strong>${spaceName}</strong> le ${DATE_FMT.format(start)} (jusqu'à ${new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short' }).format(end)}) est <strong>${statusLabel}</strong>.</p>`;
+}
+
+// Notification (email + in-app) — retour QA : aucune confirmation n'était
+// envoyée au membre à la création ni au changement de statut d'une
+// réservation. sendEmail() n'est jamais attendu bloquant ici : un aléa SMTP
+// ne doit pas faire échouer la réservation elle-même.
+const STATUS_LABEL: Record<'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED', string> = {
+  PENDING: 'en attente de confirmation',
+  CONFIRMED: 'confirmée',
+  CANCELLED: 'annulée',
+  COMPLETED: 'terminée',
+};
+const STATUS_TITLE: Record<'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED', string> = {
+  PENDING: 'Réservation reçue',
+  CONFIRMED: 'Réservation confirmée',
+  CANCELLED: 'Réservation annulée',
+  COMPLETED: 'Réservation terminée',
+};
+
+export async function notifyBookingStatus(
+  userId: string,
+  userEmail: string,
+  spaceName: string,
+  start: Date,
+  end: Date,
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED',
+) {
+  const label = STATUS_LABEL[status];
+  const title = STATUS_TITLE[status];
+
+  await prisma.notification.create({
+    data: {
+      userId,
+      type: `booking_${status.toLowerCase()}`,
+      title,
+      body: `${spaceName} — ${DATE_FMT.format(start)}, ${label}.`,
+    },
+  });
+
+  sendEmail({
+    to: userEmail,
+    subject: `IN NETWORK — ${title}`,
+    html: bookingEmailBody(spaceName, start, end, label),
+  }).catch((err) => console.error('[bookings] échec envoi email de notification', err));
+}
 
 export async function listMyBookings(userId: string) {
   return prisma.booking.findMany({
@@ -55,16 +106,24 @@ export async function createBooking(userId: string, spaceId: string, startAt: st
         price,
         status: 'PENDING',
       },
-      include: { space: true },
+      include: { space: true, user: { select: { email: true } } },
     });
+  }).then(async (booking) => {
+    await notifyBookingStatus(booking.userId, booking.user.email, booking.space.name, booking.startAt, booking.endAt, 'PENDING');
+    // Le user complet (avec passwordHash/tokens) ne doit jamais atteindre le
+    // client — on ne renvoie de la relation user que ce qu'on vient d'y lire.
+    const { user, ...safeBooking } = booking;
+    return safeBooking;
   });
 }
 
 export async function cancelBooking(userId: string, bookingId: string, isAdmin: boolean) {
-  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+  const booking = await prisma.booking.findUnique({ where: { id: bookingId }, include: { space: true, user: true } });
   if (!booking) throw ApiError.notFound('Réservation introuvable');
   if (!isAdmin && booking.userId !== userId) throw ApiError.forbidden();
   if (booking.status === 'CANCELLED') return booking;
 
-  return prisma.booking.update({ where: { id: bookingId }, data: { status: 'CANCELLED' } });
+  const updated = await prisma.booking.update({ where: { id: bookingId }, data: { status: 'CANCELLED' } });
+  await notifyBookingStatus(booking.userId, booking.user.email, booking.space.name, booking.startAt, booking.endAt, 'CANCELLED');
+  return updated;
 }

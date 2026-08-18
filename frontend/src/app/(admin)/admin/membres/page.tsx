@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Eye, Search } from 'lucide-react';
+import { Eye, Search, Trash2 } from 'lucide-react';
 import { MemberDetailsPanel } from '@/components/features/MemberDetailsPanel';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,11 @@ export default function AdminMembresPage() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       api.patch(`/api/admin/members/${id}`, { isActive }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-members'] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/admin/members/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-members'] }),
   });
 
@@ -107,9 +112,30 @@ export default function AdminMembresPage() {
                         <Button
                           size="sm"
                           variant="outline"
+                          className="mr-2"
                           onClick={() => toggleMutation.mutate({ id: member.id, isActive: !member.isActive })}
                         >
                           {member.isActive ? 'Désactiver' : 'Activer'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-brand-orange hover:text-brand-orange"
+                          onClick={() => {
+                            const name = member.profile
+                              ? `${member.profile.firstName} ${member.profile.lastName}`
+                              : member.email;
+                            if (
+                              window.confirm(
+                                `Supprimer définitivement le compte de ${name} ? Toutes ses données (réservations, demandes, abonnements...) seront effacées. Cette action est irréversible.`,
+                              )
+                            ) {
+                              deleteMutation.mutate(member.id);
+                            }
+                          }}
+                          aria-label="Supprimer"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </td>
                     </tr>
