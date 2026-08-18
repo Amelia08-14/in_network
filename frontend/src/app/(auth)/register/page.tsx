@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -51,6 +51,7 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [finalStepReady, setFinalStepReady] = useState(false);
 
   const {
     register,
@@ -67,11 +68,19 @@ export default function RegisterPage() {
     if (valid) setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }
 
-  async function onSubmit(values: RegisterForm) {
+  useEffect(() => {
     if (step !== STEPS.length - 1) {
-      setStep(STEPS.length - 1);
+      setFinalStepReady(false);
       return;
     }
+
+    // Empêche le clic sur « Suivant » (ou un double-clic) d'être rejoué sur
+    // le bouton de création qui apparaît exactement au même emplacement.
+    const timer = window.setTimeout(() => setFinalStepReady(true), 400);
+    return () => window.clearTimeout(timer);
+  }, [step]);
+
+  async function createAccount(values: RegisterForm) {
     setServerError(null);
     setSubmitting(true);
     try {
@@ -96,6 +105,19 @@ export default function RegisterPage() {
       setServerError(e instanceof ApiRequestError ? e.message : "Une erreur est survenue");
       setSubmitting(false);
     }
+  }
+
+  async function handleStepSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (step < STEPS.length - 1) {
+      await goNext();
+      return;
+    }
+
+    if (!finalStepReady || submitting) return;
+
+    await handleSubmit(createAccount)();
   }
 
   if (done) {
@@ -140,7 +162,7 @@ export default function RegisterPage() {
           ))}
         </div>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
+        <form className="mt-6 space-y-4" onSubmit={handleStepSubmit}>
           {step === 0 && (
             <>
               <div>
@@ -226,7 +248,7 @@ export default function RegisterPage() {
                 Suivant
               </Button>
             ) : (
-              <Button type="submit" variant="primary" className="flex-1" disabled={submitting}>
+              <Button type="submit" variant="primary" className="flex-1" disabled={!finalStepReady || submitting}>
                 {submitting ? 'Création...' : 'Créer mon compte'}
               </Button>
             )}
