@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
-import { ArrowLeft, LogOut, MailWarning } from 'lucide-react';
+import { ArrowLeft, LogOut } from 'lucide-react';
 import { Logo } from './Logo';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth';
-import { api, ApiRequestError } from '@/lib/api';
 
 export interface NavItem {
   href: string;
@@ -42,15 +41,6 @@ export function DashboardShell({
       router.replace('/dashboard');
     }
   }, [status, user, requireRole, router]);
-
-  // Retour QA (E2E#1 / Barrière de vérification d'email) : le statut "email
-  // vérifié" n'avait aucun effet réel sur l'accès. Tant que l'email n'est
-  // pas confirmé, l'espace membre est remplacé par cet écran plutôt que
-  // rendu normalement — même mécanisme que les gardes de rôle ci-dessus,
-  // pas un simple avertissement ignorable.
-  if (status === 'authenticated' && user && !user.emailVerified) {
-    return <EmailVerificationGate email={user.email} />;
-  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -121,55 +111,3 @@ export function DashboardShell({
   );
 }
 
-function EmailVerificationGate({ email }: { email: string }) {
-  const logout = useAuthStore((s) => s.logout);
-  const router = useRouter();
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [error, setError] = useState<string | null>(null);
-
-  async function resend() {
-    setStatus('sending');
-    setError(null);
-    try {
-      await api.post('/api/auth/resend-verification');
-      setStatus('sent');
-    } catch (e) {
-      setStatus('error');
-      setError(e instanceof ApiRequestError ? e.message : "Impossible d'envoyer l'email, réessaie.");
-    }
-  }
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm rounded-card border border-gray-100 bg-white p-6 text-center shadow-sm">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-orange/10 text-brand-orange">
-          <MailWarning className="h-6 w-6" />
-        </div>
-        <h1 className="mt-4 font-heading text-lg font-bold text-brand-violet-dark">Confirme ton email</h1>
-        <p className="mt-2 text-sm text-gray-500">
-          Un lien de confirmation a été envoyé à <span className="font-medium text-gray-700">{email}</span>. Clique
-          dessus pour accéder à ton espace membre.
-        </p>
-
-        {status === 'sent' && <p className="mt-4 text-sm text-accent-green">Email renvoyé — vérifie ta boîte de réception.</p>}
-        {error && <p className="mt-4 text-sm text-brand-orange">{error}</p>}
-
-        <button
-          type="button"
-          onClick={resend}
-          disabled={status === 'sending'}
-          className="mt-4 w-full rounded-card bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-orange/90 disabled:opacity-50"
-        >
-          {status === 'sending' ? 'Envoi...' : 'Renvoyer le lien de confirmation'}
-        </button>
-        <button
-          type="button"
-          onClick={() => logout().then(() => router.push('/'))}
-          className="mt-2 w-full text-sm font-medium text-gray-500 hover:text-gray-700"
-        >
-          Se déconnecter
-        </button>
-      </div>
-    </div>
-  );
-}

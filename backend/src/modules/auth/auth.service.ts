@@ -48,15 +48,17 @@ export async function register(input: RegisterInput) {
   if (!site) throw new Error('Aucun site actif configuré — lance le seed avant de tester');
 
   const passwordHash = await hashPassword(input.password);
-  const emailVerifyToken = randomToken();
 
+  // Décision produit : plus de barrière de vérification email — un compte
+  // est pleinement actif dès l'inscription (emailVerified renseigné
+  // directement). /verify-email et /resend-verification restent en place
+  // côté API mais ne sont plus déclenchés par ce flux.
   const user = await prisma.user.create({
     data: {
       email: input.email,
       passwordHash,
       phone: input.phone,
-      emailVerifyToken,
-      emailVerifyExpires: new Date(Date.now() + EMAIL_VERIFY_TTL_MS),
+      emailVerified: new Date(),
       profile: {
         create: {
           firstName: input.firstName,
@@ -71,12 +73,11 @@ export async function register(input: RegisterInput) {
 
   // Envoi non bloquant : un aléa du serveur SMTP de l'hébergeur ne doit
   // jamais faire échouer la création de compte (retour QA #4 — l'inscription
-  // échouait précisément à cause de ça). L'utilisateur peut toujours
-  // redemander l'email via /resend-verification si celui-ci n'arrive pas.
+  // échouait précisément à cause de ça).
   sendEmail({
     to: user.email,
-    subject: 'Bienvenue sur IN NETWORK — confirme ton email',
-    html: `<p>Bonjour ${input.firstName},</p><p>Confirme ton adresse email en suivant ce lien : <a href="${verifyLink(emailVerifyToken)}">${verifyLink(emailVerifyToken)}</a></p><p>Ce lien expire dans 24h.</p>`,
+    subject: "Bienvenue dans l'espace IN NETWORK",
+    html: `<p>Bonjour ${input.firstName},</p><p>Merci pour ton inscription — ton compte et ton espace membre IN NETWORK sont dès à présent actifs.</p><p>À très vite,<br/>L'équipe IN NETWORK</p>`,
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de bienvenue", err));
 
   const tokens = await issueTokenPair(user.id, user.role);

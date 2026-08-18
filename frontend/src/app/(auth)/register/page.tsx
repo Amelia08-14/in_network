@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Check } from 'lucide-react';
+import { Check, PartyPopper } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,11 +46,11 @@ const MEMBER_TYPES = [
 ];
 
 export default function RegisterPage() {
-  const router = useRouter();
   const registerUser = useAuthStore((s) => s.register);
   const [step, setStep] = useState(0);
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
 
   const {
     register,
@@ -92,11 +91,27 @@ export default function RegisterPage() {
         });
       }
 
-      router.push('/dashboard');
+      setDone(true);
     } catch (e) {
       setServerError(e instanceof ApiRequestError ? e.message : "Une erreur est survenue");
       setSubmitting(false);
     }
+  }
+
+  if (done) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-green/10 text-accent-green">
+            <PartyPopper className="h-6 w-6" />
+          </div>
+          <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Merci pour ton inscription !</h1>
+          <p className="max-w-sm text-sm text-gray-500">
+            Ton compte IN NETWORK a bien été créé. Notre équipe revient vers toi très prochainement.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
