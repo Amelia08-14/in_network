@@ -4,11 +4,10 @@ import {
   clearAdminAccessTokenCookie,
 } from './admin-auth-cookies';
 import { ApiRequestError } from './api';
+import { getClientApiUrl } from './api-url';
 import type { ApiErrorBody } from '@/types';
 
 export { ApiRequestError };
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
@@ -20,7 +19,7 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
 // ne jamais mélanger une session admin et une session membre dans le même
 // navigateur.
 async function tryRefreshAdminAccessToken(): Promise<boolean> {
-  const response = await fetch(`${API_URL}/api/auth/admin/refresh`, {
+  const response = await fetch(`${getClientApiUrl()}/api/auth/admin/refresh`, {
     method: 'POST',
     credentials: 'include',
   });
@@ -34,7 +33,7 @@ export async function adminApiFetch<T>(path: string, options: RequestOptions = {
   const { body, skipAuthRetry, headers, ...rest } = options;
   const accessToken = getAdminAccessTokenCookie();
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${getClientApiUrl()}${path}`, {
     ...rest,
     credentials: 'include',
     headers: {
@@ -84,7 +83,7 @@ export async function adminApiUpload(file: File, category: string): Promise<{ ur
   formData.append('file', file);
   formData.append('category', category);
 
-  const response = await fetch(`${API_URL}/api/uploads`, {
+  const response = await fetch(`${getClientApiUrl()}/api/uploads`, {
     method: 'POST',
     credentials: 'include',
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,

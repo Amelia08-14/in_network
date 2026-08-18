@@ -28,6 +28,16 @@ import { contactRouter } from './modules/contact/contact.routes';
 
 export const app = express();
 
+const allowedCorsOrigins = new Set([
+  ...env.corsOrigin,
+  env.appUrl,
+  // Domaines publics canoniques. Les garder ici évite qu'une variable CORS
+  // incomplète en production (www ou non-www manquant) bloque tous les appels
+  // navigateur, notamment l'inscription.
+  'https://in-network.dz',
+  'https://www.in-network.dz',
+]);
+
 // Derrière Nginx (reverse proxy) en prod : sans ça, req.protocol vaut
 // toujours 'http' (la connexion Nginx -> Node est en clair en interne), même
 // pour un visiteur en HTTPS. Ça cassait silencieusement les URLs générées à
@@ -39,7 +49,11 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(
   cors({
-    origin: env.corsOrigin,
+    origin(origin, callback) {
+      // Les requêtes serveur-à-serveur et les outils sans en-tête Origin sont
+      // autorisés ; dans le navigateur, seules les origines listées le sont.
+      callback(null, !origin || allowedCorsOrigins.has(origin));
+    },
     credentials: true,
   }),
 );

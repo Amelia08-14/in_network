@@ -1,7 +1,6 @@
 import { getAccessTokenCookie, setAccessTokenCookie, clearAccessTokenCookie } from './auth-cookies';
+import { getClientApiUrl } from './api-url';
 import type { ApiErrorBody } from '@/types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export class ApiRequestError extends Error {
   status: number;
@@ -22,7 +21,7 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
 }
 
 async function tryRefreshAccessToken(): Promise<boolean> {
-  const response = await fetch(`${API_URL}/api/auth/refresh`, {
+  const response = await fetch(`${getClientApiUrl()}/api/auth/refresh`, {
     method: 'POST',
     credentials: 'include',
   });
@@ -36,7 +35,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   const { body, skipAuthRetry, headers, ...rest } = options;
   const accessToken = getAccessTokenCookie();
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${getClientApiUrl()}${path}`, {
     ...rest,
     credentials: 'include',
     headers: {
@@ -87,7 +86,7 @@ export async function apiUpload(file: File, category: string): Promise<{ url: st
   formData.append('file', file);
   formData.append('category', category);
 
-  const response = await fetch(`${API_URL}/api/uploads`, {
+  const response = await fetch(`${getClientApiUrl()}/api/uploads`, {
     method: 'POST',
     credentials: 'include',
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
