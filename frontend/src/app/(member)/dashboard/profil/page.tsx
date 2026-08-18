@@ -12,6 +12,41 @@ import { api, ApiRequestError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { MemberProfileSummary } from '@/types';
 
+function normalizeUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  return /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function profileErrorMessage(error: unknown) {
+  if (!(error instanceof ApiRequestError)) {
+    return 'Connexion au serveur impossible. Vérifiez votre connexion puis réessayez.';
+  }
+  const details = error.details as { fieldErrors?: Record<string, string[]> } | undefined;
+  const labels: Record<string, string> = {
+    bio: 'Bio',
+    jobTitle: 'Poste / activité',
+    companyName: 'Entreprise',
+    website: 'Site web',
+    linkedinUrl: 'LinkedIn',
+    skillsOffered: 'Compétences proposées',
+    skillsWanted: 'Compétences recherchées',
+    sectors: 'Secteurs d’activité',
+  };
+  const invalidField = Object.entries(details?.fieldErrors ?? {}).find(([, messages]) => messages?.length);
+  if (invalidField) {
+    const [field, messages] = invalidField;
+    return `${labels[field] ?? field} : ${messages[0]}`;
+  }
+  if (error.status === 401) return 'Votre session a expiré. Reconnectez-vous pour enregistrer le profil.';
+  if (error.status === 403) return 'Vous n’avez pas l’autorisation de modifier ce profil.';
+  if (error.status === 404) return 'Ce profil n’existe plus ou n’est plus accessible.';
+  if (error.status === 409) return error.message || 'Ces informations sont déjà utilisées.';
+  if (error.status === 429) return 'Trop de tentatives. Patientez quelques instants puis réessayez.';
+  if (error.status >= 500) return 'Le serveur n’a pas pu enregistrer le profil. Réessayez dans quelques instants.';
+  return error.message;
+}
+
 export default function ProfilPage() {
   const queryClient = useQueryClient();
   const { data: profile, isLoading } = useQuery({
@@ -52,19 +87,24 @@ export default function ProfilPage() {
         bio: form.bio || null,
         jobTitle: form.jobTitle || null,
         companyName: form.companyName || null,
-        website: form.website || null,
-        linkedinUrl: form.linkedinUrl || null,
+        website: normalizeUrl(form.website) || null,
+        linkedinUrl: normalizeUrl(form.linkedinUrl) || null,
         skillsOffered: form.skillsOffered.split(',').map((s) => s.trim()).filter(Boolean),
         skillsWanted: form.skillsWanted.split(',').map((s) => s.trim()).filter(Boolean),
         sectors: form.sectors.split(',').map((s) => s.trim()).filter(Boolean),
       }),
     onSuccess: () => {
+      setForm((current) => ({
+        ...current,
+        website: normalizeUrl(current.website),
+        linkedinUrl: normalizeUrl(current.linkedinUrl),
+      }));
       setMessage({ text: 'Profil mis à jour.', kind: 'success' });
       queryClient.invalidateQueries({ queryKey: ['my-profile'] });
     },
     onError: (e) =>
       setMessage({
-        text: e instanceof ApiRequestError ? e.message : 'Erreur lors de la mise à jour',
+        text: profileErrorMessage(e),
         kind: 'error',
       }),
   });
@@ -109,11 +149,11 @@ export default function ProfilPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="website">Site web</Label>
-                <Input id="website" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
+                <Input id="website" inputMode="url" placeholder="https://exemple.dz" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
               </div>
               <div>
                 <Label htmlFor="linkedinUrl">LinkedIn</Label>
-                <Input id="linkedinUrl" value={form.linkedinUrl} onChange={(e) => setForm({ ...form, linkedinUrl: e.target.value })} />
+                <Input id="linkedinUrl" inputMode="url" placeholder="https://linkedin.com/in/votre-profil" value={form.linkedinUrl} onChange={(e) => setForm({ ...form, linkedinUrl: e.target.value })} />
               </div>
             </div>
             <div>

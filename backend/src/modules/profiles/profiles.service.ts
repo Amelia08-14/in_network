@@ -120,6 +120,7 @@ export async function getMyProfile(userId: string) {
 }
 
 async function replaceProfileTags(
+  db: Prisma.TransactionClient,
   profileId: string,
   category: TagCategory,
   relation: TagRelationType,
@@ -129,7 +130,7 @@ async function replaceProfileTags(
 
   const tags = await Promise.all(
     normalized.map((label) =>
-      prisma.tag.upsert({
+      db.tag.upsert({
         where: { label },
         update: {},
         create: { label, category },
@@ -137,12 +138,12 @@ async function replaceProfileTags(
     ),
   );
 
-  await prisma.profileTag.deleteMany({
+  await db.profileTag.deleteMany({
     where: { profileId, relation, tag: { category } },
   });
 
   if (tags.length > 0) {
-    await prisma.profileTag.createMany({
+    await db.profileTag.createMany({
       data: tags.map((tag) => ({ profileId, tagId: tag.id, relation })),
       skipDuplicates: true,
     });
@@ -155,14 +156,13 @@ export async function updateProfile(userId: string, input: UpdateProfileInput) {
 
   const { skillsOffered, skillsWanted, sectors, ...rest } = input;
 
-  await prisma.memberProfile.update({
-    where: { userId },
-    data: rest,
-  });
+  await prisma.$transaction(async (tx) => {
+    await tx.memberProfile.update({ where: { userId }, data: rest });
 
-  if (skillsOffered) await replaceProfileTags(profile.id, 'SKILL', 'OFFER', skillsOffered);
-  if (skillsWanted) await replaceProfileTags(profile.id, 'SKILL', 'NEED', skillsWanted);
-  if (sectors) await replaceProfileTags(profile.id, 'SECTOR', 'OFFER', sectors);
+    if (skillsOffered) await replaceProfileTags(tx, profile.id, 'SKILL', 'OFFER', skillsOffered);
+    if (skillsWanted) await replaceProfileTags(tx, profile.id, 'SKILL', 'NEED', skillsWanted);
+    if (sectors) await replaceProfileTags(tx, profile.id, 'SECTOR', 'OFFER', sectors);
+  });
 
   return getMyProfile(userId);
 }
