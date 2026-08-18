@@ -193,6 +193,7 @@ export async function logout(refreshToken: string) {
 export async function verifyEmail(token: string) {
   const user = await prisma.user.findFirst({
     where: { emailVerifyToken: token, emailVerifyExpires: { gt: new Date() } },
+    include: { profile: true },
   });
   if (!user) throw ApiError.badRequest('Lien de vérification invalide ou expiré');
 
@@ -200,6 +201,15 @@ export async function verifyEmail(token: string) {
     where: { id: user.id },
     data: { emailVerified: new Date(), emailVerifyToken: null, emailVerifyExpires: null },
   });
+
+  // Email de bienvenue une fois l'accès débloqué (décision produit : plus
+  // de validation Admin manuelle pour le moment, cf. MemberProfile.isPublic
+  // — /admin/validations reste disponible pour réactiver ce contrôle).
+  sendEmail({
+    to: user.email,
+    subject: 'Bienvenue dans l\'espace IN NETWORK',
+    html: `<p>Bonjour ${user.profile?.firstName ?? ''},</p><p>Ton email est confirmé et ton espace membre IN NETWORK est maintenant actif. Tu peux te connecter et accéder à ton espace dès maintenant.</p><p>À très vite,<br/>L'équipe IN NETWORK</p>`,
+  }).catch((err) => console.error("[auth] échec d'envoi de l'email de bienvenue", err));
 }
 
 export async function resendVerification(userId: string) {
