@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok } from '../../utils/apiResponse';
+import { param } from '../../utils/httpParams';
 
 export const sitesRouter = Router();
 
@@ -19,7 +20,7 @@ sitesRouter.get(
   '/:id/gallery',
   asyncHandler(async (req, res) => {
     const images = await prisma.galleryImage.findMany({
-      where: { ownerType: 'SITE', ownerId: req.params.id },
+      where: { ownerType: 'SITE', ownerId: param(req, 'id') },
       orderBy: { order: 'asc' },
     });
     ok(res, images);

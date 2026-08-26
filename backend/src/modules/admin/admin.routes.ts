@@ -6,6 +6,7 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, okPaginated, buildPaginationMeta, ApiError } from '../../utils/apiResponse';
 import * as paymentsService from '../payments/payments.service';
 import { notifyBookingStatus } from '../bookings/bookings.service';
+import { param } from '../../utils/httpParams';
 
 // Plusieurs listings admin incluaient `user: { include: { profile: true } }`,
 // ce qui renvoie TOUS les champs scalaires de User dans la réponse JSON —
@@ -178,7 +179,7 @@ adminRouter.patch(
   '/members/:id/approve',
   asyncHandler(async (req, res) => {
     const profile = await prisma.memberProfile.update({
-      where: { userId: req.params.id },
+      where: { userId: param(req, 'id') },
       data: { isPublic: true },
     });
     ok(res, profile);
@@ -190,7 +191,7 @@ adminRouter.get(
   '/members',
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
-    const { page, limit, search } = req.query as unknown as {
+    const { page, limit, search } = req.validatedQuery as {
       page: number;
       limit: number;
       search?: string;
@@ -229,7 +230,7 @@ adminRouter.get(
   '/members/:id',
   asyncHandler(async (req, res) => {
     const member = await prisma.user.findUnique({
-      where: { id: req.params.id },
+      where: { id: param(req, 'id') },
       include: {
         profile: { include: { tags: { include: { tag: true } } } },
         expertProfile: true,
@@ -248,7 +249,7 @@ adminRouter.patch(
   validate({ body: toggleActiveSchema }),
   asyncHandler(async (req, res) => {
     const member = await prisma.user.update({
-      where: { id: req.params.id },
+      where: { id: param(req, 'id') },
       data: { isActive: req.body.isActive },
     });
     ok(res, { id: member.id, isActive: member.isActive });
@@ -267,7 +268,7 @@ adminRouter.patch(
 adminRouter.delete(
   '/members/:id',
   asyncHandler(async (req, res) => {
-    const { id } = req.params;
+    const id = param(req, 'id');
     const member = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } });
     if (!member) throw ApiError.notFound('Membre introuvable');
     if (member.role !== 'MEMBER') throw ApiError.forbidden('Seuls les comptes membres peuvent être supprimés');
@@ -292,7 +293,7 @@ adminRouter.post(
   '/contact-messages/:id/reply',
   validate({ body: replyContactMessageSchema }),
   asyncHandler(async (req, res) => {
-    const message = await prisma.contactMessage.findUnique({ where: { id: req.params.id } });
+    const message = await prisma.contactMessage.findUnique({ where: { id: param(req, 'id') } });
     if (!message) throw ApiError.notFound('Message introuvable');
 
     const escapeHtml = (value: string) =>
@@ -320,7 +321,7 @@ adminRouter.post(
 adminRouter.delete(
   '/contact-messages/:id',
   asyncHandler(async (req, res) => {
-    await prisma.contactMessage.delete({ where: { id: req.params.id } });
+    await prisma.contactMessage.delete({ where: { id: param(req, 'id') } });
     res.status(204).send();
   }),
 );
@@ -330,7 +331,7 @@ adminRouter.get(
   '/bookings',
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
-    const { page, limit } = req.query as unknown as { page: number; limit: number };
+    const { page, limit } = req.validatedQuery as { page: number; limit: number };
     const [total, bookings] = await Promise.all([
       prisma.booking.count(),
       prisma.booking.findMany({
@@ -350,7 +351,7 @@ adminRouter.patch(
   validate({ body: updateBookingStatusSchema }),
   asyncHandler(async (req, res) => {
     const booking = await prisma.booking.update({
-      where: { id: req.params.id },
+      where: { id: param(req, 'id') },
       data: { status: req.body.status },
       include: { user: { select: SAFE_USER_SELECT }, space: true },
     });
@@ -388,7 +389,7 @@ adminRouter.patch(
   '/spaces/:id',
   validate({ body: updateSpaceSchema }),
   asyncHandler(async (req, res) => {
-    const space = await prisma.spaceResource.update({ where: { id: req.params.id }, data: req.body });
+    const space = await prisma.spaceResource.update({ where: { id: param(req, 'id') }, data: req.body });
     ok(res, space);
   }),
 );
@@ -398,7 +399,7 @@ adminRouter.get(
   '/sites/:id/images',
   asyncHandler(async (req, res) => {
     const images = await prisma.galleryImage.findMany({
-      where: { ownerType: 'SITE', ownerId: req.params.id },
+      where: { ownerType: 'SITE', ownerId: param(req, 'id') },
       orderBy: { order: 'asc' },
     });
     ok(res, images);
@@ -409,7 +410,7 @@ adminRouter.post(
   validate({ body: addSiteImageSchema }),
   asyncHandler(async (req, res) => {
     const image = await prisma.galleryImage.create({
-      data: { ...req.body, type: inferGalleryType(req.body.url), ownerType: 'SITE', ownerId: req.params.id },
+      data: { ...req.body, type: inferGalleryType(req.body.url), ownerType: 'SITE', ownerId: param(req, 'id') },
     });
     ok(res, image, 201);
   }),
@@ -417,8 +418,8 @@ adminRouter.post(
 adminRouter.delete(
   '/sites/:id/images/:imageId',
   asyncHandler(async (req, res) => {
-    await prisma.galleryImage.delete({ where: { id: req.params.imageId } });
-    ok(res, { id: req.params.imageId });
+    await prisma.galleryImage.delete({ where: { id: param(req, 'imageId') } });
+    ok(res, { id: param(req, 'imageId') });
   }),
 );
 
@@ -441,7 +442,7 @@ adminRouter.patch(
   '/plans/:id',
   validate({ body: updatePlanSchema }),
   asyncHandler(async (req, res) => {
-    const plan = await prisma.membershipPlan.update({ where: { id: req.params.id }, data: req.body });
+    const plan = await prisma.membershipPlan.update({ where: { id: param(req, 'id') }, data: req.body });
     ok(res, plan);
   }),
 );
@@ -451,7 +452,7 @@ adminRouter.get(
   '/payments',
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
-    const { page, limit } = req.query as unknown as { page: number; limit: number };
+    const { page, limit } = req.validatedQuery as { page: number; limit: number };
     const [total, payments] = await Promise.all([
       prisma.payment.count(),
       prisma.payment.findMany({
@@ -469,7 +470,7 @@ adminRouter.get(
 adminRouter.post(
   '/payments/:id/confirm',
   asyncHandler(async (req, res) => {
-    const payment = await paymentsService.markPaymentCompleted(req.params.id);
+    const payment = await paymentsService.markPaymentCompleted(param(req, 'id'));
     ok(res, payment);
   }),
 );
@@ -487,7 +488,7 @@ adminRouter.patch(
   '/services/:id',
   validate({ body: updateServiceCatalogSchema }),
   asyncHandler(async (req, res) => {
-    const item = await prisma.serviceCatalogItem.update({ where: { id: req.params.id }, data: req.body });
+    const item = await prisma.serviceCatalogItem.update({ where: { id: param(req, 'id') }, data: req.body });
     ok(res, item);
   }),
 );
@@ -495,7 +496,7 @@ adminRouter.get(
   '/service-requests',
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
-    const { page, limit } = req.query as unknown as { page: number; limit: number };
+    const { page, limit } = req.validatedQuery as { page: number; limit: number };
     const [total, requests] = await Promise.all([
       prisma.serviceRequest.count(),
       prisma.serviceRequest.findMany({
@@ -513,7 +514,7 @@ adminRouter.patch(
   validate({ body: updateServiceRequestSchema }),
   asyncHandler(async (req, res) => {
     const request = await prisma.serviceRequest.update({
-      where: { id: req.params.id },
+      where: { id: param(req, 'id') },
       data: req.body,
     });
     ok(res, request);
@@ -545,7 +546,7 @@ adminRouter.patch(
   '/events/:id',
   validate({ body: updateEventSchema }),
   asyncHandler(async (req, res) => {
-    const event = await prisma.event.update({ where: { id: req.params.id }, data: req.body });
+    const event = await prisma.event.update({ where: { id: param(req, 'id') }, data: req.body });
     ok(res, event);
   }),
 );
@@ -553,7 +554,7 @@ adminRouter.get(
   '/events/:id/images',
   asyncHandler(async (req, res) => {
     const images = await prisma.galleryImage.findMany({
-      where: { ownerType: 'EVENT', ownerId: req.params.id },
+      where: { ownerType: 'EVENT', ownerId: param(req, 'id') },
       orderBy: { order: 'asc' },
     });
     ok(res, images);
@@ -564,7 +565,7 @@ adminRouter.post(
   validate({ body: addEventImageSchema }),
   asyncHandler(async (req, res) => {
     const image = await prisma.galleryImage.create({
-      data: { ...req.body, type: inferGalleryType(req.body.url), ownerType: 'EVENT', ownerId: req.params.id },
+      data: { ...req.body, type: inferGalleryType(req.body.url), ownerType: 'EVENT', ownerId: param(req, 'id') },
     });
     ok(res, image, 201);
   }),
@@ -572,8 +573,8 @@ adminRouter.post(
 adminRouter.delete(
   '/events/:id/images/:imageId',
   asyncHandler(async (req, res) => {
-    await prisma.galleryImage.delete({ where: { id: req.params.imageId } });
-    ok(res, { id: req.params.imageId });
+    await prisma.galleryImage.delete({ where: { id: param(req, 'imageId') } });
+    ok(res, { id: param(req, 'imageId') });
   }),
 );
 
@@ -596,15 +597,15 @@ adminRouter.patch(
   '/experts/:id',
   validate({ body: updateExpertSchema }),
   asyncHandler(async (req, res) => {
-    const expert = await prisma.expertProfile.update({ where: { id: req.params.id }, data: req.body });
+    const expert = await prisma.expertProfile.update({ where: { id: param(req, 'id') }, data: req.body });
     ok(res, expert);
   }),
 );
 adminRouter.delete(
   '/experts/:id',
   asyncHandler(async (req, res) => {
-    await prisma.expertProfile.delete({ where: { id: req.params.id } });
-    ok(res, { id: req.params.id });
+    await prisma.expertProfile.delete({ where: { id: param(req, 'id') } });
+    ok(res, { id: param(req, 'id') });
   }),
 );
 
@@ -627,15 +628,15 @@ adminRouter.patch(
   '/partners/:id',
   validate({ body: updatePartnerSchema }),
   asyncHandler(async (req, res) => {
-    const partner = await prisma.partner.update({ where: { id: req.params.id }, data: req.body });
+    const partner = await prisma.partner.update({ where: { id: param(req, 'id') }, data: req.body });
     ok(res, partner);
   }),
 );
 adminRouter.delete(
   '/partners/:id',
   asyncHandler(async (req, res) => {
-    await prisma.partner.delete({ where: { id: req.params.id } });
-    ok(res, { id: req.params.id });
+    await prisma.partner.delete({ where: { id: param(req, 'id') } });
+    ok(res, { id: param(req, 'id') });
   }),
 );
 
@@ -659,7 +660,7 @@ adminRouter.patch(
   validate({ body: updateTestimonialSchema }),
   asyncHandler(async (req, res) => {
     const testimonial = await prisma.testimonial.update({
-      where: { id: req.params.id },
+      where: { id: param(req, 'id') },
       data: req.body,
     });
     ok(res, testimonial);
@@ -668,8 +669,8 @@ adminRouter.patch(
 adminRouter.delete(
   '/testimonials/:id',
   asyncHandler(async (req, res) => {
-    await prisma.testimonial.delete({ where: { id: req.params.id } });
-    ok(res, { id: req.params.id });
+    await prisma.testimonial.delete({ where: { id: param(req, 'id') } });
+    ok(res, { id: param(req, 'id') });
   }),
 );
 
@@ -678,7 +679,7 @@ adminRouter.get(
   '/contact-messages',
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
-    const { page, limit } = req.query as unknown as { page: number; limit: number };
+    const { page, limit } = req.validatedQuery as { page: number; limit: number };
     const [total, messages] = await Promise.all([
       prisma.contactMessage.count(),
       prisma.contactMessage.findMany({
@@ -695,7 +696,7 @@ adminRouter.patch(
   validate({ body: updateContactMessageSchema }),
   asyncHandler(async (req, res) => {
     const message = await prisma.contactMessage.update({
-      where: { id: req.params.id },
+      where: { id: param(req, 'id') },
       data: req.body,
     });
     ok(res, message);

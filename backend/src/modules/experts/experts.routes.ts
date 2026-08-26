@@ -6,6 +6,7 @@ import { ok, okPaginated, buildPaginationMeta, ApiError } from '../../utils/apiR
 import { validate } from '../../middleware/validate';
 import { requireAuth } from '../../middleware/auth';
 import { createConnectionRequest } from '../connections/connections.service';
+import { param } from '../../utils/httpParams';
 
 const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -23,7 +24,7 @@ expertsRouter.get(
   '/',
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
-    const { page, limit, search } = req.query as unknown as z.infer<typeof listQuerySchema>;
+    const { page, limit, search } = req.validatedQuery as z.infer<typeof listQuerySchema>;
 
     const where = {
       isPublic: true,
@@ -62,7 +63,7 @@ expertsRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
     const expert = await prisma.expertProfile.findUnique({
-      where: { id: req.params.id },
+      where: { id: param(req, 'id') },
       include: { user: { include: { profile: true } } },
     });
     if (!expert || !expert.isPublic) throw ApiError.notFound('Expert introuvable');
@@ -88,7 +89,7 @@ expertsRouter.post(
   asyncHandler(async (req, res) => {
     if (!req.user) throw ApiError.unauthorized();
 
-    const expert = await prisma.expertProfile.findUnique({ where: { id: req.params.id } });
+    const expert = await prisma.expertProfile.findUnique({ where: { id: param(req, 'id') } });
     if (!expert || !expert.isPublic) throw ApiError.notFound('Expert introuvable');
 
     if (expert.userId) {

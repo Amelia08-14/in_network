@@ -5,6 +5,7 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, ApiError } from '../../utils/apiResponse';
 import { createSubscriptionSchema } from './subscriptions.schema';
 import * as subscriptionsService from './subscriptions.service';
+import { param } from '../../utils/httpParams';
 
 export const subscriptionsRouter = Router();
 
@@ -38,7 +39,7 @@ subscriptionsRouter.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     if (!req.user) throw ApiError.unauthorized();
-    const subscription = await subscriptionsService.getSubscriptionById(req.user.id, req.params.id);
+    const subscription = await subscriptionsService.getSubscriptionById(req.user.id, param(req, 'id'));
     ok(res, subscription);
   }),
 );

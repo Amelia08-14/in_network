@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, ApiError } from '../../utils/apiResponse';
+import { param } from '../../utils/httpParams';
 
 export const partnersRouter = Router();
 
@@ -20,7 +21,7 @@ partnersRouter.get(
 partnersRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const partner = await prisma.partner.findUnique({ where: { id: req.params.id } });
+    const partner = await prisma.partner.findUnique({ where: { id: param(req, 'id') } });
     if (!partner || !partner.isPublished) throw ApiError.notFound('Partenaire introuvable');
     ok(res, partner);
   }),

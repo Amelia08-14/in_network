@@ -3,6 +3,7 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, ApiError } from '../../utils/apiResponse';
 import * as connectionsService from './connections.service';
 import { runMatchingForUser, runMatchingJob } from '../../lib/matching/job';
+import { param } from '../../utils/httpParams';
 
 export const listSuggestionsHandler = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw ApiError.unauthorized();
@@ -14,7 +15,7 @@ export const updateSuggestionHandler = asyncHandler(async (req: Request, res: Re
   if (!req.user) throw ApiError.unauthorized();
   const suggestion = await connectionsService.updateSuggestionStatus(
     req.user.id,
-    req.params.id,
+    param(req, 'id'),
     req.body.status,
   );
   ok(res, suggestion);
@@ -40,7 +41,7 @@ export const respondRequestHandler = asyncHandler(async (req: Request, res: Resp
   if (!req.user) throw ApiError.unauthorized();
   const request = await connectionsService.respondToConnectionRequest(
     req.user.id,
-    req.params.id,
+    param(req, 'id'),
     req.body.status,
   );
   ok(res, request);
@@ -48,13 +49,13 @@ export const respondRequestHandler = asyncHandler(async (req: Request, res: Resp
 
 export const deleteRequestHandler = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw ApiError.unauthorized();
-  await connectionsService.deleteConnectionRequest(req.user.id, req.params.id);
+  await connectionsService.deleteConnectionRequest(req.user.id, param(req, 'id'));
   res.status(204).send();
 });
 
 export const deleteExpertRequestHandler = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw ApiError.unauthorized();
-  await connectionsService.deleteExpertConnectionRequest(req.user.id, req.params.id);
+  await connectionsService.deleteExpertConnectionRequest(req.user.id, param(req, 'id'));
   res.status(204).send();
 });
 

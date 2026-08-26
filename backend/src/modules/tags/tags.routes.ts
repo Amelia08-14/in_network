@@ -18,7 +18,7 @@ tagsRouter.get(
   '/',
   validate({ query: querySchema }),
   asyncHandler(async (req, res) => {
-    const { category, search } = req.query as unknown as z.infer<typeof querySchema>;
+    const { category, search } = req.validatedQuery as z.infer<typeof querySchema>;
     const tags = await prisma.tag.findMany({
       where: {
         ...(category ? { category } : {}),

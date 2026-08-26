@@ -6,6 +6,7 @@ import { requireAuth } from '../../middleware/auth';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, ApiError } from '../../utils/apiResponse';
 import { validate } from '../../middleware/validate';
+import { param } from '../../utils/httpParams';
 
 export const eventsRouter = Router();
 
@@ -18,7 +19,7 @@ eventsRouter.get(
   '/',
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
-    const { origin } = req.query as unknown as z.infer<typeof listQuerySchema>;
+    const { origin } = req.validatedQuery as z.infer<typeof listQuerySchema>;
     const events = await prisma.event.findMany({
       where: { status: 'PUBLISHED', ...(origin ? { origin } : {}) },
       include: {
@@ -37,7 +38,7 @@ eventsRouter.get(
   '/gallery',
   validate({ query: listQuerySchema }),
   asyncHandler(async (req, res) => {
-    const { origin } = req.query as unknown as z.infer<typeof listQuerySchema>;
+    const { origin } = req.validatedQuery as z.infer<typeof listQuerySchema>;
     const events = await prisma.event.findMany({
       where: { status: 'PUBLISHED', ...(origin ? { origin } : {}) },
       orderBy: { startAt: 'desc' },
@@ -80,7 +81,7 @@ eventsRouter.get(
   '/:slug',
   asyncHandler(async (req, res) => {
     const event = await prisma.event.findUnique({
-      where: { slug: req.params.slug },
+      where: { slug: param(req, 'slug') },
       include: { _count: { select: { registrations: true } } },
     });
     if (!event || event.status !== 'PUBLISHED') throw ApiError.notFound('Événement introuvable');
@@ -98,7 +99,7 @@ eventsRouter.post(
   asyncHandler(async (req, res) => {
     if (!req.user) throw ApiError.unauthorized();
     const event = await prisma.event.findUnique({
-      where: { id: req.params.id },
+      where: { id: param(req, 'id') },
       include: { _count: { select: { registrations: true } } },
     });
     if (!event || event.status !== 'PUBLISHED') throw ApiError.notFound('Événement introuvable');

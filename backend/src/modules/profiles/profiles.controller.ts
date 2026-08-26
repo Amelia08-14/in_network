@@ -3,14 +3,15 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, okPaginated } from '../../utils/apiResponse';
 import { ApiError } from '../../utils/apiResponse';
 import * as profilesService from './profiles.service';
+import { param } from '../../utils/httpParams';
 
 export const listProfilesHandler = asyncHandler(async (req: Request, res: Response) => {
-  const { data, meta } = await profilesService.listProfiles(req.query as never, req.user?.id);
+  const { data, meta } = await profilesService.listProfiles(req.validatedQuery as never, req.user?.id);
   okPaginated(res, data, meta);
 });
 
 export const getProfileHandler = asyncHandler(async (req: Request, res: Response) => {
-  const profile = await profilesService.getProfileById(req.params.id, req.user?.id);
+  const profile = await profilesService.getProfileById(param(req, 'id'), req.user?.id);
   ok(res, profile);
 });
 
