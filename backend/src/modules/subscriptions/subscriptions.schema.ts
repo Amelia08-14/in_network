@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PaymentMethod } from '@prisma/client';
+import { PaymentMethod } from '../../generated/prisma/client';
 
 export const createSubscriptionSchema = z.object({
   planId: z.string().min(1),

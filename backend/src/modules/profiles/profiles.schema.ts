@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MemberType } from '@prisma/client';
+import { MemberType } from '../../generated/prisma/client';
 
 const optionalUrl = z.preprocess((value) => {
   if (typeof value !== 'string') return value;

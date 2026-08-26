@@ -1,4 +1,4 @@
-import type { MemberType } from '@prisma/client';
+import type { MemberType } from '../../generated/prisma/client';
 
 export interface MatchCandidate {
   userId: string;

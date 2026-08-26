@@ -3,3 +3,7 @@ dist/
 .env
 *.log
 /uploads/
+
+# Prisma 7 : le client généré (generator "prisma-client") vit maintenant hors
+# node_modules — régénéré via `npx prisma generate`, ne doit pas être commité.
+src/generated/

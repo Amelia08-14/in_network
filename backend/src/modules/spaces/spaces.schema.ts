@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SpaceType } from '@prisma/client';
+import { SpaceType } from '../../generated/prisma/client';
 
 export const listSpacesQuerySchema = z.object({
   siteId: z.string().optional(),

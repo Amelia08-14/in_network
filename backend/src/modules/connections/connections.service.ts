@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
-import type { SuggestionStatus, ConnectionRequestStatus } from '@prisma/client';
+import type { SuggestionStatus, ConnectionRequestStatus } from '../../generated/prisma/client';
 
 export async function listMySuggestions(userId: string) {
   return prisma.connectionSuggestion.findMany({

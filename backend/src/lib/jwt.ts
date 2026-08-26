@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { env } from '../config/env';
-import type { Role } from '@prisma/client';
+import type { Role } from '../generated/prisma/client';
 
 export interface AccessTokenPayload {
   sub: string; // userId

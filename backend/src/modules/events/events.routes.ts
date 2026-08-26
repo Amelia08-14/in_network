@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { EventOrigin } from '@prisma/client';
+import { EventOrigin } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import { requireAuth } from '../../middleware/auth';
 import { asyncHandler } from '../../utils/asyncHandler';

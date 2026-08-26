@@ -5,13 +5,17 @@
 //  - Account/Session/VerificationToken (NextAuth) remplacés par RefreshToken (auth JWT maison)
 //  - Champs de vérification email / reset password ajoutés directement sur User
 
+// Migration Prisma 7 (§0 brief) : générateur renommé "prisma-client" avec un
+// output explicite hors node_modules ; le driver adapter (@prisma/adapter-mariadb,
+// cf. lib/prisma.ts) porte désormais la connexion réelle — l'URL de
+// migration/introspection CLI vit dans prisma.config.ts, plus ici.
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
 }
 
 // ============================================
