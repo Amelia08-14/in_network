@@ -27,7 +27,7 @@ interface Testimonial {
 const PILLARS = [
   {
     icon: Building2,
-    title: "Un lieu, pas qu'un espace",
+    title: 'Coworking pensé pour avancer',
     description: 'Bureaux, salles de réunion et postes de travail pensés pour la productivité et la rencontre.',
   },
   {

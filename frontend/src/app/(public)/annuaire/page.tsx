@@ -12,6 +12,11 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { api } from '@/lib/api';
 import type { ApiListResponse, MemberProfileSummary } from '@/types';
 
+interface TagOption {
+  id: string;
+  label: string;
+}
+
 const MEMBER_TYPES = [
   { value: '', label: 'Tous les profils' },
   { value: 'FREELANCE', label: 'Freelance' },
@@ -22,14 +27,22 @@ const MEMBER_TYPES = [
 export default function AnnuairePage() {
   const [search, setSearch] = useState('');
   const [memberType, setMemberType] = useState('');
+  const [sector, setSector] = useState('');
+
+  // Brief client §4.3 — recherche avancée : filtre par secteur d'activité,
+  // en plus du texte libre et du type de profil déjà en place.
+  const { data: sectors } = useQuery({
+    queryKey: ['tags', 'SECTOR'],
+    queryFn: () => api.get<{ data: TagOption[] }>('/api/tags?category=SECTOR').then((r) => r.data),
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['profiles', search, memberType],
+    queryKey: ['profiles', search, memberType, sector],
     queryFn: () =>
       api.get<ApiListResponse<MemberProfileSummary>>(
         `/api/profiles?limit=24${search ? `&search=${encodeURIComponent(search)}` : ''}${
           memberType ? `&memberType=${memberType}` : ''
-        }`,
+        }${sector ? `&tag=${encodeURIComponent(sector)}` : ''}`,
       ),
   });
 
@@ -58,6 +71,16 @@ export default function AnnuairePage() {
             </option>
           ))}
         </Select>
+        {sectors && sectors.length > 0 && (
+          <Select value={sector} onChange={(e) => setSector(e.target.value)} className="sm:w-56">
+            <option value="">Tous les secteurs</option>
+            {sectors.map((s) => (
+              <option key={s.id} value={s.label}>
+                {s.label}
+              </option>
+            ))}
+          </Select>
+        )}
       </div>
 
       {isLoading ? (

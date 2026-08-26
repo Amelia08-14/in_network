@@ -7,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { InquiryForm } from '@/components/features/InquiryForm';
+import { Faq, type FaqItem } from '@/components/features/Faq';
 import { serverGet } from '@/lib/server-api';
 import { cn } from '@/lib/utils';
 import type { MembershipPlan, ServiceCatalogItem, SpaceResource } from '@/types';
@@ -25,6 +26,56 @@ const CYCLE_ACCENT = {
   MONTHLY: 'orange',
   ANNUAL: 'blue',
 } as const;
+
+// Accroches fournies telles quelles par la cliente (brief §4.10) — associées
+// par nom de formule plutôt que stockées en base, ce ne sont pas des données
+// métier mais un habillage marketing de cette page.
+const PLAN_TAGLINES: [match: string, tagline: string][] = [
+  ['Domiciliation', "une adresse qui inspire confiance à vos clients et partenaires dès le premier contact"],
+  ['Bureau privatif', 'un espace à votre image, pour recevoir vos clients sans jamais douter de votre sérieux'],
+  ['open space', 'un environnement qui vous connecte à d’autres entrepreneurs, chaque jour, sans effort'],
+];
+function planTagline(name: string): string | null {
+  const match = PLAN_TAGLINES.find(([key]) => name.toLowerCase().includes(key.toLowerCase()));
+  return match?.[1] ?? null;
+}
+
+const FAQ_ITEMS: FaqItem[] = [
+  {
+    question: 'Quelles formules propose IN Network ?',
+    answer:
+      "IN Network propose plusieurs formules adaptées aux besoins de chacun : accès bureau (open space), bureau privatif dédié, et formules de domiciliation ainsi que la création d'entreprise. Chaque formule peut être souscrite au mois ou sur engagement annuel.",
+  },
+  {
+    question: "Qu'est-ce que la domiciliation chez IN Network ?",
+    answer:
+      "La domiciliation permet à une entreprise d'établir son siège social à l'adresse d'IN Network, avec réception du courrier.",
+  },
+  {
+    question: 'Comment réserver une salle de réunion ?',
+    answer:
+      'Les salles de réunion et de formation sont réservables à l’heure ou à la journée, sur simple demande via le site ou l’équipe sur place, selon les disponibilités.',
+  },
+  {
+    question: 'Quels services sont inclus ?',
+    answer:
+      "IN Network propose des espaces de travail (bureaux privatif, open space), des salles de réunion et de formation, la domiciliation et création d'entreprise, ainsi qu'un accompagnement et une mise en réseau entre entrepreneurs.",
+  },
+  {
+    question: 'Comment réserver un espace ?',
+    answer:
+      'La réservation se fait via le formulaire du site, par WhatsApp ou directement auprès de l’équipe. Une confirmation est envoyée avant la visite ou l’accès à l’espace.',
+  },
+  {
+    question: "Quels sont les horaires d'accès ?",
+    answer: '09h–17h horaires d’ouverture au public, accès 24/24h pour les membres.',
+  },
+  {
+    question: 'Qui peut accéder aux espaces IN Network ?',
+    answer:
+      "L'accès aux espaces communs est réservé aux membres et à leurs invités. L'annuaire et les coordonnées des experts restent réservés aux utilisateurs disposant des droits d'accès appropriés.",
+  },
+];
 
 function formatDzd(value: string | null): string {
   if (!value) return '—';
@@ -58,6 +109,9 @@ export default async function TarifsPage() {
               <CardContent className="flex flex-col gap-5">
                 <div>
                   <h3 className="font-heading text-lg font-bold text-ink-900">{plan.name}</h3>
+                  {planTagline(plan.name) && (
+                    <p className="mt-1 text-sm italic text-ink-500">{planTagline(plan.name)}</p>
+                  )}
                   <p className="mt-2 flex items-baseline gap-1.5">
                     <span className="font-heading text-3xl font-bold text-ink-900">
                       {Number(plan.price).toLocaleString('fr-FR')}
@@ -97,7 +151,10 @@ export default async function TarifsPage() {
       {spaces.length > 0 && (
         <section className="mt-16">
           <h2 className="mb-1 font-heading text-2xl font-bold text-ink-900">Salles de réunion</h2>
-          <p className="mb-6 text-ink-500">Tarif préférentiel pour les membres IN NETWORK, tarif standard pour les visiteurs externes.</p>
+          <p className="text-sm italic text-ink-500">
+            Un cadre professionnel pour convaincre vos clients et signer plus vite.
+          </p>
+          <p className="mb-6 mt-1 text-ink-500">Tarif préférentiel pour les membres IN NETWORK, tarif standard pour les visiteurs externes.</p>
           <div className="overflow-x-auto rounded-card border border-ink-900/8 bg-white shadow-soft">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead>
@@ -194,6 +251,12 @@ export default async function TarifsPage() {
           </div>
         </section>
       )}
+
+      <section className="mt-16">
+        <h2 className="mb-1 font-heading text-2xl font-bold text-ink-900">Questions fréquentes</h2>
+        <p className="mb-6 text-ink-500">Tout ce qu&apos;il faut savoir avant de rejoindre IN NETWORK.</p>
+        <Faq items={FAQ_ITEMS} />
+      </section>
     </Container>
   );
 }

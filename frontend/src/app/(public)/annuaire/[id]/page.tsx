@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Building2, CheckCircle2, Globe2, Linkedin, Mail, MessageCircle } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Building2, CheckCircle2, Globe2, Linkedin, Mail, MessageCircle } from 'lucide-react';
 import { Container } from '@/components/ui/container';
 import { Badge, MemberTypeBadge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -60,6 +60,13 @@ export default function MemberDetailPage() {
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="font-heading text-3xl font-bold text-ink-900">{profile.firstName} {profile.lastName}</h1>
                 <MemberTypeBadge memberType={profile.memberType} />
+                {/* Brief client §4.3 — tout profil visible dans l'annuaire a déjà
+                    passé la validation manuelle admin (§3.1, MemberProfile.isPublic),
+                    donc systématiquement affiché ici plutôt que conditionné à un
+                    champ séparé qui n'existe pas dans le modèle de données. */}
+                <Badge variant="expert" className="inline-flex items-center gap-1">
+                  <BadgeCheck className="h-3.5 w-3.5" /> Profil vérifié
+                </Badge>
               </div>
               {profile.jobTitle && <p className="mt-1 text-lg font-medium text-brand-blue">{profile.jobTitle}</p>}
               {profile.companyName && <p className="mt-1 flex items-center gap-2 text-sm text-ink-500"><Building2 className="h-4 w-4" /> {profile.companyName}</p>}
