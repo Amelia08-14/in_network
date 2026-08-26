@@ -23,9 +23,10 @@ const TABS: { label: string; value: EventOrigin | undefined }[] = [
 export default async function EvenementsPage({
   searchParams,
 }: {
-  searchParams: { origin?: string };
+  searchParams: Promise<{ origin?: string }>;
 }) {
-  const activeOrigin = TABS.find((t) => t.value === searchParams.origin)?.value;
+  const { origin } = await searchParams;
+  const activeOrigin = TABS.find((t) => t.value === origin)?.value;
   const query = activeOrigin ? `?origin=${activeOrigin}` : '';
   const events = await serverGet<EventItem[]>(`/api/events${query}`, 900, [], 'events');
 
@@ -51,7 +52,7 @@ export default async function EvenementsPage({
               href={tab.value ? `/evenements?origin=${tab.value}` : '/evenements'}
               className={cn(
                 'rounded-pill px-4 py-2 text-sm font-semibold transition-colors',
-                isActive ? 'bg-ink-900 text-white' : 'bg-ink-900/[0.05] text-ink-700 hover:bg-ink-900/[0.09]',
+                isActive ? 'bg-ink-900 text-white' : 'bg-ink-900/5 text-ink-700 hover:bg-ink-900/9',
               )}
             >
               {tab.label}

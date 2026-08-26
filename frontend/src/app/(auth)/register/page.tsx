@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Check, PartyPopper } from 'lucide-react';
+import { Check, Eye, EyeOff, PartyPopper } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,6 +52,8 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [finalStepReady, setFinalStepReady] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -102,7 +104,16 @@ export default function RegisterPage() {
 
       setDone(true);
     } catch (e) {
-      setServerError(e instanceof ApiRequestError ? e.message : "Une erreur est survenue");
+      // Retour brief client (§1.1) : distinguer une erreur serveur/validation
+      // (ApiRequestError — message déjà spécifique, cf. errorHandler.ts côté
+      // backend : email déjà utilisé, champ invalide...) d'un échec réseau
+      // pur (fetch qui n'aboutit pas), qui restait auparavant affiché avec
+      // le même message générique et non-exploitable par l'utilisateur.
+      setServerError(
+        e instanceof ApiRequestError
+          ? e.message
+          : 'Problème de connexion réseau — vérifie ta connexion internet et réessaie.',
+      );
       setSubmitting(false);
     }
   }
@@ -172,14 +183,39 @@ export default function RegisterPage() {
               </div>
               <div>
                 <Label htmlFor="password">Mot de passe</Label>
-                <Input id="password" type="password" {...register('password')} />
+                <div className="relative">
+                  <Input id="password" type={showPassword ? 'text' : 'password'} className="pr-10" {...register('password')} />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {errors.password && (
                   <p className="mt-1 text-xs text-brand-orange">{errors.password.message}</p>
                 )}
               </div>
               <div>
                 <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-                <Input id="confirmPassword" type="password" {...register('confirmPassword')} />
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    className="pr-10"
+                    {...register('confirmPassword')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {errors.confirmPassword && (
                   <p className="mt-1 text-xs text-brand-orange">{errors.confirmPassword.message}</p>
                 )}

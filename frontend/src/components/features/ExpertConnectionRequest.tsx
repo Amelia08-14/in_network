@@ -69,7 +69,7 @@ export function ExpertConnectionRequest({ expertId, expertName }: { expertId: st
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-xl space-y-4 rounded-2xl border border-ink-900/[0.08] bg-white p-5 shadow-soft">
+    <form onSubmit={handleSubmit} className="max-w-xl space-y-4 rounded-2xl border border-ink-900/8 bg-white p-5 shadow-soft">
       <div>
         <Label htmlFor="expert-connection-message">Votre message</Label>
         <Textarea

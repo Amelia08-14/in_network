@@ -8,7 +8,7 @@ import {
   EventStatus,
   ServiceRequestStatus,
   BookingStatus,
-} from '@prisma/client';
+} from '../../generated/prisma/client';
 
 export const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

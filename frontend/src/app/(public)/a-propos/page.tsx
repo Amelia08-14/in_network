@@ -128,7 +128,7 @@ export default function AProposPage() {
             {GROUP_BRANDS.map((brand) => (
               <div
                 key={brand.name}
-                className="rounded-[1.5rem] bg-white/60 p-1.5 ring-1 ring-ink-900/[0.06]"
+                className="rounded-3xl bg-white/60 p-1.5 ring-1 ring-ink-900/6"
               >
                 <div className="rounded-[1.1rem] bg-white p-5">
                   <p className="font-heading font-bold text-ink-900">{brand.name}</p>

@@ -1,6 +1,112 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-brand-violet: #334155;
+  --color-brand-orange: #d44835;
+  --color-brand-blue: #1d4ed8;
+  --color-brand-violet-dark: #0f1b2e;
+  --color-brand-paper: #f5f0eb;
+  --color-brand-paper-deep: #ece3d6;
+
+  --color-ink-500: #64748b;
+  --color-ink-600: #475569;
+  --color-ink-700: #2b3b54;
+  --color-ink-800: #1b2a41;
+  --color-ink-900: #0f1b2e;
+  --color-ink: #0f1b2e;
+
+  --color-accent-green-light: #c0d5a9;
+  --color-accent-green: #73b866;
+
+  --color-accent-yellow: #ffc25a;
+  --color-accent-gray: #64748b;
+
+  --font-heading: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
+  --font-body:
+    var(--font-body), ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --radius-card: 1rem;
+  --radius-pill: 9999px;
+
+  --spacing-section-desktop: 4rem;
+  --spacing-section-mobile: 2.5rem;
+
+  --shadow-soft:
+    0 1px 2px rgba(15, 27, 46, 0.04), 0 6px 20px -6px rgba(15, 27, 46, 0.1);
+  --shadow-soft-lg:
+    0 4px 10px rgba(15, 27, 46, 0.04), 0 16px 40px -12px rgba(15, 27, 46, 0.16);
+
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-fade-in-up: fade-in-up 0.5s ease-out both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility section-padding {
+  @apply py-14 md:py-24;
+}
+
+@utility eyebrow {
+  /* Eyebrow corporate — petit label capitale, filet fin devant. */
+  @apply inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-ink-500;
+  &::before {
+    content: '';
+    @apply h-px w-6 bg-brand-orange;
+  }
+}
+
+@utility eyebrow-light {
+  /* Variante de l'eyebrow pour les sections sombres (bg-ink-900). */
+  @apply inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/60;
+  &::before {
+    content: '';
+    @apply h-px w-6 bg-brand-orange;
+  }
+}
+
+@utility section-tint {
+  /* Alterne le fond des sections sans jamais toucher au blanc pur ni au gris
+     générique — reste dans la même famille chaude que le fond global
+     (bg-brand-paper) pour ne jamais mélanger teintes froides et chaudes. */
+  @apply bg-brand-paper-deep;
+}
 
 @layer base {
   html {
@@ -51,36 +157,5 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
-  }
-}
-
-@layer utilities {
-  .section-padding {
-    @apply py-14 md:py-24;
-  }
-
-  /* Eyebrow corporate — petit label capitale, filet fin devant. */
-  .eyebrow {
-    @apply inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-ink-500;
-  }
-  .eyebrow::before {
-    content: '';
-    @apply h-px w-6 bg-brand-orange;
-  }
-
-  /* Variante de l'eyebrow pour les sections sombres (bg-ink-900). */
-  .eyebrow-light {
-    @apply inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/60;
-  }
-  .eyebrow-light::before {
-    content: '';
-    @apply h-px w-6 bg-brand-orange;
-  }
-
-  /* Alterne le fond des sections sans jamais toucher au blanc pur ni au gris
-     générique — reste dans la même famille chaude que le fond global
-     (bg-brand-paper) pour ne jamais mélanger teintes froides et chaudes. */
-  .section-tint {
-    @apply bg-brand-paper-deep;
   }
 }

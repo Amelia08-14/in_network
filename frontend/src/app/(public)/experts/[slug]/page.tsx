@@ -9,8 +9,9 @@ import type { ExpertSummary } from '@/types';
 
 export const revalidate = 3600;
 
-export default async function ExpertDetailPage({ params }: { params: { slug: string } }) {
-  const expert = await serverGet<ExpertSummary | null>(`/api/experts/${params.slug}`, 3600, null, 'experts');
+export default async function ExpertDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const expert = await serverGet<ExpertSummary | null>(`/api/experts/${slug}`, 3600, null, 'experts');
   if (!expert) notFound();
 
   return (

@@ -16,7 +16,7 @@ export function MemberCard({ profile }: { profile: MemberProfileSummary }) {
       <Card accent={MEMBER_TYPE_ACCENT[profile.memberType] ?? 'none'} className="h-full min-w-0">
         <CardContent className="flex h-full flex-col gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-ink-900 to-brand-orange text-white">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-linear-to-br from-ink-900 to-brand-orange text-white">
               {profile.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -42,7 +42,7 @@ export function MemberCard({ profile }: { profile: MemberProfileSummary }) {
             {profile.sectors.slice(0, 2).map((sector) => (
               <span
                 key={sector}
-                className="max-w-[9rem] truncate rounded-pill bg-ink-900/[0.05] px-2.5 py-0.5 text-xs text-ink-600"
+                className="max-w-36 truncate rounded-pill bg-ink-900/5 px-2.5 py-0.5 text-xs text-ink-600"
               >
                 {sector}
               </span>

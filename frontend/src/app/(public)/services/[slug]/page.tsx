@@ -8,9 +8,10 @@ import type { ServiceCatalogItem } from '@/types';
 
 export const revalidate = 3600;
 
-export default async function ServiceDetailPage({ params }: { params: { slug: string } }) {
+export default async function ServiceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const [service, allServices] = await Promise.all([
-    serverGet<ServiceCatalogItem | null>(`/api/services/${params.slug}`, 3600, null, 'services'),
+    serverGet<ServiceCatalogItem | null>(`/api/services/${slug}`, 3600, null, 'services'),
     serverGet<ServiceCatalogItem[]>('/api/services', 3600, [], 'services'),
   ]);
   if (!service) notFound();

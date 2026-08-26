@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
-import type { PaymentMethod } from '@prisma/client';
+import type { PaymentMethod } from '../../generated/prisma/client';
 
 function computeEndDate(start: Date, cycle: string): Date {
   const end = new Date(start);

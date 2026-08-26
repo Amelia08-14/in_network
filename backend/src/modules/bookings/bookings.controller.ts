@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, ApiError } from '../../utils/apiResponse';
 import * as bookingsService from './bookings.service';
+import { param } from '../../utils/httpParams';
 
 export const listMyBookingsHandler = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw ApiError.unauthorized();
@@ -19,6 +20,6 @@ export const createBookingHandler = asyncHandler(async (req: Request, res: Respo
 export const cancelBookingHandler = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw ApiError.unauthorized();
   const isAdmin = req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN';
-  const booking = await bookingsService.cancelBooking(req.user.id, req.params.id, isAdmin);
+  const booking = await bookingsService.cancelBooking(req.user.id, param(req, 'id'), isAdmin);
   ok(res, booking);
 });

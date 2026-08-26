@@ -49,7 +49,7 @@ export function VideoUploader({
         </div>
       ) : (
         <div className="flex items-center gap-3">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-card border border-dashed border-ink-900/20 bg-ink-900/[0.03]">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-card border border-dashed border-ink-900/20 bg-ink-900/3">
             {status === 'uploading' ? (
               <Loader2 className="h-5 w-5 animate-spin text-ink-500" />
             ) : (

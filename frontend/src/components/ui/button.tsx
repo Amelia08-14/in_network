@@ -6,15 +6,15 @@ import { cn } from '@/lib/utils';
 // Ne jamais utiliser l'orange en texte fin sur blanc (contraste insuffisant) :
 // réservé aux fonds de bouton avec texte blanc.
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-card text-sm font-semibold transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ink-900 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:scale-100',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-card text-sm font-semibold transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ink-900 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:scale-100',
   {
     variants: {
       variant: {
         primary: 'bg-brand-orange text-white shadow-soft hover:-translate-y-0.5 hover:bg-brand-orange/90 hover:shadow-soft-lg active:translate-y-0',
         secondary: 'bg-ink-900 text-white shadow-soft hover:-translate-y-0.5 hover:bg-ink-800 hover:shadow-soft-lg active:translate-y-0',
-        outline: 'border border-ink-900/15 bg-white text-ink-900 hover:border-ink-900/25 hover:bg-ink-900/[0.04]',
-        'outline-light': 'border border-white/25 bg-white/5 text-white backdrop-blur hover:border-white/40 hover:bg-white/10',
-        ghost: 'bg-transparent text-ink-700 hover:bg-ink-900/[0.05]',
+        outline: 'border border-ink-900/15 bg-white text-ink-900 hover:border-ink-900/25 hover:bg-ink-900/4',
+        'outline-light': 'border border-white/25 bg-white/5 text-white backdrop-blur-sm hover:border-white/40 hover:bg-white/10',
+        ghost: 'bg-transparent text-ink-700 hover:bg-ink-900/5',
         link: 'bg-transparent text-brand-blue underline-offset-4 hover:underline p-0 h-auto active:scale-100',
       },
       size: {

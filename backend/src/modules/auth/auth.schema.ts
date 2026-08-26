@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MemberType } from '@prisma/client';
+import { MemberType } from '../../generated/prisma/client';
 
 export const registerSchema = z.object({
   email: z.string().email(),

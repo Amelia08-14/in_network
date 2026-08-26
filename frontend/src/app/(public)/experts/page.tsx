@@ -21,14 +21,14 @@ export default async function ExpertsPage() {
 
   return (
     <>
-      <section className="relative overflow-hidden border-b border-ink-900/[0.06] bg-white/45 py-14 md:py-20">
+      <section className="relative overflow-hidden border-b border-ink-900/6 bg-white/45 py-14 md:py-20">
         <div
           aria-hidden
-          className="absolute -right-20 -top-24 h-64 w-64 rounded-full border-[42px] border-brand-orange/[0.07]"
+          className="absolute -right-20 -top-24 h-64 w-64 rounded-full border-42 border-brand-orange/[0.07]"
         />
         <div
           aria-hidden
-          className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full border-[38px] border-brand-blue/[0.05]"
+          className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full border-38 border-brand-blue/5"
         />
         <Container className="relative text-center">
           <p className="mb-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink-500">

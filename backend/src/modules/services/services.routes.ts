@@ -6,6 +6,7 @@ import { validate } from '../../middleware/validate';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, ApiError } from '../../utils/apiResponse';
 import { createInquirySchema } from './services.schema';
+import { param } from '../../utils/httpParams';
 
 export const servicesRouter = Router();
 
@@ -24,7 +25,7 @@ servicesRouter.get(
 servicesRouter.get(
   '/:slug',
   asyncHandler(async (req, res) => {
-    const item = await prisma.serviceCatalogItem.findUnique({ where: { slug: req.params.slug } });
+    const item = await prisma.serviceCatalogItem.findUnique({ where: { slug: param(req, 'slug') } });
     if (!item || !item.isActive) throw ApiError.notFound('Service introuvable');
     ok(res, item);
   }),

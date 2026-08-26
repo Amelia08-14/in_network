@@ -98,10 +98,10 @@ export default async function TarifsPage() {
         <section className="mt-16">
           <h2 className="mb-1 font-heading text-2xl font-bold text-ink-900">Salles de réunion</h2>
           <p className="mb-6 text-ink-500">Tarif préférentiel pour les membres IN NETWORK, tarif standard pour les visiteurs externes.</p>
-          <div className="overflow-x-auto rounded-card border border-ink-900/[0.08] bg-white shadow-soft">
+          <div className="overflow-x-auto rounded-card border border-ink-900/8 bg-white shadow-soft">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead>
-                <tr className="border-b border-ink-900/[0.08] bg-ink-900/[0.03] text-ink-700">
+                <tr className="border-b border-ink-900/8 bg-ink-900/3 text-ink-700">
                   <th className="p-4 font-semibold">Salle</th>
                   <th className="p-4 font-semibold">1h</th>
                   <th className="p-4 font-semibold">Demi-journée</th>
@@ -111,7 +111,7 @@ export default async function TarifsPage() {
               <tbody>
                 {spaces.map((space) => (
                   <Fragment key={space.id}>
-                    <tr className="border-b border-ink-900/[0.06]">
+                    <tr className="border-b border-ink-900/6">
                       <td rowSpan={2} className="p-4 align-top font-semibold text-ink-900">
                         {space.name}
                         <span className="mt-1 block text-xs font-normal text-ink-500">{space.capacity} places</span>
@@ -123,9 +123,9 @@ export default async function TarifsPage() {
                       <td className="p-4 text-ink-700">{formatDzd(space.halfDayRateMember)}</td>
                       <td className="p-4 text-ink-700">{formatDzd(space.dailyRateMember)}</td>
                     </tr>
-                    <tr className="border-b border-ink-900/[0.06]">
+                    <tr className="border-b border-ink-900/6">
                       <td className="p-4 text-ink-700">
-                        <span className="mr-1.5 rounded-pill bg-ink-900/[0.06] px-2 py-0.5 text-xs font-semibold text-ink-700">Externe</span>
+                        <span className="mr-1.5 rounded-pill bg-ink-900/6 px-2 py-0.5 text-xs font-semibold text-ink-700">Externe</span>
                         {formatDzd(space.hourlyRateExternal)}
                       </td>
                       <td className="p-4 text-ink-700">{formatDzd(space.halfDayRateExternal)}</td>
@@ -162,7 +162,7 @@ export default async function TarifsPage() {
                 <CardContent>
                   <h3 className="font-heading text-lg font-bold text-ink-900">{service.title}</h3>
                   <p className="mt-2 text-sm text-ink-600">{service.description}</p>
-                  <ul className="mt-4 space-y-2 border-t border-ink-900/[0.06] pt-4 text-sm">
+                  <ul className="mt-4 space-y-2 border-t border-ink-900/6 pt-4 text-sm">
                     {service.pricingTiers!.map((tier) => (
                       <li key={tier.label} className="flex items-center justify-between gap-2">
                         <span className="text-ink-700">{tier.label}</span>

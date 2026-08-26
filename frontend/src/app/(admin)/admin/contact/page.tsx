@@ -80,9 +80,9 @@ export default function AdminContactPage() {
           ) : !data?.data.length ? (
             <EmptyState icon={Mail} title="Aucun message pour le moment" />
           ) : (
-            <div className="divide-y divide-ink-900/[0.06]">
+            <div className="divide-y divide-ink-900/6">
               {data.data.map((message) => (
-                <article key={message.id} className={`p-5 ${!message.isRead ? 'bg-brand-orange/[0.03]' : ''}`}>
+                <article key={message.id} className={`p-5 ${!message.isRead ? 'bg-brand-orange/3' : ''}`}>
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -120,14 +120,14 @@ export default function AdminContactPage() {
                   </div>
 
                   {message.replyText && replyingTo !== message.id && (
-                    <div className="mt-4 rounded-xl border-l-2 border-accent-green bg-accent-green/[0.08] p-4">
+                    <div className="mt-4 rounded-xl border-l-2 border-accent-green bg-accent-green/8 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-green-800">Votre réponse</p>
                       <p className="mt-1 whitespace-pre-line text-sm text-ink-600">{message.replyText}</p>
                     </div>
                   )}
 
                   {replyingTo === message.id && (
-                    <div className="mt-4 max-w-2xl space-y-3 rounded-2xl border border-ink-900/[0.08] bg-white p-4">
+                    <div className="mt-4 max-w-2xl space-y-3 rounded-2xl border border-ink-900/8 bg-white p-4">
                       <p className="text-sm font-semibold text-ink-900">Répondre à {message.name}</p>
                       <Textarea rows={5} value={reply} onChange={(event) => setReply(event.target.value)} placeholder="Rédigez votre réponse..." />
                       <div className="flex gap-2">

@@ -18,11 +18,11 @@ export function EmptyState({ icon: Icon = Sparkle, title, description, action, c
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center gap-4 rounded-[1.75rem] border border-dashed border-ink-900/[0.12] bg-ink-900/[0.015] px-8 py-20 text-center',
+        'flex flex-col items-center justify-center gap-4 rounded-[1.75rem] border border-dashed border-ink-900/12 bg-ink-900/1.5 px-8 py-20 text-center',
         className,
       )}
     >
-      <div className="rounded-[1.25rem] bg-white p-1.5 shadow-soft ring-1 ring-ink-900/[0.06]">
+      <div className="rounded-[1.25rem] bg-white p-1.5 shadow-soft ring-1 ring-ink-900/6">
         <div className="flex h-12 w-12 items-center justify-center rounded-[0.9rem] bg-brand-orange/10 text-brand-orange">
           <Icon className="h-5 w-5" strokeWidth={1.75} />
         </div>

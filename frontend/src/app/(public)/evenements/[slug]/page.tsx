@@ -10,8 +10,9 @@ import { EventRegisterButton } from './register-button';
 
 export const revalidate = 900;
 
-export default async function EventDetailPage({ params }: { params: { slug: string } }) {
-  const event = await serverGet<EventItem | null>(`/api/events/${params.slug}`, 900, null, 'events');
+export default async function EventDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const event = await serverGet<EventItem | null>(`/api/events/${slug}`, 900, null, 'events');
   if (!event) notFound();
 
   const isPast = new Date(event.endAt) < new Date();
@@ -20,14 +21,14 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
   return (
     <Container className="section-padding max-w-3xl">
       {event.videoUrl ? (
-        <div className="relative mb-8 aspect-[16/9] overflow-hidden rounded-card bg-ink-900">
+        <div className="relative mb-8 aspect-video overflow-hidden rounded-card bg-ink-900">
           <video src={event.videoUrl} controls playsInline className="h-full w-full object-cover">
             Ton navigateur ne prend pas en charge la lecture vidéo.
           </video>
         </div>
       ) : (
         event.coverImage && (
-          <div className="relative mb-8 aspect-[16/9] overflow-hidden rounded-card bg-ink-900">
+          <div className="relative mb-8 aspect-video overflow-hidden rounded-card bg-ink-900">
             <Image src={event.coverImage} alt="" fill sizes="768px" className="object-cover" priority />
           </div>
         )
@@ -65,7 +66,7 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
       </div>
 
       {event.origin === 'CO_ORGANIZED' && event.coOrganizerName && (
-        <div className="mt-6 flex items-center gap-3 rounded-card border border-ink-900/[0.08] bg-ink-900/[0.03] p-4">
+        <div className="mt-6 flex items-center gap-3 rounded-card border border-ink-900/8 bg-ink-900/3 p-4">
           {event.coOrganizerLogoUrl && (
             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white">
               <Image src={event.coOrganizerLogoUrl} alt="" fill sizes="40px" className="object-contain" />
@@ -77,7 +78,7 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
         </div>
       )}
       {event.origin === 'EXTERNAL' && (
-        <div className="mt-6 rounded-card border border-ink-900/[0.08] bg-ink-900/[0.03] p-4">
+        <div className="mt-6 rounded-card border border-ink-900/8 bg-ink-900/3 p-4">
           <p className="text-sm text-ink-700">Événement externe relayé par IN NETWORK.</p>
         </div>
       )}

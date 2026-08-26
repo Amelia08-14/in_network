@@ -229,13 +229,13 @@ export default async function HomePage() {
             </Reveal>
 
             {(featuredTestimonial || events.length > 0) && (
-              <Reveal className="mt-6 grid gap-8 rounded-card border border-white/10 bg-white/[0.04] p-8 backdrop-blur md:grid-cols-[auto,1fr] md:items-center md:gap-12 md:p-10">
+              <Reveal className="mt-6 grid gap-8 rounded-card border border-white/10 bg-white/4 p-8 backdrop-blur-sm md:grid-cols-[auto_1fr] md:items-center md:gap-12 md:p-10">
                 {events.length > 0 && (
                   <div className="flex shrink-0 flex-col items-start gap-1 md:border-r md:border-white/10 md:pr-12">
                     <span className="font-heading text-5xl font-bold text-brand-orange md:text-6xl">
                       {events.length}
                     </span>
-                    <span className="max-w-[10rem] text-sm text-white/60">événements organisés au sein du réseau</span>
+                    <span className="max-w-40 text-sm text-white/60">événements organisés au sein du réseau</span>
                   </div>
                 )}
                 {featuredTestimonial && (

@@ -44,7 +44,7 @@ export function ServiceCard({ service }: { service: ServiceCatalogItem }) {
             {service.pricingTiers.map((tier) => (
               <li
                 key={tier.label}
-                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-ink-900/[0.03] px-3.5 py-2.5"
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-ink-900/3 px-3.5 py-2.5"
               >
                 <span className="text-sm text-ink-600">{tier.label}</span>
                 <span className="ml-auto shrink-0 whitespace-nowrap font-heading font-bold tabular-nums text-ink-900">
@@ -56,7 +56,7 @@ export function ServiceCard({ service }: { service: ServiceCatalogItem }) {
           </ul>
         ) : (
           service.priceFrom && (
-            <p className="mt-1 rounded-xl bg-ink-900/[0.03] px-3.5 py-2.5 text-sm">
+            <p className="mt-1 rounded-xl bg-ink-900/3 px-3.5 py-2.5 text-sm">
               <span className="text-ink-500">à partir de </span>
               <span className="font-heading font-bold text-ink-900">{service.priceFrom} DZD</span>
             </p>

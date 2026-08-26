@@ -5,13 +5,17 @@
 //  - Account/Session/VerificationToken (NextAuth) remplacés par RefreshToken (auth JWT maison)
 //  - Champs de vérification email / reset password ajoutés directement sur User
 
+// Migration Prisma 7 (§0 brief) : générateur renommé "prisma-client" avec un
+// output explicite hors node_modules ; le driver adapter (@prisma/adapter-mariadb,
+// cf. lib/prisma.ts) porte désormais la connexion réelle — l'URL de
+// migration/introspection CLI vit dans prisma.config.ts, plus ici.
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -225,11 +229,11 @@ model MemberProfile {
   avatarUrl   String?
   website     String?
   linkedinUrl String?
-  // Vrai par défaut : un profil apparaît dans l'annuaire dès l'inscription
-  // (validation email requise, mais pas d'approbation Admin manuelle pour
-  // le moment — décision produit, cf. /admin/validations qui reste
-  // disponible pour réactiver ce contrôle plus tard).
-  isPublic    Boolean    @default(true)
+  // Faux par défaut : un profil n'apparaît dans l'annuaire qu'après
+  // validation Admin (brief client §3.1 — la validation manuelle,
+  // temporairement retirée courant août, est redemandée explicitement).
+  // L'Admin bascule ce champ à true depuis /admin/validations.
+  isPublic    Boolean    @default(false)
   siteId      String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt

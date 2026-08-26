@@ -7,8 +7,16 @@ interface AccessTokenPayload {
   exp: number;
 }
 
-export const config = { matcher: ['/dashboard/:path*', '/admin/:path*'] };
+// /annuaire ajouté au matcher — retour brief client (§3.1) : l'annuaire des
+// membres doit devenir privé (réservé aux utilisateurs authentifiés), il
+// était jusque-là dans le groupe de routes publiques.
+export const config = { matcher: ['/dashboard/:path*', '/admin/:path*', '/annuaire/:path*'] };
 
+// Renommé middleware.ts -> proxy.ts (migration Next.js 16, §0 brief) : même
+// fichier, même logique, seuls le nom de fichier et de la fonction exportée
+// changent — ce garde-fou tourne exclusivement sur le runtime Node.js
+// (aucune API "edge only" utilisée ici, juste du décodage JWT + cookies).
+//
 // Protection de routes par rôle (cf. CDC §7.3) — /admin vit dans la même app
 // Next.js que le site public et /dashboard (architecture single-app fusionnée,
 // pas dans une app séparée : le commentaire précédent ici décrivait un plan
@@ -18,7 +26,7 @@ export const config = { matcher: ['/dashboard/:path*', '/admin/:path*'] };
 // côté client après login) et seulement décodé ici — pas vérifié
 // cryptographiquement. L'autorisation réelle est de toute façon appliquée par
 // le backend à chaque appel API (requireRole côté adminRouter) ; ce
-// middleware est une seconde ligne de défense côté edge, pas la seule.
+// garde-fou est une seconde ligne de défense côté edge, pas la seule.
 //
 // Retour QA critique : le cookie d'access token ne vit que ~15 min (cf.
 // auth-cookies.ts / admin-auth-cookies.ts) et n'est JAMAIS rafraîchi de façon
@@ -26,15 +34,15 @@ export const config = { matcher: ['/dashboard/:path*', '/admin/:path*'] };
 // client. Rediriger immédiatement dès que ce cookie est absent/invalide (ce
 // qui arrive dans les faits à chaque navigation espacée de plus de 15 min)
 // cassait le flux de refresh silencieux prévu (cf. le commentaire de
-// DashboardShell.tsx qui, lui, présuppose ce middleware comme un simple
-// garde-fou "en complément" — pas la seule barrière). Deux tickets QA
+// DashboardShell.tsx qui, lui, présuppose ce garde-fou comme un simple
+// filet "en complément" — pas la seule barrière). Deux tickets QA
 // distincts ("dashboards totalement en panne" et "clic sur Membres qui
 // retombe sur le Dashboard") avaient la même cause : ce comportement
 // intermittent selon le temps écoulé depuis le dernier appel API.
 // On distingue donc access absent/invalide (⇒ laisser passer, le hydrate()
 // client tentera un refresh silencieux via le refresh token) de refresh
 // absent (⇒ session définitivement terminée, redirection immédiate).
-export default function middleware(req: NextRequest) {
+export default function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isAdminRoute = pathname.startsWith('/admin');
 

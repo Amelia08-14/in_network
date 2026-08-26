@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PrismaClient } from '@prisma/client';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { PrismaClient } from '../src/generated/prisma/client';
 import bcrypt from 'bcryptjs';
 import sharp from 'sharp';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -11,7 +12,9 @@ const heicConvert = require('heic-convert') as (opts: {
 }) => Promise<Buffer>;
 import { env } from '../src/config/env';
 
-const prisma = new PrismaClient();
+// Migration Prisma 7 : driver adapter obligatoire, même logique que src/lib/prisma.ts.
+const adapter = new PrismaMariaDb(env.databaseUrl);
+const prisma = new PrismaClient({ adapter });
 
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 // Photos réelles reçues de la cliente via Drive lors d'une phase antérieure

@@ -1,14 +1,17 @@
-import { Prisma, TagCategory, TagRelationType } from '@prisma/client';
+import { Prisma, TagCategory, TagRelationType } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
 import { buildPaginationMeta } from '../../utils/apiResponse';
 import { hasAcceptedConnection } from '../connections/connections.service';
 import type { ListProfilesQuery, UpdateProfileInput } from './profiles.schema';
 
-const profileWithTags = Prisma.validator<Prisma.MemberProfileInclude>()({
+// Migration Prisma 7 (§0 brief) : `Prisma.validator` n'existe plus sur le
+// nouveau générateur — `satisfies` (TS natif) est le remplacement recommandé,
+// avec exactement le même effet (littéral typé, vérifié contre l'include réel).
+const profileWithTags = {
   tags: { include: { tag: true } },
   user: { select: { id: true, email: true, phone: true, createdAt: true } },
-});
+} satisfies Prisma.MemberProfileInclude;
 
 type ProfileWithTags = Prisma.MemberProfileGetPayload<{ include: typeof profileWithTags }>;
 

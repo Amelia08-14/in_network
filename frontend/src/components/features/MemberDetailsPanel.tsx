@@ -59,7 +59,7 @@ export function MemberDetailsPanel({
   if (!memberId) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-ink-900/35 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex justify-end bg-ink-900/35 backdrop-blur-xs" onClick={onClose}>
       <aside className="h-full w-full max-w-xl overflow-y-auto bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="font-heading text-2xl font-bold text-ink-900">Détails du membre</h2>
@@ -84,7 +84,7 @@ export function MemberDetailsPanel({
 
             <section>
               <h3 className="text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Coordonnées</h3>
-              <dl className="mt-3 grid gap-4 rounded-2xl border border-ink-900/[0.08] p-4 text-sm sm:grid-cols-2">
+              <dl className="mt-3 grid gap-4 rounded-2xl border border-ink-900/8 p-4 text-sm sm:grid-cols-2">
                 <div><dt className="text-ink-500">Email</dt><dd className="mt-1 break-all font-medium text-ink-900">{member.email}</dd></div>
                 <div><dt className="text-ink-500">Téléphone</dt><dd className="mt-1 font-medium text-ink-900">{member.phone || 'Non renseigné'}</dd></div>
                 <div><dt className="text-ink-500">Entreprise</dt><dd className="mt-1 font-medium text-ink-900">{member.profile?.companyName || 'Non renseignée'}</dd></div>
@@ -122,7 +122,7 @@ export function MemberDetailsPanel({
             {member.profile?.bio && (
               <section>
                 <h3 className="text-xs font-bold uppercase tracking-[0.14em] text-ink-500">Présentation</h3>
-                <p className="mt-3 whitespace-pre-line rounded-2xl border border-ink-900/[0.08] p-4 text-sm leading-relaxed text-ink-600">{member.profile.bio}</p>
+                <p className="mt-3 whitespace-pre-line rounded-2xl border border-ink-900/8 p-4 text-sm leading-relaxed text-ink-600">{member.profile.bio}</p>
               </section>
             )}
 
@@ -168,11 +168,11 @@ export function MemberDetailsPanel({
             })()}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-ink-900/[0.08] p-4"><p className="text-sm text-ink-500">Abonnements</p><p className="mt-1 text-3xl font-bold text-ink-900">{member.subscriptions.length}</p></div>
-              <div className="rounded-2xl border border-ink-900/[0.08] p-4"><p className="text-sm text-ink-500">Réservations</p><p className="mt-1 text-3xl font-bold text-ink-900">{member.bookings.length}</p></div>
+              <div className="rounded-2xl border border-ink-900/8 p-4"><p className="text-sm text-ink-500">Abonnements</p><p className="mt-1 text-3xl font-bold text-ink-900">{member.subscriptions.length}</p></div>
+              <div className="rounded-2xl border border-ink-900/8 p-4"><p className="text-sm text-ink-500">Réservations</p><p className="mt-1 text-3xl font-bold text-ink-900">{member.bookings.length}</p></div>
             </div>
 
-            <div className="flex flex-wrap gap-3 border-t border-ink-900/[0.08] pt-5">
+            <div className="flex flex-wrap gap-3 border-t border-ink-900/8 pt-5">
               <a href={`mailto:${member.email}`}><Button variant="primary">Contacter par email</Button></a>
               <Button variant="outline" disabled={toggleMutation.isPending} onClick={() => toggleMutation.mutate(!member.isActive)}>
                 {member.isActive ? 'Désactiver le compte' : 'Réactiver le compte'}

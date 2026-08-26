@@ -18,7 +18,7 @@ export function ImageGallery({ images }: { images: GalleryImageItem[] }) {
             key={image.id}
             type="button"
             onClick={() => setOpenIndex(index)}
-            className="group relative aspect-[4/3] overflow-hidden rounded-card bg-ink-900/5"
+            className="group relative aspect-4/3 overflow-hidden rounded-card bg-ink-900/5"
           >
             <Image
               src={image.url}

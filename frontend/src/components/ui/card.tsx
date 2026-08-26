@@ -43,7 +43,7 @@ export function Card({
   return (
     <div
       className={cn(
-        'group/card relative overflow-hidden rounded-2xl border border-ink-900/[0.07] bg-white shadow-soft transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-ink-900/[0.12] hover:shadow-soft-lg',
+        'group/card relative overflow-hidden rounded-2xl border border-ink-900/[0.07] bg-white shadow-soft transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:border-ink-900/12 hover:shadow-soft-lg',
         className,
       )}
       {...props}

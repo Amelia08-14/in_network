@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SuggestionStatus, ConnectionRequestStatus } from '@prisma/client';
+import { SuggestionStatus, ConnectionRequestStatus } from '../../generated/prisma/client';
 
 export const updateSuggestionSchema = z.object({
   status: z.nativeEnum(SuggestionStatus),

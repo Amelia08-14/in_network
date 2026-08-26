@@ -41,7 +41,7 @@ export function ImageUploader({
       <div className="flex items-center gap-3">
         <div
           className={cn(
-            'relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-card border border-dashed border-ink-900/20 bg-ink-900/[0.03]',
+            'relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-card border border-dashed border-ink-900/20 bg-ink-900/3',
           )}
         >
           {value ? (
