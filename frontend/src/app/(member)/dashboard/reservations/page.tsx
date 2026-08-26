@@ -68,6 +68,7 @@ export default function ReservationsPage() {
   const [spaceId, setSpaceId] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [pendingSlot, setPendingSlot] = useState<Slot | null>(null);
 
   const { data: spaces } = useQuery({
     queryKey: ['spaces'],
@@ -91,11 +92,14 @@ export default function ReservationsPage() {
     mutationFn: (slot: Slot) => api.post('/api/bookings', { spaceId, startAt: slot.startAt, endAt: slot.endAt }),
     onSuccess: () => {
       setFeedback('Réservation créée avec succès.');
+      setPendingSlot(null);
       queryClient.invalidateQueries({ queryKey: ['my-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['availability', spaceId, date] });
     },
     onError: (e) => setFeedback(e instanceof ApiRequestError ? e.message : 'Erreur lors de la réservation'),
   });
+
+  const selectedSpaceName = spaces?.find((s) => s.id === spaceId)?.name;
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.put(`/api/bookings/${id}`, { status: 'CANCELLED' }),
@@ -115,7 +119,13 @@ export default function ReservationsPage() {
         </div>
         <CardContent className="space-y-4 pt-0">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Select value={spaceId} onChange={(e) => setSpaceId(e.target.value)}>
+            <Select
+              value={spaceId}
+              onChange={(e) => {
+                setSpaceId(e.target.value);
+                setPendingSlot(null);
+              }}
+            >
               <option value="">Choisir un espace...</option>
               {spaces?.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -123,7 +133,14 @@ export default function ReservationsPage() {
                 </option>
               ))}
             </Select>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => {
+                setDate(e.target.value);
+                setPendingSlot(null);
+              }}
+            />
           </div>
 
           {spaceId && availability && (
@@ -132,12 +149,42 @@ export default function ReservationsPage() {
                 <button
                   key={slot.startAt}
                   disabled={!slot.available || bookMutation.isPending}
-                  onClick={() => bookMutation.mutate(slot)}
+                  onClick={() => {
+                    setFeedback(null);
+                    setPendingSlot(slot);
+                  }}
                   className="rounded-card border border-gray-200 py-2 text-xs font-medium text-gray-700 hover:border-brand-violet hover:text-brand-violet disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-300"
                 >
                   {new Date(slot.startAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Retour QA critique : un clic sur un créneau soumettait la réservation
+              instantanément, sans étape de confirmation — un misclick créait une
+              réservation qu'il fallait ensuite annuler manuellement. */}
+          {pendingSlot && (
+            <div className="rounded-card border border-brand-violet/30 bg-brand-violet/5 p-4">
+              <p className="text-sm text-gray-700">
+                Confirmer la réservation de <strong>{selectedSpaceName}</strong> le{' '}
+                <strong>
+                  {new Date(pendingSlot.startAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
+                </strong>{' '}
+                — {new Date(pendingSlot.endAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} ?
+              </p>
+              <div className="mt-3 flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => bookMutation.mutate(pendingSlot)}
+                  disabled={bookMutation.isPending}
+                >
+                  {bookMutation.isPending ? 'Confirmation...' : 'Confirmer la réservation'}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setPendingSlot(null)} disabled={bookMutation.isPending}>
+                  Annuler
+                </Button>
+              </div>
             </div>
           )}
 

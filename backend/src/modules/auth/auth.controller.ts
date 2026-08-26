@@ -14,18 +14,28 @@ const REFRESH_COOKIE = 'in_network_refresh';
 const ADMIN_REFRESH_COOKIE = 'in_network_admin_refresh';
 const REFRESH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 
+// path: '/' (et non '/api/auth') — retour QA critique : avec un scope
+// restreint à /api/auth, le navigateur n'envoie JAMAIS ce cookie sur une
+// requête vers une page Next.js (/dashboard, /admin/...), y compris les
+// requêtes que middleware.ts inspecte à chaque navigation. Résultat : dès
+// que le cookie d'access token (courte durée, ~15 min, cf. auth-cookies.ts)
+// expirait, middleware.ts n'avait aucun moyen de savoir qu'une session
+// valide existait encore (refresh token 30j) et redirigeait systématiquement
+// vers /login ou /admin — perçu par les testeurs comme "dashboard totalement
+// en panne" et "clic sur Membres qui retombe sur le Dashboard" (le timing de
+// l'expiration du cookie de 15 min rendait le problème intermittent).
 function setRefreshCookie(res: Response, token: string, cookieName = REFRESH_COOKIE) {
   res.cookie(cookieName, token, {
     httpOnly: true,
     secure: env.isProduction,
     sameSite: 'lax',
     maxAge: REFRESH_COOKIE_MAX_AGE,
-    path: '/api/auth',
+    path: '/',
   });
 }
 
 function clearRefreshCookie(res: Response, cookieName = REFRESH_COOKIE) {
-  res.clearCookie(cookieName, { path: '/api/auth' });
+  res.clearCookie(cookieName, { path: '/' });
 }
 
 export const registerHandler = asyncHandler(async (req: Request, res: Response) => {

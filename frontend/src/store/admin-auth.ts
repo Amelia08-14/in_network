@@ -1,6 +1,32 @@
 import { create } from 'zustand';
-import { adminApi, setAdminAccessTokenCookie, clearAdminAccessTokenCookie } from '@/lib/admin-api';
+import {
+  adminApi,
+  setAdminAccessTokenCookie,
+  clearAdminAccessTokenCookie,
+  tryRefreshAdminAccessToken,
+} from '@/lib/admin-api';
 import type { AuthUser } from '@/types';
+
+// Même mécanisme que store/auth.ts — cf. son commentaire pour le détail du
+// bug (cookie d'access token de courte durée jamais rafraîchi de façon
+// proactive, provoquant des redirections middleware.ts intermittentes,
+// notamment le ticket QA "clic sur Membres qui retombe sur le Dashboard").
+const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
+let refreshIntervalId: ReturnType<typeof setInterval> | undefined;
+
+function startTokenRefreshLoop() {
+  if (refreshIntervalId) return;
+  refreshIntervalId = setInterval(() => {
+    tryRefreshAdminAccessToken().catch(() => undefined);
+  }, REFRESH_INTERVAL_MS);
+}
+
+function stopTokenRefreshLoop() {
+  if (refreshIntervalId) {
+    clearInterval(refreshIntervalId);
+    refreshIntervalId = undefined;
+  }
+}
 
 interface AdminAuthResponse {
   data: { accessToken: string; user: AuthUser };
@@ -26,12 +52,14 @@ export const useAdminAuthStore = create<AdminAuthState>((set) => ({
     const res = await adminApi.post<AdminAuthResponse>('/api/auth/admin/login', { email, password });
     setAdminAccessTokenCookie(res.data.accessToken);
     set({ user: res.data.user, status: 'authenticated' });
+    startTokenRefreshLoop();
     return res.data.user;
   },
 
   logout: async () => {
     await adminApi.post('/api/auth/admin/logout').catch(() => undefined);
     clearAdminAccessTokenCookie();
+    stopTokenRefreshLoop();
     set({ user: null, status: 'unauthenticated' });
   },
 
@@ -40,6 +68,7 @@ export const useAdminAuthStore = create<AdminAuthState>((set) => ({
     try {
       const res = await adminApi.get<{ data: AuthUser }>('/api/auth/me');
       set({ user: res.data, status: 'authenticated' });
+      startTokenRefreshLoop();
     } catch {
       clearAdminAccessTokenCookie();
       set({ user: null, status: 'unauthenticated' });

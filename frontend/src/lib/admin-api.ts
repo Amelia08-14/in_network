@@ -18,7 +18,7 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
 // sur 401 via refresh) mais branché sur le cookie/refresh admin séparés, pour
 // ne jamais mélanger une session admin et une session membre dans le même
 // navigateur.
-async function tryRefreshAdminAccessToken(): Promise<boolean> {
+export async function tryRefreshAdminAccessToken(): Promise<boolean> {
   const response = await fetch(`${getClientApiUrl()}/api/auth/admin/refresh`, {
     method: 'POST',
     credentials: 'include',

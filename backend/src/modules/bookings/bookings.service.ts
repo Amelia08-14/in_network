@@ -52,6 +52,28 @@ export async function notifyBookingStatus(
   }).catch((err) => console.error('[bookings] échec envoi email de notification', err));
 }
 
+// Retour QA critique : une nouvelle demande de réservation (statut PENDING)
+// était bien enregistrée et visible dans /admin/reservations, mais
+// n'émettait absolument aucune alerte — l'admin ne pouvait la découvrir
+// qu'en repensant à aller vérifier la page manuellement ("aucune
+// notification" remonté par la QA, à distinguer de "aucune trace" qui, lui,
+// était déjà faux : la demande apparaît bien dans le listing).
+async function notifyAdminsOfNewBooking(spaceName: string, memberEmail: string, start: Date, end: Date) {
+  const admins = await prisma.user.findMany({
+    where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] }, isActive: true },
+    select: { email: true },
+  });
+  if (admins.length === 0) return;
+
+  const html = `<p>Nouvelle demande de réservation de <strong>${memberEmail}</strong> pour <strong>${spaceName}</strong>, le ${DATE_FMT.format(start)} (jusqu'à ${new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short' }).format(end)}).</p><p>À confirmer ou annuler depuis le backoffice — Réservations.</p>`;
+
+  sendEmail({
+    to: admins.map((a) => a.email).join(','),
+    subject: 'IN NETWORK — nouvelle demande de réservation',
+    html,
+  }).catch((err) => console.error('[bookings] échec envoi email admin (nouvelle demande)', err));
+}
+
 export async function listMyBookings(userId: string) {
   return prisma.booking.findMany({
     where: { userId },
@@ -110,6 +132,7 @@ export async function createBooking(userId: string, spaceId: string, startAt: st
     });
   }).then(async (booking) => {
     await notifyBookingStatus(booking.userId, booking.user.email, booking.space.name, booking.startAt, booking.endAt, 'PENDING');
+    await notifyAdminsOfNewBooking(booking.space.name, booking.user.email, booking.startAt, booking.endAt);
     // Le user complet (avec passwordHash/tokens) ne doit jamais atteindre le
     // client — on ne renvoie de la relation user que ce qu'on vient d'y lire.
     const { user, ...safeBooking } = booking;

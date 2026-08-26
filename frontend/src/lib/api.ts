@@ -20,7 +20,7 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   skipAuthRetry?: boolean;
 }
 
-async function tryRefreshAccessToken(): Promise<boolean> {
+export async function tryRefreshAccessToken(): Promise<boolean> {
   const response = await fetch(`${getClientApiUrl()}/api/auth/refresh`, {
     method: 'POST',
     credentials: 'include',

@@ -19,6 +19,21 @@ export const config = { matcher: ['/dashboard/:path*', '/admin/:path*'] };
 // cryptographiquement. L'autorisation réelle est de toute façon appliquée par
 // le backend à chaque appel API (requireRole côté adminRouter) ; ce
 // middleware est une seconde ligne de défense côté edge, pas la seule.
+//
+// Retour QA critique : le cookie d'access token ne vit que ~15 min (cf.
+// auth-cookies.ts / admin-auth-cookies.ts) et n'est JAMAIS rafraîchi de façon
+// proactive — seulement de façon réactive, après un 401, par apiFetch côté
+// client. Rediriger immédiatement dès que ce cookie est absent/invalide (ce
+// qui arrive dans les faits à chaque navigation espacée de plus de 15 min)
+// cassait le flux de refresh silencieux prévu (cf. le commentaire de
+// DashboardShell.tsx qui, lui, présuppose ce middleware comme un simple
+// garde-fou "en complément" — pas la seule barrière). Deux tickets QA
+// distincts ("dashboards totalement en panne" et "clic sur Membres qui
+// retombe sur le Dashboard") avaient la même cause : ce comportement
+// intermittent selon le temps écoulé depuis le dernier appel API.
+// On distingue donc access absent/invalide (⇒ laisser passer, le hydrate()
+// client tentera un refresh silencieux via le refresh token) de refresh
+// absent (⇒ session définitivement terminée, redirection immédiate).
 export default function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isAdminRoute = pathname.startsWith('/admin');
@@ -34,10 +49,16 @@ export default function middleware(req: NextRequest) {
 
   // Session admin distincte de la session membre (cookies séparés, cf.
   // store/admin-auth.ts et backend/src/modules/auth/auth.controller.ts).
-  const cookieName = isAdminRoute ? 'in_network_admin_access' : 'in_network_access';
-  const token = req.cookies.get(cookieName)?.value;
+  const accessCookieName = isAdminRoute ? 'in_network_admin_access' : 'in_network_access';
+  const refreshCookieName = isAdminRoute ? 'in_network_admin_refresh' : 'in_network_refresh';
+  const token = req.cookies.get(accessCookieName)?.value;
+  const hasRefreshToken = Boolean(req.cookies.get(refreshCookieName)?.value);
 
   if (!token) {
+    // Pas d'access token mais un refresh token encore valide (30j) : on
+    // laisse passer, le hydrate() côté client va rafraîchir la session dès
+    // le montage de la page au lieu de rediriger l'utilisateur à tort.
+    if (hasRefreshToken) return NextResponse.next();
     return NextResponse.redirect(new URL(isAdminRoute ? '/admin' : '/login', req.url));
   }
 
@@ -48,6 +69,7 @@ export default function middleware(req: NextRequest) {
   try {
     payload = jwtDecode<AccessTokenPayload>(token);
   } catch {
+    if (hasRefreshToken) return NextResponse.next();
     return NextResponse.redirect(new URL(isAdminRoute ? '/admin' : '/login', req.url));
   }
 
