@@ -23,9 +23,10 @@ const TABS: { label: string; value: EventOrigin | undefined }[] = [
 export default async function EvenementsPage({
   searchParams,
 }: {
-  searchParams: { origin?: string };
+  searchParams: Promise<{ origin?: string }>;
 }) {
-  const activeOrigin = TABS.find((t) => t.value === searchParams.origin)?.value;
+  const { origin } = await searchParams;
+  const activeOrigin = TABS.find((t) => t.value === origin)?.value;
   const query = activeOrigin ? `?origin=${activeOrigin}` : '';
   const events = await serverGet<EventItem[]>(`/api/events${query}`, 900, [], 'events');
 

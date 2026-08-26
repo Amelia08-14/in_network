@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Mail, MapPin, Phone } from 'lucide-react';
 import { Container } from '@/components/ui/container';
 import { Logo } from './Logo';
 import { NetworkMotif } from '@/components/ui/network-motif';
@@ -44,6 +45,19 @@ export function Footer() {
           <p className="mt-4 max-w-xs text-sm text-white/70">
             Le lieu et le réseau qui font avancer les entrepreneurs, freelances et PME — Hydra, Alger.
           </p>
+          <ul className="mt-5 space-y-2 text-sm text-white/70">
+            <li className="flex items-center gap-2.5">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-orange" /> Hydra, Alger, Algérie
+            </li>
+            <li className="flex items-center gap-2.5">
+              <Phone className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
+              <a href="tel:+213560067486" className="hover:text-white">+213 5 60 06 74 86</a>
+            </li>
+            <li className="flex items-center gap-2.5">
+              <Mail className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
+              <a href="mailto:Contact@in-network.dz" className="hover:text-white">Contact@in-network.dz</a>
+            </li>
+          </ul>
         </div>
 
         {COLUMNS.map((col) => (

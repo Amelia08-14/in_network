@@ -10,8 +10,9 @@ import { EventRegisterButton } from './register-button';
 
 export const revalidate = 900;
 
-export default async function EventDetailPage({ params }: { params: { slug: string } }) {
-  const event = await serverGet<EventItem | null>(`/api/events/${params.slug}`, 900, null, 'events');
+export default async function EventDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const event = await serverGet<EventItem | null>(`/api/events/${slug}`, 900, null, 'events');
   if (!event) notFound();
 
   const isPast = new Date(event.endAt) < new Date();
