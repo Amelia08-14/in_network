@@ -33,7 +33,7 @@ export function ContactForm() {
 
   if (isDone) {
     return (
-      <div className="flex items-center gap-3 rounded-card border border-ink-900/[0.08] bg-white p-5">
+      <div className="flex items-center gap-3 rounded-card border border-ink-900/8 bg-white p-5">
         <CheckCircle2 className="h-5 w-5 shrink-0 text-accent-green" />
         <p className="text-sm text-ink-700">Message envoyé — l&apos;équipe IN NETWORK te répond rapidement à {form.email}.</p>
       </div>

@@ -176,7 +176,7 @@ export default function ConnexionsPage() {
           ) : (
             <ul className="grid gap-3 lg:grid-cols-2">
               {activeSuggestions.map((suggestion) => (
-                <li key={suggestion.id} className="rounded-2xl border border-ink-900/[0.08] p-4">
+                <li key={suggestion.id} className="rounded-2xl border border-ink-900/8 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-ink-900">
@@ -215,7 +215,7 @@ export default function ConnexionsPage() {
           ) : (
             <ul className="space-y-3">
               {requests.received.map((request) => (
-                <li key={request.id} className="rounded-2xl border border-ink-900/[0.08] p-4">
+                <li key={request.id} className="rounded-2xl border border-ink-900/8 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-ink-900">
@@ -260,7 +260,7 @@ export default function ConnexionsPage() {
           ) : (
             <ul className="space-y-3">
               {requests?.sent.map((request) => (
-                <li key={request.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ink-900/[0.08] p-4">
+                <li key={request.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ink-900/8 p-4">
                   <div>
                     <p className="font-semibold text-ink-900">
                       {request.toUser?.profile?.firstName} {request.toUser?.profile?.lastName}
@@ -278,7 +278,7 @@ export default function ConnexionsPage() {
                 </li>
               ))}
               {requests?.expertSent.map((request) => (
-                <li key={request.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ink-900/[0.08] p-4">
+                <li key={request.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ink-900/8 p-4">
                   <div>
                     <p className="font-semibold text-ink-900">{request.expert.displayName}</p>
                     <p className="text-xs text-ink-500">{request.expert.expertiseArea}</p>

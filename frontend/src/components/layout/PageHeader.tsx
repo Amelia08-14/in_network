@@ -28,10 +28,10 @@ export function PageHeader({
       )}
     >
       {align !== 'center' && (
-        <span aria-hidden className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-brand-orange via-ink-900/15 to-transparent" />
+        <span aria-hidden className="absolute inset-y-0 left-0 w-px bg-linear-to-b from-brand-orange via-ink-900/15 to-transparent" />
       )}
       {eyebrow && (
-        <span className="inline-flex w-fit items-center gap-2 rounded-full bg-ink-900/[0.05] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink-700">
+        <span className="inline-flex w-fit items-center gap-2 rounded-full bg-ink-900/5 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink-700">
           <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
           {eyebrow}
         </span>

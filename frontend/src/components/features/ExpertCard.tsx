@@ -23,10 +23,10 @@ export function ExpertCard({
       href={`/experts/${expert.id}`}
       className={cn(
         'group block h-full overflow-hidden rounded-[1.35rem] border bg-white p-2 shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:shadow-soft-lg',
-        featured ? 'border-ink-900 bg-ink-900' : 'border-ink-900/[0.08]',
+        featured ? 'border-ink-900 bg-ink-900' : 'border-ink-900/8',
       )}
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1rem] bg-gradient-to-br from-ink-800 to-ink-900">
+      <div className="relative aspect-4/3 w-full overflow-hidden rounded-[1rem] bg-linear-to-br from-ink-800 to-ink-900">
         {expert.photoUrl ? (
           <Image
             src={expert.photoUrl}
@@ -42,7 +42,7 @@ export function ExpertCard({
         )}
 
         {expert.isVerified && (
-          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-ink-900 shadow-sm backdrop-blur">
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-ink-900 shadow-xs backdrop-blur-sm">
             <BadgeCheck className="h-3.5 w-3.5 text-brand-orange" /> Vérifié
           </span>
         )}
@@ -66,7 +66,7 @@ export function ExpertCard({
         <span
           className={cn(
             'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform group-hover:rotate-12',
-            featured ? 'bg-brand-orange text-white' : 'bg-ink-900/[0.06] text-ink-900',
+            featured ? 'bg-brand-orange text-white' : 'bg-ink-900/6 text-ink-900',
           )}
         >
           <ArrowUpRight className="h-4 w-4" />

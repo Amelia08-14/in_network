@@ -35,7 +35,7 @@ export function AvatarPlaceholder({
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-ink-900 to-brand-orange text-white',
+        'flex shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-ink-900 to-brand-orange text-white',
         className,
       )}
       style={{ width: size, height: size }}

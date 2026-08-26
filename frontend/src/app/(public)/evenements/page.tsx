@@ -52,7 +52,7 @@ export default async function EvenementsPage({
               href={tab.value ? `/evenements?origin=${tab.value}` : '/evenements'}
               className={cn(
                 'rounded-pill px-4 py-2 text-sm font-semibold transition-colors',
-                isActive ? 'bg-ink-900 text-white' : 'bg-ink-900/[0.05] text-ink-700 hover:bg-ink-900/[0.09]',
+                isActive ? 'bg-ink-900 text-white' : 'bg-ink-900/5 text-ink-700 hover:bg-ink-900/9',
               )}
             >
               {tab.label}

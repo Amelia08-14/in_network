@@ -11,7 +11,7 @@ const badgeVariants = cva('inline-flex items-center rounded-pill px-2.5 py-0.5 t
       startup: 'bg-brand-orange/10 text-brand-orange',
       entreprise: 'bg-brand-violet/10 text-brand-violet',
       expert: 'bg-accent-green/20 text-green-800',
-      neutral: 'bg-ink-900/[0.06] text-ink-700',
+      neutral: 'bg-ink-900/6 text-ink-700',
       success: 'bg-accent-green/20 text-green-800',
     },
   },

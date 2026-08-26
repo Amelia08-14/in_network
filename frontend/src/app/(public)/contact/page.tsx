@@ -44,7 +44,7 @@ export default function ContactPage() {
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-card border border-ink-900/[0.08] shadow-soft">
+          <div className="overflow-hidden rounded-card border border-ink-900/8 shadow-soft">
             <iframe
               title="Localisation IN NETWORK — Hydra, Alger"
               src={MAPS_EMBED_SRC}

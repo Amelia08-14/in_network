@@ -49,7 +49,7 @@ export function NavBar() {
                 href={link.href}
                 className={cn(
                   'relative rounded-full px-3.5 py-2 text-sm font-medium transition-colors duration-200',
-                  active ? 'bg-ink-900 text-white' : 'text-ink-600 hover:bg-ink-900/[0.05] hover:text-ink-900',
+                  active ? 'bg-ink-900 text-white' : 'text-ink-600 hover:bg-ink-900/5 hover:text-ink-900',
                 )}
               >
                 {link.label}
@@ -81,7 +81,7 @@ export function NavBar() {
         </div>
 
         <button
-          className="rounded-full p-2 hover:bg-ink-900/[0.05] lg:hidden"
+          className="rounded-full p-2 hover:bg-ink-900/5 lg:hidden"
           aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
           onClick={() => setMobileOpen((v) => !v)}
         >
@@ -96,20 +96,20 @@ export function NavBar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-2xl px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-900/[0.05]"
+                className="rounded-2xl px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-900/5"
               >
                 {link.label}
               </Link>
             ))}
           </nav>
-          <div className="mt-2 flex flex-col gap-1 border-t border-ink-900/[0.08] pt-3">
+          <div className="mt-2 flex flex-col gap-1 border-t border-ink-900/8 pt-3">
             {status === 'authenticated' && user ? (
               <>
-                <Link href="/dashboard" className="rounded-2xl px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-900/[0.05]">
+                <Link href="/dashboard" className="rounded-2xl px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-900/5">
                   Mon espace
                 </Link>
                 <button
-                  className="rounded-2xl px-4 py-2.5 text-left text-sm font-medium text-brand-orange hover:bg-ink-900/[0.05]"
+                  className="rounded-2xl px-4 py-2.5 text-left text-sm font-medium text-brand-orange hover:bg-ink-900/5"
                   onClick={() => logout()}
                 >
                   Déconnexion
@@ -117,10 +117,10 @@ export function NavBar() {
               </>
             ) : (
               <>
-                <Link href="/login" className="rounded-2xl px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-900/[0.05]">
+                <Link href="/login" className="rounded-2xl px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-900/5">
                   Connexion
                 </Link>
-                <Link href="/register" className="rounded-2xl px-4 py-2.5 text-sm font-semibold text-brand-orange hover:bg-ink-900/[0.05]">
+                <Link href="/register" className="rounded-2xl px-4 py-2.5 text-sm font-semibold text-brand-orange hover:bg-ink-900/5">
                   Devenir membre
                 </Link>
               </>

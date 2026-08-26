@@ -86,7 +86,7 @@ export function Hero() {
 
         <div className="hero-reveal hero-delay-2 relative mx-auto w-full max-w-[720px]">
           <div className="relative overflow-hidden rounded-[40px] border border-white/80 bg-white/55 p-4 shadow-soft-lg backdrop-blur-xl md:p-8">
-            <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-brand-orange/50 to-transparent" />
+            <div className="absolute inset-x-12 top-0 h-px bg-linear-to-r from-transparent via-brand-orange/50 to-transparent" />
 
             <div className="mb-3 flex items-center justify-between px-3 pt-2">
               <div>
@@ -148,7 +148,7 @@ export function Hero() {
                 <text x="310" y="265" textAnchor="middle" className="fill-white text-[11px] font-semibold uppercase tracking-[0.08em]">
                   Network
                 </text>
-                <text x="310" y="284" textAnchor="middle" className="fill-[#D44835] text-[13px] font-bold">
+                <text x="310" y="284" textAnchor="middle" className="fill-brand-orange text-[13px] font-bold">
                   DZ
                 </text>
               </g>
@@ -183,7 +183,7 @@ export function Hero() {
               </circle>
             </svg>
 
-            <div className="grid grid-cols-3 gap-2 border-t border-ink-900/[0.06] pt-5">
+            <div className="grid grid-cols-3 gap-2 border-t border-ink-900/6 pt-5">
               <NetworkType value="Entreprises" />
               <NetworkType value="Experts" />
               <NetworkType value="Partenaires" />

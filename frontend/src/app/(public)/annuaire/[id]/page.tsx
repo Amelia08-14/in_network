@@ -53,7 +53,7 @@ export default function MemberDetailPage() {
         <div className="h-24 bg-ink-900" />
         <CardContent className="relative px-6 pb-7 md:px-8">
           <div className="-mt-14 flex flex-col items-start gap-5 sm:flex-row sm:items-end">
-            <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-3xl border-4 border-white bg-gradient-to-br from-ink-900 to-brand-orange text-3xl font-bold text-white shadow-soft">
+            <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-3xl border-4 border-white bg-linear-to-br from-ink-900 to-brand-orange text-3xl font-bold text-white shadow-soft">
               {profile.avatarUrl ? <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}
             </div>
             <div className="flex-1 pb-1">
@@ -83,7 +83,7 @@ export default function MemberDetailPage() {
             </div>
           </div>
 
-          <div className="mt-7 flex flex-wrap gap-3 border-t border-ink-900/[0.08] pt-6">
+          <div className="mt-7 flex flex-wrap gap-3 border-t border-ink-900/8 pt-6">
             {profile.website && <a href={profile.website} target="_blank" rel="noreferrer" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}><Globe2 className="h-4 w-4" /> Site web</a>}
             {profile.linkedinUrl && <a href={profile.linkedinUrl} target="_blank" rel="noreferrer" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}><Linkedin className="h-4 w-4" /> LinkedIn</a>}
             {profile.email && <a href={`mailto:${profile.email}`} className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}><Mail className="h-4 w-4" /> Email</a>}

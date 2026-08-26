@@ -43,7 +43,7 @@ function FilterPill({
       onClick={onClick}
       className={cn(
         'rounded-pill px-4 py-2 text-sm font-semibold transition-colors',
-        active ? 'bg-ink-900 text-white' : 'bg-ink-900/[0.05] text-ink-700 hover:bg-ink-900/[0.09]',
+        active ? 'bg-ink-900 text-white' : 'bg-ink-900/5 text-ink-700 hover:bg-ink-900/9',
       )}
     >
       {children}
@@ -99,7 +99,7 @@ export function EventMediaWall({ items }: { items: EventMediaItem[] }) {
             type="button"
             onClick={() => setOpenIndex(i)}
             className={cn(
-              'group relative overflow-hidden rounded-[1.5rem] bg-ink-900 text-left ring-1 ring-ink-900/[0.06] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-soft-lg',
+              'group relative overflow-hidden rounded-3xl bg-ink-900 text-left ring-1 ring-ink-900/6 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-soft-lg',
               SPAN_PATTERN[i % SPAN_PATTERN.length],
             )}
           >
@@ -119,9 +119,9 @@ export function EventMediaWall({ items }: { items: EventMediaItem[] }) {
                 className="object-cover transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
               />
             )}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900/80 via-ink-900/0 to-ink-900/0 opacity-70 transition-opacity duration-300 group-hover:opacity-90" />
+            <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-ink-900/80 via-ink-900/0 to-ink-900/0 opacity-70 transition-opacity duration-300 group-hover:opacity-90" />
             {item.type === 'video' && (
-              <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/15 backdrop-blur">
+              <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
                 <Play className="h-3.5 w-3.5 fill-white text-white" />
               </div>
             )}
@@ -140,7 +140,7 @@ export function EventMediaWall({ items }: { items: EventMediaItem[] }) {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-900/95 p-4 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-60 flex items-center justify-center bg-ink-900/95 p-4 backdrop-blur-xs animate-fade-in"
           onClick={() => setOpenIndex(null)}
         >
           <button
@@ -152,14 +152,14 @@ export function EventMediaWall({ items }: { items: EventMediaItem[] }) {
             <X className="h-5 w-5" />
           </button>
           <div className="relative flex max-h-[85vh] w-full max-w-4xl flex-col gap-4" onClick={(e) => e.stopPropagation()}>
-            <div className="relative aspect-video w-full overflow-hidden rounded-[1.5rem] bg-black">
+            <div className="relative aspect-video w-full overflow-hidden rounded-3xl bg-black">
               {active.type === 'video' ? (
                 <video src={active.url} controls autoPlay playsInline className="h-full w-full object-contain" />
               ) : (
                 <Image src={active.url} alt={active.altText ?? active.eventTitle} fill sizes="90vw" className="object-contain" />
               )}
             </div>
-            <div className="flex items-center justify-between rounded-[1.25rem] bg-white/[0.06] px-5 py-3 backdrop-blur">
+            <div className="flex items-center justify-between rounded-[1.25rem] bg-white/6 px-5 py-3 backdrop-blur-sm">
               <div>
                 <Badge variant={EVENT_ORIGIN_VARIANT[active.eventOrigin] ?? 'neutral'}>
                   {EVENT_ORIGIN_LABEL[active.eventOrigin] ?? active.eventOrigin}
