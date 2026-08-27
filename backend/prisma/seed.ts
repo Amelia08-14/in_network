@@ -129,29 +129,44 @@ async function main() {
   });
 
   // --- Tarifs réels (grille "N°02 - service et tarifs IN NETWORK") ---
-  await prisma.spaceResource.deleteMany({ where: { siteId: site.id } });
+  // Upsert par (siteId, name) plutôt que deleteMany+create : un deleteMany
+  // brutal a cassé la contrainte FK en prod le 2026-08-27 (P2003) — de vraies
+  // réservations référençaient déjà les anciens espaces placeholder. On met
+  // à jour en place les espaces réels et on désactive (isActive: false, pas
+  // de suppression) tout ce qui n'est plus dans la grille actuelle, pour ne
+  // jamais toucher une ligne potentiellement référencée par une Booking.
   const meetingRooms = [
     { name: 'Salle de réunion 1' },
     { name: 'Salle de réunion 2' },
   ];
   for (const room of meetingRooms) {
-    await prisma.spaceResource.create({
-      data: {
-        siteId: site.id,
-        type: 'MEETING_ROOM',
-        name: room.name,
-        capacity: 6,
-        hourlyRateMember: 1000,
-        halfDayRateMember: 3000,
-        dailyRateMember: 5000,
-        hourlyRateExternal: 2500,
-        halfDayRateExternal: 6000,
-        dailyRateExternal: 10000,
-      },
-    });
+    const data = {
+      siteId: site.id,
+      type: 'MEETING_ROOM' as const,
+      name: room.name,
+      capacity: 6,
+      hourlyRateMember: 1000,
+      halfDayRateMember: 3000,
+      dailyRateMember: 5000,
+      hourlyRateExternal: 2500,
+      halfDayRateExternal: 6000,
+      dailyRateExternal: 10000,
+      isActive: true,
+    };
+    const existingSpace = await prisma.spaceResource.findFirst({ where: { siteId: site.id, name: room.name } });
+    if (existingSpace) {
+      await prisma.spaceResource.update({ where: { id: existingSpace.id }, data });
+    } else {
+      await prisma.spaceResource.create({ data });
+    }
   }
+  await prisma.spaceResource.updateMany({
+    where: { siteId: site.id, name: { notIn: meetingRooms.map((r) => r.name) } },
+    data: { isActive: false },
+  });
 
-  await prisma.membershipPlan.deleteMany({});
+  // Même principe pour les formules : upsert par name + désactivation des
+  // anciennes plutôt que deleteMany({}) (même risque de FK avec Subscription).
   const plans = [
     {
       name: 'Domiciliation',
@@ -218,8 +233,17 @@ async function main() {
     },
   ];
   for (const plan of plans) {
-    await prisma.membershipPlan.create({ data: plan });
+    const existingPlan = await prisma.membershipPlan.findFirst({ where: { name: plan.name } });
+    if (existingPlan) {
+      await prisma.membershipPlan.update({ where: { id: existingPlan.id }, data: { ...plan, isActive: true } });
+    } else {
+      await prisma.membershipPlan.create({ data: { ...plan, isActive: true } });
+    }
   }
+  await prisma.membershipPlan.updateMany({
+    where: { name: { notIn: plans.map((p) => p.name) } },
+    data: { isActive: false },
+  });
 
   // --- Services secondaires (secrétariat, création juridique) ---
   await prisma.serviceCatalogItem.deleteMany({
