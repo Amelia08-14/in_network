@@ -5,9 +5,10 @@ import { MotionSafeVideo } from '@/components/ui/motion-safe-video';
 
 // Hero — panneau visuel : la vidéo « network hero » (carte 3D de l'Algérie +
 // pin IN NETWORK), fournie par la cliente. Elle est encodée sur fond blanc :
-// `mix-blend-mode: multiply` fait disparaître ce blanc dans le fond paper du
+// `mix-blend-mode: darken` fait disparaître ce blanc dans le fond paper du
 // hero, la carte crème reste posée « en relief » sans cadre ni panneau
-// (demande cliente : « sans arrière plan »).
+// (demande cliente : « sans arrière plan »). HeroScrollCue = repère de scroll
+// centré en bas.
 export function Hero() {
   return (
     <section className="relative isolate -mt-24 flex items-center overflow-x-clip bg-brand-paper md:-mt-28 lg:min-h-screen">
