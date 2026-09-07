@@ -70,6 +70,12 @@ export function NavBar() {
             </>
           ) : (
             <>
+              <Link
+                href="/inscription-entreprise"
+                className="hidden rounded-full px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:text-ink-900 xl:inline-flex"
+              >
+                Entreprise
+              </Link>
               <Link href="/login" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
                 Connexion
               </Link>
