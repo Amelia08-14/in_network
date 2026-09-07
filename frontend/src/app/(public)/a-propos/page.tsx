@@ -3,6 +3,7 @@ import { Quote, MapPin, Globe2, Sparkles } from 'lucide-react';
 import { Container } from '@/components/ui/container';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { ScrollReveal } from '@/components/ui/scroll-motion';
 import { NetworkMotif } from '@/components/ui/network-motif';
 import { BrandTexture } from '@/components/ui/brand-texture';
 import { buttonVariants } from '@/components/ui/button';
@@ -95,7 +96,7 @@ export default function AProposPage() {
           </h2>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-3">
+        <ScrollReveal stagger={100} className="grid gap-5 md:grid-cols-3">
           {HORIZONS.map((horizon) => (
             <Card key={horizon.title} accent="orange" className="h-full">
               <CardContent className="flex h-full flex-col gap-3">
@@ -108,7 +109,7 @@ export default function AProposPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
+        </ScrollReveal>
       </Container>
 
       <section className="section-tint">
@@ -124,19 +125,16 @@ export default function AProposPage() {
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ScrollReveal stagger={70} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {GROUP_BRANDS.map((brand) => (
-              <div
-                key={brand.name}
-                className="rounded-3xl bg-white/60 p-1.5 ring-1 ring-ink-900/6"
-              >
+              <div key={brand.name} className="rounded-3xl bg-white/60 p-1.5 ring-1 ring-ink-900/6">
                 <div className="rounded-[1.1rem] bg-white p-5">
                   <p className="font-heading font-bold text-ink-900">{brand.name}</p>
                   <p className="mt-1 text-sm text-ink-500">{brand.role}</p>
                 </div>
               </div>
             ))}
-          </div>
+          </ScrollReveal>
         </Container>
       </section>
 

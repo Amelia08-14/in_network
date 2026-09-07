@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { ScrollReveal } from '@/components/ui/scroll-motion';
 import { InquiryForm } from '@/components/features/InquiryForm';
 import { Faq, type FaqItem } from '@/components/features/Faq';
 import { serverGet } from '@/lib/server-api';
@@ -103,7 +104,7 @@ export default async function TarifsPage() {
       {plans.length === 0 ? (
         <EmptyState title="Grille tarifaire en cours de finalisation" description="Contacte-nous pour connaître nos offres actuelles." />
       ) : (
-        <div className="grid items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ScrollReveal stagger={80} className="grid items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan) => (
             <Card key={plan.id} accent={CYCLE_ACCENT[plan.billingCycle as keyof typeof CYCLE_ACCENT] ?? 'none'}>
               <CardContent className="flex flex-col gap-5">
@@ -145,7 +146,7 @@ export default async function TarifsPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
+        </ScrollReveal>
       )}
 
       {spaces.length > 0 && (
