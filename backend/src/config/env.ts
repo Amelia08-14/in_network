@@ -35,6 +35,10 @@ export const env = {
 
   resendApiKey: process.env.RESEND_API_KEY ?? '',
   emailFrom: process.env.EMAIL_FROM ?? 'IN NETWORK <no-reply@innetwork.dz>',
+  // Boîte de réception unique des formulaires publics du site (contact,
+  // demande de service, demande de réservation...). Chaque soumission y est
+  // relayée par email, avec le titre du formulaire en objet.
+  formsInbox: process.env.FORMS_INBOX ?? 'contact@poulcook.com',
 
   smtp: {
     host: process.env.SMTP_HOST ?? '',

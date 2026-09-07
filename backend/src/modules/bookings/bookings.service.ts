@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
+import { env } from '../../config/env';
 import { sendEmail } from '../../lib/email';
 
 const DATE_FMT = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
@@ -63,14 +64,18 @@ async function notifyAdminsOfNewBooking(spaceName: string, memberEmail: string, 
     where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] }, isActive: true },
     select: { email: true },
   });
-  if (admins.length === 0) return;
+  // La boîte de réception des formulaires reçoit aussi chaque demande de
+  // réservation, au même titre que les autres formulaires publics du site.
+  const recipients = [...new Set([env.formsInbox, ...admins.map((a) => a.email)])];
+  if (recipients.length === 0) return;
 
   const html = `<p>Nouvelle demande de réservation de <strong>${memberEmail}</strong> pour <strong>${spaceName}</strong>, le ${DATE_FMT.format(start)} (jusqu'à ${new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short' }).format(end)}).</p><p>À confirmer ou annuler depuis le backoffice — Réservations.</p>`;
 
   sendEmail({
-    to: admins.map((a) => a.email).join(','),
-    subject: 'IN NETWORK — nouvelle demande de réservation',
+    to: recipients.join(','),
+    subject: 'IN NETWORK — Demande de réservation',
     html,
+    replyTo: memberEmail,
   }).catch((err) => console.error('[bookings] échec envoi email admin (nouvelle demande)', err));
 }
 

@@ -6,6 +6,7 @@ import { inquiryRateLimit } from '../../middleware/rateLimit';
 import { validate } from '../../middleware/validate';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, ApiError } from '../../utils/apiResponse';
+import { notifyFormSubmission } from '../../lib/email';
 import { createInquirySchema } from './services.schema';
 import { param } from '../../utils/httpParams';
 
@@ -59,15 +60,19 @@ servicesRouter.post(
     if (!req.user) throw ApiError.unauthorized();
     const { targetType, serviceId, spaceId, planId, notes } = req.body;
 
+    let targetLabel: string;
     if (targetType === 'SERVICE') {
       const service = await prisma.serviceCatalogItem.findUnique({ where: { id: serviceId } });
       if (!service || !service.isActive) throw ApiError.notFound('Service introuvable');
+      targetLabel = `Service — ${service.title}`;
     } else if (targetType === 'SPACE') {
       const space = await prisma.spaceResource.findUnique({ where: { id: spaceId } });
       if (!space || !space.isActive) throw ApiError.notFound('Espace introuvable');
+      targetLabel = `Espace — ${space.name}`;
     } else {
       const plan = await prisma.membershipPlan.findUnique({ where: { id: planId } });
       if (!plan || !plan.isActive) throw ApiError.notFound('Formule introuvable');
+      targetLabel = `Formule — ${plan.name}`;
     }
 
     const request = await prisma.serviceRequest.create({
@@ -80,6 +85,35 @@ servicesRouter.post(
         notes,
       },
     });
+
+    // Relais vers la boîte de réception des formulaires (non bloquant).
+    prisma.user
+      .findUnique({
+        where: { id: req.user.id },
+        select: {
+          email: true,
+          displayName: true,
+          profile: { select: { firstName: true, lastName: true } },
+        },
+      })
+      .then((requester) => {
+        const name =
+          requester?.profile
+            ? `${requester.profile.firstName} ${requester.profile.lastName}`
+            : requester?.displayName ?? null;
+        return notifyFormSubmission({
+          formTitle: 'Demande de service',
+          replyTo: requester?.email,
+          fields: [
+            { label: 'Demandeur', value: name },
+            { label: 'Email', value: requester?.email },
+            { label: 'Objet', value: targetLabel },
+            { label: 'Message', value: notes },
+          ],
+        });
+      })
+      .catch((err) => console.error('[services] échec relais email de la demande', err));
+
     ok(res, request, 201);
   }),
 );
