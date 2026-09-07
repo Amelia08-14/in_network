@@ -10,13 +10,38 @@ import {
 import { sendEmail } from '../../lib/email';
 import { ApiError } from '../../utils/apiResponse';
 import { env } from '../../config/env';
-import type { RegisterInput, LoginInput } from './auth.schema';
+import { createCompanyAccount } from '../companies/companies.service';
+import type { RegisterInput, LoginInput, RegisterCompanyInput } from './auth.schema';
 
 const EMAIL_VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-function publicUser(user: {
+// Résumé du rattachement entreprise exposé à l'app (dashboard : item « Mon
+// équipe » conditionnel, badge « Membre de l'équipe … »). `isOwner` = ce
+// compte a inscrit l'entreprise (Company.ownerId).
+const COMPANY_SUMMARY_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+  logoUrl: true,
+  seatLimit: true,
+  isActive: true,
+} as const;
+
+export async function companyForUser(userId: string) {
+  const row = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      company: { select: COMPANY_SUMMARY_SELECT },
+      ownedCompany: { select: { id: true } },
+    },
+  });
+  if (!row?.company) return null;
+  return { ...row.company, isOwner: Boolean(row.ownedCompany) };
+}
+
+async function publicUser(user: {
   id: string;
   email: string;
   role: string;
@@ -31,6 +56,7 @@ function publicUser(user: {
     emailVerified: Boolean(user.emailVerified),
     permissions: user.permissions ?? null,
     displayName: user.displayName ?? null,
+    company: await companyForUser(user.id),
   };
 }
 
@@ -104,7 +130,7 @@ export async function register(input: RegisterInput) {
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de bienvenue", err));
 
   const tokens = await issueTokenPair(user.id, user.role);
-  return { user: publicUser(user), ...tokens };
+  return { user: await publicUser(user), ...tokens };
 }
 
 function verifyLink(token: string) {
@@ -119,7 +145,7 @@ export async function login(input: LoginInput) {
   if (!validPassword) throw ApiError.unauthorized('Email ou mot de passe incorrect');
 
   const tokens = await issueTokenPair(user.id, user.role);
-  return { user: publicUser(user), ...tokens };
+  return { user: await publicUser(user), ...tokens };
 }
 
 // Faille RBAC critique remontée par QA : POST /api/auth/admin/login réutilisait
@@ -141,7 +167,7 @@ export async function adminLogin(input: LoginInput) {
   }
 
   const tokens = await issueTokenPair(user.id, user.role);
-  return { user: publicUser(user), ...tokens };
+  return { user: await publicUser(user), ...tokens };
 }
 
 export async function refresh(refreshToken: string) {
@@ -168,7 +194,7 @@ export async function refresh(refreshToken: string) {
   });
 
   const tokens = await issueTokenPair(user.id, user.role);
-  return { user: publicUser(user), ...tokens };
+  return { user: await publicUser(user), ...tokens };
 }
 
 // Même logique que refresh(), avec une re-vérification du rôle à chaque
@@ -203,7 +229,7 @@ export async function adminRefresh(refreshToken: string) {
   });
 
   const tokens = await issueTokenPair(user.id, user.role);
-  return { user: publicUser(user), ...tokens };
+  return { user: await publicUser(user), ...tokens };
 }
 
 export async function logout(refreshToken: string) {
@@ -319,5 +345,15 @@ export async function getMe(userId: string) {
   });
   if (!user) throw ApiError.notFound();
   const { passwordHash, emailVerifyToken, passwordResetToken, ...safe } = user;
-  return safe;
+  return { ...safe, company: await companyForUser(userId) };
+}
+
+// Parcours « Inscrire mon entreprise » — la création (compte représentant +
+// profil + fiche Company + rattachement) vit dans companies.service.ts ;
+// ici on se contente d'émettre la session comme pour register().
+export async function registerCompany(input: RegisterCompanyInput) {
+  const ownerId = await createCompanyAccount(input);
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: ownerId } });
+  const tokens = await issueTokenPair(user.id, user.role);
+  return { user: await publicUser(user), ...tokens };
 }

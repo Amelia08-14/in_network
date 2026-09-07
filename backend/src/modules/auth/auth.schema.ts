@@ -17,6 +17,12 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+// Parcours « Inscrire mon entreprise » — schéma défini avec le module
+// companies (compte représentant + fiche Company), ré-exporté ici pour que
+// les routes auth le consomment comme les autres schémas d'authentification.
+export { registerCompanySchema } from '../companies/companies.schema';
+export type { RegisterCompanyInput } from '../companies/companies.schema';
+
 export const verifyEmailSchema = z.object({
   token: z.string().min(1),
 });

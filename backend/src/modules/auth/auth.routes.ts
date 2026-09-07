@@ -4,6 +4,7 @@ import { requireAuth } from '../../middleware/auth';
 import { authRateLimit } from '../../middleware/rateLimit';
 import {
   registerSchema,
+  registerCompanySchema,
   loginSchema,
   verifyEmailSchema,
   forgotPasswordSchema,
@@ -12,6 +13,7 @@ import {
 } from './auth.schema';
 import {
   registerHandler,
+  registerCompanyHandler,
   loginHandler,
   refreshHandler,
   logoutHandler,
@@ -29,6 +31,12 @@ import {
 export const authRouter = Router();
 
 authRouter.post('/register', authRateLimit, validate({ body: registerSchema }), registerHandler);
+authRouter.post(
+  '/register-company',
+  authRateLimit,
+  validate({ body: registerCompanySchema }),
+  registerCompanyHandler,
+);
 authRouter.post('/login', authRateLimit, validate({ body: loginSchema }), loginHandler);
 authRouter.post('/refresh', authRateLimit, refreshHandler);
 authRouter.post('/logout', logoutHandler);

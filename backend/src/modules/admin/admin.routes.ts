@@ -63,6 +63,8 @@ import { confirmServiceRequest } from '../services/serviceRequests.service';
 import { adminPermission } from '../../middleware/adminPermission';
 import { createSystemUserSchema, updateSystemUserSchema } from './admin.schema';
 import * as systemUsers from './systemUsers.service';
+import * as companiesService from '../companies/companies.service';
+import { adminUpdateCompanySchema } from '../companies/companies.schema';
 
 export const adminRouter = Router();
 
@@ -114,6 +116,24 @@ adminRouter.delete(
   asyncHandler(async (req, res) => {
     await systemUsers.deleteSystemUser(param(req, 'id'), req.user!.id);
     res.status(204).send();
+  }),
+);
+
+// --- Entreprises (comptes B2B multi-postes, demande client 07/09/2026) ---
+// Le client voit les fiches entreprise, ajuste le nombre de postes accordés
+// et active/désactive un compte. La gestion fine des collaborateurs reste du
+// ressort du représentant depuis son dashboard (/api/companies/mine).
+adminRouter.get(
+  '/companies',
+  asyncHandler(async (_req, res) => {
+    ok(res, await companiesService.listCompaniesForAdmin());
+  }),
+);
+adminRouter.patch(
+  '/companies/:id',
+  validate({ body: adminUpdateCompanySchema }),
+  asyncHandler(async (req, res) => {
+    ok(res, await companiesService.adminUpdateCompany(param(req, 'id'), req.body));
   }),
 );
 

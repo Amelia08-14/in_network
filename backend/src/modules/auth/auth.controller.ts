@@ -44,6 +44,12 @@ export const registerHandler = asyncHandler(async (req: Request, res: Response) 
   ok(res, { accessToken, user }, 201);
 });
 
+export const registerCompanyHandler = asyncHandler(async (req: Request, res: Response) => {
+  const { accessToken, refreshToken, user } = await authService.registerCompany(req.body);
+  setRefreshCookie(res, refreshToken);
+  ok(res, { accessToken, user }, 201);
+});
+
 export const loginHandler = asyncHandler(async (req: Request, res: Response) => {
   const { accessToken, refreshToken, user } = await authService.login(req.body);
   setRefreshCookie(res, refreshToken);

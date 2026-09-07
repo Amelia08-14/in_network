@@ -1,9 +1,7 @@
-import crypto from 'node:crypto';
 import { Prisma, type Role } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import { hashPassword } from '../../lib/password';
-import { sendEmail } from '../../lib/email';
-import { env } from '../../config/env';
+import { generatePassword, sendCredentialsEmail } from '../../lib/account-provisioning';
 import { ApiError } from '../../utils/apiResponse';
 import { parsePermissions, type DashboardPermissions } from './permissions';
 
@@ -26,28 +24,19 @@ const SAFE_SELECT = {
   updatedAt: true,
 } as const;
 
-function generatePassword() {
-  // 12 caractères url-safe — suffisant, l'utilisateur peut le changer ensuite.
-  return crypto.randomBytes(9).toString('base64url');
-}
-
-function sendCredentialsEmail(to: string, name: string, password: string, isReset: boolean) {
-  const intro = isReset
-    ? 'Le mot de passe de votre accès à l’administration IN NETWORK vient d’être réinitialisé.'
-    : 'Un accès à l’administration IN NETWORK vient d’être créé pour vous.';
-  sendEmail({
+function sendStaffCredentials(to: string, name: string, password: string, isReset: boolean) {
+  sendCredentialsEmail({
     to,
+    name,
+    password,
+    loginPath: '/admin',
     subject: isReset
       ? 'IN NETWORK — Nouveau mot de passe backoffice'
       : 'IN NETWORK — Vos accès au backoffice',
-    html: `<p>Bonjour ${name},</p>
-<p>${intro}</p>
-<p><strong>Identifiant :</strong> ${to}<br>
-<strong>Mot de passe :</strong> ${password}</p>
-<p>Connexion : <a href="${env.appUrl}/admin">${env.appUrl}/admin</a></p>
-<p>Nous vous recommandons de changer ce mot de passe après votre connexion.</p>
-<p>L’équipe IN NETWORK</p>`,
-  }).catch((err) => console.error('[system-users] échec envoi email des accès', err));
+    intro: isReset
+      ? 'Le mot de passe de votre accès à l’administration IN NETWORK vient d’être réinitialisé.'
+      : 'Un accès à l’administration IN NETWORK vient d’être créé pour vous.',
+  });
 }
 
 export async function listSystemUsers() {
@@ -91,7 +80,7 @@ export async function createSystemUser(input: CreateInput) {
     select: SAFE_SELECT,
   });
 
-  sendCredentialsEmail(input.email, input.displayName, password, false);
+  sendStaffCredentials(input.email, input.displayName, password, false);
 
   return user;
 }
@@ -115,7 +104,7 @@ export async function resetSystemUserPassword(targetId: string, actorId: string)
     data: { revokedAt: new Date() },
   });
 
-  sendCredentialsEmail(target.email, target.displayName ?? target.email, password, true);
+  sendStaffCredentials(target.email, target.displayName ?? target.email, password, true);
 }
 
 interface UpdateInput {

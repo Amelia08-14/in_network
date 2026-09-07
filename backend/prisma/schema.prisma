@@ -190,11 +190,19 @@ model User {
   // Nom affiché pour les comptes staff (qui n'ont pas de MemberProfile).
   displayName          String?
   isActive             Boolean   @default(true)
+  // Rattachement à un compte entreprise (demande client 07/09/2026) : un
+  // collaborateur invité depuis le dashboard d'une entreprise porte le
+  // companyId de celle-ci. Le représentant qui a inscrit l'entreprise est
+  // lui aussi rattaché (il occupe le poste n°1) ET propriétaire via
+  // Company.ownerId. null pour un membre individuel (freelance / startup).
+  companyId            String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
   profile                    MemberProfile?
   expertProfile              ExpertProfile?
+  company                    Company?  @relation("CompanyMembers", fields: [companyId], references: [id])
+  ownedCompany               Company?  @relation("CompanyOwner")
   subscriptions              Subscription[]
   bookings                   Booking[]
   payments                   Payment[]
@@ -210,7 +218,39 @@ model User {
 
   @@index([email])
   @@index([role])
+  @@index([companyId])
   @@map("users")
+}
+
+// Compte entreprise (demande client 07/09/2026) — une organisation qui
+// s'inscrit via le parcours dédié « Inscrire mon entreprise », déclare un
+// nombre de postes (seatLimit) et invite ses collaborateurs depuis son
+// dashboard. Chaque collaborateur reçoit ses accès par email (même pattern
+// que systemUsers.service.ts) et obtient son propre profil annuaire.
+// La réduction tarifaire multi-postes n'est pas encore implémentée — seule
+// la structure seatLimit est posée ici.
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logoUrl   String?
+  sector    String?
+  website   String?
+  // Postes accordés, représentant inclus. Plafond bloquant : impossible
+  // d'inviter au-delà (companies.service.ts).
+  seatLimit Int      @default(1)
+  ownerId   String   @unique
+  siteId    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User   @relation("CompanyOwner", fields: [ownerId], references: [id])
+  site    Site   @relation(fields: [siteId], references: [id])
+  members User[] @relation("CompanyMembers")
+
+  @@index([siteId])
+  @@map("companies")
 }
 
 model RefreshToken {
@@ -312,6 +352,7 @@ model Site {
   memberProfiles MemberProfile[]
   spaces         SpaceResource[]
   events         Event[]
+  companies      Company[]
 
   @@map("sites")
 }

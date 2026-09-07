@@ -9,6 +9,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 import { authRouter } from './modules/auth/auth.routes';
 import { profilesRouter } from './modules/profiles/profiles.routes';
+import { companiesRouter } from './modules/companies/companies.routes';
 import { expertsRouter } from './modules/experts/experts.routes';
 import { tagsRouter } from './modules/tags/tags.routes';
 import { sitesRouter } from './modules/sites/sites.routes';
@@ -77,6 +78,7 @@ app.use(
 
 app.use('/api/auth', authRouter);
 app.use('/api/profiles', profilesRouter);
+app.use('/api/companies', companiesRouter);
 app.use('/api/experts', expertsRouter);
 app.use('/api/tags', tagsRouter);
 app.use('/api/sites', sitesRouter);
