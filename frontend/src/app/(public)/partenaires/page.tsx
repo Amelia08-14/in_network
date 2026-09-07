@@ -3,6 +3,7 @@ import { Container } from '@/components/ui/container';
 import { PartnerCard } from '@/components/features/PartnerCard';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { ScrollReveal } from '@/components/ui/scroll-motion';
 import { serverGet } from '@/lib/server-api';
 import type { Partner } from '@/types';
 
@@ -27,11 +28,11 @@ export default async function PartenairesPage() {
           description="Cette page sera mise à jour dès que les premières fiches partenaires seront publiées."
         />
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <ScrollReveal stagger={70} className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {partners.map((partner) => (
             <PartnerCard key={partner.id} partner={partner} />
           ))}
-        </div>
+        </ScrollReveal>
       )}
     </Container>
   );

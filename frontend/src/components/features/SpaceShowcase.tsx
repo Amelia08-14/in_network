@@ -1,6 +1,7 @@
-import { Check } from 'lucide-react';
-import { Container } from '@/components/ui/container';
-import { Reveal } from '@/components/ui/reveal';
+import Link from 'next/link';
+import { ArrowRight, Check } from 'lucide-react';
+import { Section, SectionHeading } from '@/components/ui/section';
+import { ScrollReveal } from '@/components/ui/scroll-motion';
 import { GalleryComingSoon } from '@/components/features/gallery/GalleryComingSoon';
 import { SiteGalleryWall } from '@/components/features/gallery/SiteGalleryWall';
 import { getPrimarySiteGallery } from '@/lib/site-gallery';
@@ -13,39 +14,49 @@ const FEATURES = [
 ];
 
 // Section volontairement différente du rythme "eyebrow + h2 + grille de 4
-// cards" utilisé par les sections membres/services/événements — casse la
-// répétition et ancre le site dans un lieu réel plutôt que dans l'abstrait.
-// Les vraies photos ET vidéos du lieu (galerie admin) remplacent le
-// placeholder dès qu'elles sont disponibles — jamais de contenu banque.
+// cards" — ancre le site dans un lieu réel. Les vraies photos ET vidéos du
+// lieu (galerie admin) remplacent le placeholder dès qu'elles sont
+// disponibles — jamais de contenu banque. Sur l'accueil on n'affiche qu'un
+// aperçu (8 médias max), la galerie complète se consulte ailleurs.
 export async function SpaceShowcase() {
-  const items = await getPrimarySiteGallery();
+  const allItems = await getPrimarySiteGallery();
+  const items = allItems.slice(0, 8);
 
   return (
-    <section className="section-padding">
-      <Container>
-        <div className="mx-auto mb-10 max-w-2xl text-center">
-          <span className="eyebrow justify-center">L&apos;espace</span>
-          <h2 className="mt-3 font-heading text-3xl font-bold text-ink-900 md:text-4xl">
-            Un lieu pensé pour la <span className="text-brand-orange">rencontre</span> autant que la
-            productivité
-          </h2>
-          <p className="mt-3 text-ink-500">
-            Avant d&apos;être une plateforme, IN NETWORK est d&apos;abord un espace physique à Hydra —
-            conçu pour que le travail et les rencontres se croisent naturellement.
-          </p>
-        </div>
+    <Section tone="tint">
+      <div className="flex flex-wrap items-end justify-between gap-6">
+        <SectionHeading
+          eyebrow="L'espace"
+          title={
+            <>
+              Un lieu pensé pour la <span className="text-brand-orange">rencontre</span> autant que
+              la productivité
+            </>
+          }
+          lead="Avant d'être une plateforme, IN NETWORK est d'abord un espace physique à Hydra — conçu pour que le travail et les rencontres se croisent naturellement."
+        />
+        {allItems.length > items.length && (
+          <Link
+            href="/evenements/galerie"
+            className="hidden items-center gap-1.5 text-sm font-semibold text-brand-blue hover:underline md:flex"
+          >
+            Voir toutes les images <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        )}
+      </div>
 
-        <ul className="mx-auto mb-10 grid max-w-3xl gap-3 sm:grid-cols-2">
-          {FEATURES.map((feature) => (
-            <li key={feature} className="flex items-start gap-2.5 text-sm text-ink-700">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" />
-              {feature}
-            </li>
-          ))}
-        </ul>
+      <ul className="mt-8 grid gap-3 sm:grid-cols-2">
+        {FEATURES.map((feature) => (
+          <li key={feature} className="flex items-start gap-2.5 text-sm text-ink-700">
+            <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" />
+            {feature}
+          </li>
+        ))}
+      </ul>
 
-        <Reveal>{items.length > 0 ? <SiteGalleryWall items={items} /> : <GalleryComingSoon />}</Reveal>
-      </Container>
-    </section>
+      <ScrollReveal className="mt-12">
+        {items.length > 0 ? <SiteGalleryWall items={items} /> : <GalleryComingSoon />}
+      </ScrollReveal>
+    </Section>
   );
 }

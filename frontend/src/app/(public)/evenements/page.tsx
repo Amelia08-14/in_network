@@ -4,6 +4,7 @@ import { Container } from '@/components/ui/container';
 import { EventCard } from '@/components/features/EventCard';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { ScrollReveal } from '@/components/ui/scroll-motion';
 import { buttonVariants } from '@/components/ui/button';
 import { EVENT_ORIGIN_LABEL } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -114,11 +115,11 @@ export default async function EvenementsPage({
           }
         />
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ScrollReveal stagger={80} className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
-        </div>
+        </ScrollReveal>
       )}
     </Container>
   );
