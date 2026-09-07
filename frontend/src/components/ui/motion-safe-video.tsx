@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // La règle globale prefers-reduced-motion (globals.css) écrase les
 // animations/transitions CSS, mais ne peut rien sur l'autoplay natif d'un
@@ -17,6 +17,7 @@ export function MotionSafeVideo({
   ...props
 }: React.VideoHTMLAttributes<HTMLVideoElement> & { showControlsOnReducedMotion?: boolean }) {
   const [reducedMotion, setReducedMotion] = useState(false);
+  const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -26,9 +27,31 @@ export function MotionSafeVideo({
     return () => query.removeEventListener('change', listener);
   }, []);
 
+  // Relance explicite : certains navigateurs (Safari iOS notamment, ou un
+  // onglet momentanément en arrière-plan au montage) ne déclenchent pas
+  // l'autoplay `muted` tout seuls. `playsInline` évite le passage en
+  // plein écran sur iOS qui bloquerait la lecture inline.
+  useEffect(() => {
+    if (reducedMotion) return;
+    const el = ref.current;
+    if (!el) return;
+    const tryPlay = () => el.play().catch(() => undefined);
+    tryPlay();
+    document.addEventListener('visibilitychange', tryPlay);
+    return () => document.removeEventListener('visibilitychange', tryPlay);
+  }, [reducedMotion]);
+
   return reducedMotion ? (
-    <video {...props} autoPlay={false} loop={false} controls={showControlsOnReducedMotion} preload="metadata" />
+    <video
+      ref={ref}
+      {...props}
+      autoPlay={false}
+      loop={false}
+      playsInline
+      controls={showControlsOnReducedMotion}
+      preload="metadata"
+    />
   ) : (
-    <video {...props} autoPlay loop muted preload="auto" />
+    <video ref={ref} {...props} autoPlay loop muted playsInline preload="auto" />
   );
 }

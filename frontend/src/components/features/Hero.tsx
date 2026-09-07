@@ -3,10 +3,12 @@ import { ArrowRight } from 'lucide-react';
 import { MotionSafeVideo } from '@/components/ui/motion-safe-video';
 
 // Hero — panneau visuel : la vidéo « network hero » (carte 3D de l'Algérie +
-// pin IN NETWORK), fournie par la cliente. Elle est encodée sur fond blanc :
-// `mix-blend-mode: darken` fait disparaître ce blanc dans le fond paper du
-// hero, la carte crème reste posée « en relief » sans cadre ni panneau
-// (demande cliente : « sans arrière plan »).
+// réseau de cartes Entrepreneurs/Experts/Partenaires/Coworking/Événements/
+// Services), fournie par la cliente. Elle est encodée sur fond blanc :
+// `mix-blend-mode: multiply` fait disparaître ce blanc dans le fond paper du
+// hero (blanc × paper = paper), la composition reste posée sans cadre. Fond
+// paper sur toute la section, comme le reste du site. Pas d'étiquette
+// ajoutée par-dessus : la vidéo est déjà légendée.
 export function Hero() {
   return (
     <section className="relative isolate -mt-24 flex items-center overflow-x-clip bg-brand-paper md:-mt-28 lg:min-h-screen">
@@ -60,7 +62,7 @@ export function Hero() {
             </Link>
             <Link
               href="/inscription-entreprise"
-              className="inline-flex min-h-14 items-center justify-center rounded-full border border-ink-900/15 bg-white/60 px-8 text-sm font-semibold text-ink-900 backdrop-blur-sm transition duration-300 hover:border-ink-900 hover:bg-white"
+              className="inline-flex min-h-14 items-center justify-center rounded-full border border-ink-900/20 px-8 text-sm font-semibold text-ink-900 transition duration-300 hover:border-ink-900 hover:bg-ink-900/[0.03]"
             >
               Inscrire mon entreprise
             </Link>
@@ -80,24 +82,16 @@ export function Hero() {
           </dl>
         </div>
 
-        <div className="hero-in hero-d2 relative mx-auto w-full max-w-[620px]">
-          <div className="hero-float relative aspect-square">
-            <MotionSafeVideo
-              src="/network-hero.mp4"
-              className="absolute inset-0 h-full w-full scale-[1.18] object-contain mix-blend-darken"
-              showControlsOnReducedMotion={false}
-              aria-label="Carte animée de l'Algérie avec le réseau IN NETWORK"
-            />
-          </div>
-
-          <div className="hero-in hero-d3 absolute left-0 top-10 hidden rounded-2xl border border-ink-900/10 bg-white/85 px-4 py-3 shadow-soft-lg backdrop-blur-sm sm:block">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">Mise en relation</p>
-            <p className="mt-0.5 text-sm font-semibold text-ink-900">Freelance ↔ Expert juridique</p>
-          </div>
-          <div className="hero-in hero-d3 absolute bottom-12 right-0 hidden rounded-2xl border border-ink-900/10 bg-white/85 px-4 py-3 shadow-soft-lg backdrop-blur-sm sm:block">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">Réseau national</p>
-            <p className="mt-0.5 text-sm font-semibold text-ink-900">PME ↔ Comptabilité</p>
-          </div>
+        {/* Pas de wrapper `hero-in` (opacity) ici : un ancêtre avec opacity < 1
+            isole le mix-blend-mode et fait réapparaître le fond blanc de la
+            vidéo. Le flottement (transform) est porté par la vidéo elle-même. */}
+        <div className="relative mx-auto w-full max-w-[660px]">
+          <MotionSafeVideo
+            src="/network-hero.mp4"
+            className="hero-float aspect-square w-full object-contain mix-blend-multiply"
+            showControlsOnReducedMotion={false}
+            aria-label="Réseau IN NETWORK : entrepreneurs, experts, partenaires, coworking, événements et services reliés à travers l'Algérie"
+          />
         </div>
       </div>
 
@@ -106,9 +100,9 @@ export function Hero() {
         .hero-d1 { animation-delay: 90ms; }
         .hero-d2 { animation-delay: 180ms; }
         .hero-d3 { animation-delay: 300ms; }
-        .hero-float { animation: hero-float 7s ease-in-out infinite; }
+        .hero-float { animation: hero-float 8s ease-in-out infinite; }
         @keyframes hero-in { to { opacity: 1; transform: translateY(0); } }
-        @keyframes hero-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+        @keyframes hero-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
         @media (prefers-reduced-motion: reduce) {
           .hero-in, .hero-float { animation: none; opacity: 1; transform: none; }
         }

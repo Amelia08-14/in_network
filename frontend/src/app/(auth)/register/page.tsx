@@ -2,10 +2,11 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Check, Eye, EyeOff, PartyPopper } from 'lucide-react';
+import { ArrowRight, Building2, Check, Eye, EyeOff, PartyPopper, UserRound } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,6 +47,11 @@ const MEMBER_TYPES = [
 
 export default function RegisterPage() {
   const registerUser = useAuthStore((s) => s.register);
+  const router = useRouter();
+  // Étape préalable : indépendant·e (parcours ci-dessous) ou entreprise
+  // (parcours dédié /inscription-entreprise). Rend le compte entreprise
+  // découvrable depuis « Devenir membre », sans dépendre du CTA du hero.
+  const [mode, setMode] = useState<'individual' | null>(null);
   const [step, setStep] = useState(0);
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -146,10 +152,75 @@ export default function RegisterPage() {
     );
   }
 
+  if (!mode) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <h1 className="font-heading text-2xl font-bold text-ink-900">Devenir membre</h1>
+          <p className="mt-1 text-sm text-ink-500">Qui rejoint le réseau IN NETWORK ?</p>
+
+          <div className="mt-6 grid gap-3">
+            <button
+              type="button"
+              onClick={() => setMode('individual')}
+              className="group flex items-start gap-4 rounded-2xl border border-ink-900/12 p-4 text-left transition-colors hover:border-brand-orange hover:bg-brand-orange/[0.03]"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink-900/5 text-ink-700">
+                <UserRound className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="font-heading font-bold text-ink-900">Je suis indépendant·e</span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-ink-400 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-orange" />
+                </span>
+                <span className="mt-0.5 block text-sm text-ink-500">
+                  Freelance, porteur de projet ou startup — un profil individuel dans l&apos;annuaire.
+                </span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push('/inscription-entreprise')}
+              className="group flex items-start gap-4 rounded-2xl border border-ink-900/12 p-4 text-left transition-colors hover:border-brand-orange hover:bg-brand-orange/[0.03]"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink-900/5 text-ink-700">
+                <Building2 className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="font-heading font-bold text-ink-900">J&apos;inscris mon entreprise</span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-ink-400 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-orange" />
+                </span>
+                <span className="mt-0.5 block text-sm text-ink-500">
+                  Un compte entreprise : déclarez vos postes et invitez vos collaborateurs depuis votre tableau de bord.
+                </span>
+              </span>
+            </button>
+          </div>
+
+          <p className="mt-6 text-center text-sm text-ink-500">
+            Déjà membre ?{' '}
+            <Link href="/login" className="font-medium text-brand-blue hover:underline">
+              Se connecter
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardContent className="pt-6">
-        <h1 className="font-heading text-2xl font-bold text-ink-900">Devenir membre</h1>
+        <button
+          type="button"
+          onClick={() => setMode(null)}
+          className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-ink-500 hover:text-ink-900"
+        >
+          <ArrowRight className="h-3.5 w-3.5 rotate-180" /> Changer de type de compte
+        </button>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Inscription indépendant·e</h1>
         <p className="mt-1 text-sm text-ink-500">Crée ton profil en {STEPS.length} étapes.</p>
 
         <div className="mt-5 flex items-center gap-2">
@@ -294,12 +365,6 @@ export default function RegisterPage() {
           Déjà membre ?{' '}
           <Link href="/login" className="font-medium text-brand-blue hover:underline">
             Se connecter
-          </Link>
-        </p>
-        <p className="mt-2 text-center text-sm text-ink-500">
-          Vous inscrivez une entreprise et son équipe ?{' '}
-          <Link href="/inscription-entreprise" className="font-medium text-brand-blue hover:underline">
-            Créer un compte entreprise
           </Link>
         </p>
       </CardContent>
