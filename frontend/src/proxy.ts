@@ -3,7 +3,7 @@ import { jwtDecode } from 'jwt-decode';
 
 interface AccessTokenPayload {
   sub: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'OFFICE_MANAGER' | 'MEMBER';
   exp: number;
 }
 
@@ -81,7 +81,12 @@ export default function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL(isAdminRoute ? '/admin' : '/login', req.url));
   }
 
-  if (isAdminRoute && payload.role !== 'ADMIN' && payload.role !== 'SUPER_ADMIN') {
+  if (
+    isAdminRoute &&
+    payload.role !== 'ADMIN' &&
+    payload.role !== 'SUPER_ADMIN' &&
+    payload.role !== 'OFFICE_MANAGER'
+  ) {
     return NextResponse.redirect(new URL('/admin', req.url));
   }
 

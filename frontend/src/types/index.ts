@@ -10,6 +10,7 @@ export const DASHBOARD_RESOURCES: { key: string; label: string }[] = [
   { key: 'stats', label: 'Statistiques & vue d’ensemble' },
   { key: 'validations', label: 'Validations' },
   { key: 'members', label: 'Membres' },
+  { key: 'companies', label: 'Entreprises' },
   { key: 'service_requests', label: 'Demandes de service' },
   { key: 'services', label: 'Catalogue de services' },
   { key: 'bookings', label: 'Réservations' },
@@ -31,6 +32,61 @@ export interface AuthUser {
   emailVerified: boolean;
   permissions?: DashboardPermissions | null;
   displayName?: string | null;
+  // Rattachement à un compte entreprise (parcours « Inscrire mon entreprise »).
+  // isOwner = ce compte a inscrit l'entreprise et gère les postes.
+  company?: CompanySummary | null;
+}
+
+export interface CompanySummary {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  seatLimit: number;
+  isActive: boolean;
+  isOwner: boolean;
+}
+
+export interface CompanyMember {
+  id: string;
+  email: string;
+  phone: string | null;
+  isActive: boolean;
+  createdAt: string;
+  firstName: string | null;
+  lastName: string | null;
+  jobTitle: string | null;
+  avatarUrl: string | null;
+  isPublic: boolean;
+  isOwner: boolean;
+}
+
+export interface CompanyDashboard {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  sector: string | null;
+  website: string | null;
+  seatLimit: number;
+  isActive: boolean;
+  usedSeats: number;
+  members: CompanyMember[];
+}
+
+export interface AdminCompany {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  sector: string | null;
+  website: string | null;
+  seatLimit: number;
+  usedSeats: number;
+  isActive: boolean;
+  createdAt: string;
+  ownerEmail: string;
+  ownerName: string | null;
 }
 
 export interface SystemUser {

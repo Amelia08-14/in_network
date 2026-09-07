@@ -23,7 +23,7 @@ const registerSchema = z
     firstName: z.string().min(1, 'Prénom requis'),
     lastName: z.string().min(1, 'Nom requis'),
     phone: z.string().optional(),
-    memberType: z.enum(['FREELANCE', 'STARTUP', 'ENTREPRISE']),
+    memberType: z.enum(['FREELANCE', 'STARTUP']),
     companyName: z.string().optional(),
     jobTitle: z.string().optional(),
   })
@@ -42,7 +42,6 @@ const STEPS = [
 const MEMBER_TYPES = [
   { value: 'FREELANCE', label: 'Freelance' },
   { value: 'STARTUP', label: 'Startup' },
-  { value: 'ENTREPRISE', label: 'Entreprise' },
 ];
 
 export default function RegisterPage() {
@@ -295,6 +294,12 @@ export default function RegisterPage() {
           Déjà membre ?{' '}
           <Link href="/login" className="font-medium text-brand-blue hover:underline">
             Se connecter
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-sm text-gray-500">
+          Vous inscrivez une entreprise et son équipe ?{' '}
+          <Link href="/inscription-entreprise" className="font-medium text-brand-blue hover:underline">
+            Créer un compte entreprise
           </Link>
         </p>
       </CardContent>

@@ -42,6 +42,18 @@ interface AuthState {
     memberType: string;
     phone?: string;
   }) => Promise<void>;
+  registerCompany: (input: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+    jobTitle?: string;
+    companyName: string;
+    sector?: string;
+    website?: string;
+    seatLimit: number;
+  }) => Promise<void>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
 }
@@ -59,6 +71,13 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   register: async (input) => {
     const res = await api.post<AuthResponse>('/api/auth/register', input);
+    setAccessTokenCookie(res.data.accessToken);
+    set({ user: res.data.user, status: 'authenticated' });
+    startTokenRefreshLoop();
+  },
+
+  registerCompany: async (input) => {
+    const res = await api.post<AuthResponse>('/api/auth/register-company', input);
     setAccessTokenCookie(res.data.accessToken);
     set({ user: res.data.user, status: 'authenticated' });
     startTokenRefreshLoop();

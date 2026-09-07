@@ -123,6 +123,12 @@ export function NavBar() {
                 <Link href="/register" className="rounded-2xl px-4 py-2.5 text-sm font-semibold text-brand-orange hover:bg-ink-900/5">
                   Devenir membre
                 </Link>
+                <Link
+                  href="/inscription-entreprise"
+                  className="rounded-2xl px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-900/5"
+                >
+                  Inscrire mon entreprise
+                </Link>
               </>
             )}
           </div>

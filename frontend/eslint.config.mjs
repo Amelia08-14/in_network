@@ -11,4 +11,16 @@ import nextConfig from 'eslint-config-next';
 export default [
   ...nextConfig,
   { ignores: ['.next/**', 'node_modules/**', 'dist/**'] },
+  {
+    // Produit francophone : les apostrophes dans la copie sont constantes et
+    // l'encodage HTML (`&apos;`) est purement cosmétique (rendu identique) —
+    // on garde la règle en avertissement plutôt qu'en erreur bloquante.
+    // `set-state-in-effect` (nouvelle règle react-hooks 6) se déclenche aussi
+    // sur des patterns légitimes de synchronisation avec une API externe
+    // (matchMedia, lecture d'un token d'URL au montage) : avertissement.
+    rules: {
+      'react/no-unescaped-entities': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+    },
+  },
 ];

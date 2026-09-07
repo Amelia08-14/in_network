@@ -1,11 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarCheck, CreditCard, Users2, Sparkles } from 'lucide-react';
+import { CalendarCheck, CreditCard, Users2, Sparkles, Building2 } from 'lucide-react';
 import { StatWidget } from '@/components/features/StatWidget';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 
 interface Subscription {
   id: string;
@@ -25,6 +27,7 @@ interface Suggestion {
 }
 
 export default function DashboardOverviewPage() {
+  const company = useAuthStore((s) => s.user?.company);
   const { data: subscriptions } = useQuery({
     queryKey: ['my-subscriptions'],
     queryFn: () => api.get<{ data: Subscription[] }>('/api/subscriptions').then((r) => r.data),
@@ -44,9 +47,33 @@ export default function DashboardOverviewPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Vue d'ensemble</h1>
+        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Vue d&apos;ensemble</h1>
         <p className="mt-1 text-sm text-gray-500">Bienvenue sur ton espace membre IN NETWORK.</p>
       </div>
+
+      {company && (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-ink-900/10 bg-ink-900/[0.03] px-4 py-3 text-sm">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white text-ink-700 shadow-soft">
+            <Building2 className="h-4 w-4" />
+          </span>
+          <span className="text-ink-700">
+            {company.isOwner ? (
+              <>
+                Vous gérez le compte entreprise <span className="font-semibold">{company.name}</span>.
+              </>
+            ) : (
+              <>
+                Membre de l&apos;équipe <span className="font-semibold">{company.name}</span>.
+              </>
+            )}
+          </span>
+          {company.isOwner && (
+            <Link href="/dashboard/equipe" className="font-medium text-brand-blue hover:underline">
+              Gérer mon équipe →
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatWidget
