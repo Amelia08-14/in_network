@@ -2,7 +2,7 @@ import { Prisma, MemberType } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import { hashPassword } from '../../lib/password';
 import { generatePassword, sendCredentialsEmail } from '../../lib/account-provisioning';
-import { sendEmail, notifyFormSubmission } from '../../lib/email';
+import { sendEmail } from '../../lib/email';
 import { ApiError } from '../../utils/apiResponse';
 import { uniqueSlug } from '../../utils/slugify';
 import type { AddMemberInput, RegisterCompanyInput, UpdateMyCompanyInput } from './companies.schema';
@@ -327,21 +327,6 @@ export async function createCompanyAccount(input: RegisterCompanyInput) {
     subject: "Bienvenue dans l'espace IN NETWORK",
     html: `<p>Bonjour ${input.firstName},</p><p>Le compte entreprise <strong>${input.companyName}</strong> est créé. Vous pouvez dès maintenant inviter vos collaborateurs depuis l'onglet « Mon équipe » de votre tableau de bord.</p><p>À très vite,<br/>L'équipe IN NETWORK</p>`,
   }).catch((err) => console.error("[companies] échec d'envoi de l'email de bienvenue", err));
-
-  // Relais vers la boîte de réception des formulaires (non bloquant).
-  notifyFormSubmission({
-    formTitle: "Inscription entreprise",
-    replyTo: input.email,
-    fields: [
-      { label: 'Entreprise', value: input.companyName },
-      { label: 'Représentant', value: `${input.firstName} ${input.lastName}` },
-      { label: 'Fonction', value: input.jobTitle },
-      { label: 'Email', value: input.email },
-      { label: 'Téléphone', value: input.phone },
-      { label: 'Secteur', value: input.sector },
-      { label: 'Site web', value: input.website },
-    ],
-  }).catch((err) => console.error('[companies] échec relais email inscription entreprise', err));
 
   return user.id;
 }
