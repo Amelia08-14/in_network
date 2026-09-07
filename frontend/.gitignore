@@ -4,4 +4,10 @@ out/
 build/
 .env
 .env.local
+.env*.local
 *.log
+
+# TypeScript / Next.js build artefacts
+*.tsbuildinfo
+next-env.d.ts
+.vercel
