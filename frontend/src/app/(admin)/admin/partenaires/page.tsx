@@ -75,8 +75,8 @@ export default function AdminPartenairesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Partenaires</h1>
-          <p className="mt-1 text-sm text-gray-500">Fiches partenaires publiées sur /partenaires.</p>
+          <h1 className="font-heading text-2xl font-bold text-ink-900">Partenaires</h1>
+          <p className="mt-1 text-sm text-ink-500">Fiches partenaires publiées sur /partenaires.</p>
         </div>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus className="h-4 w-4" /> Nouveau partenaire
@@ -120,7 +120,7 @@ export default function AdminPartenairesPage() {
       )}
 
       <div className="relative max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
         <Input
           className="pl-9"
           placeholder="Rechercher un partenaire..."
@@ -132,19 +132,19 @@ export default function AdminPartenairesPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : partners.length === 0 ? (
             <EmptyState title={search ? 'Aucun partenaire ne correspond à la recherche' : 'Aucun partenaire'} />
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-ink-900/8">
               {partners.map((partner) => (
                 <div key={partner.id} className="flex items-center gap-4 p-5">
-                  <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gray-50">
+                  <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-brand-paper">
                     <Image src={partner.logoUrl} alt="" fill sizes="44px" className="object-contain" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-800">{partner.name}</p>
-                    <p className="text-sm text-gray-500">{partner.sector}</p>
+                    <p className="font-medium text-ink-800">{partner.name}</p>
+                    <p className="text-sm text-ink-500">{partner.sector}</p>
                   </div>
                   <Badge variant={partner.isPublished ? 'success' : 'neutral'}>
                     {partner.isPublished ? 'Publié' : 'Brouillon'}

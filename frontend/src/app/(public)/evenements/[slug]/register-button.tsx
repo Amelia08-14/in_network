@@ -37,7 +37,7 @@ export function EventRegisterButton({ eventId, isFull }: { eventId: string; isFu
       <Button variant="primary" size="lg" disabled={isFull || state === 'loading'} onClick={handleRegister}>
         {isFull ? 'Événement complet' : state === 'loading' ? 'Inscription...' : "S'inscrire"}
       </Button>
-      {!user && <p className="mt-2 text-xs text-accent-gray">Connecte-toi pour t'inscrire.</p>}
+      {!user && <p className="mt-2 text-xs text-ink-500">Connecte-toi pour t'inscrire.</p>}
       {error && <p className="mt-2 text-xs text-brand-orange">{error}</p>}
     </div>
   );

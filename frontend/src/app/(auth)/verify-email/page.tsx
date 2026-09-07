@@ -30,8 +30,8 @@ function VerifyEmailContent() {
   return (
     <Card>
       <CardContent className="pt-6 text-center">
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Vérification de l'email</h1>
-        {status === 'loading' && <p className="mt-4 text-sm text-gray-500">Vérification en cours...</p>}
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Vérification de l'email</h1>
+        {status === 'loading' && <p className="mt-4 text-sm text-ink-500">Vérification en cours...</p>}
         {status === 'success' && (
           <p className="mt-4 text-sm text-accent-green">
             Ton email est confirmé ! Tu peux te{' '}
@@ -49,7 +49,7 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<p className="text-center text-sm text-gray-500">Chargement...</p>}>
+    <Suspense fallback={<p className="text-center text-sm text-ink-500">Chargement...</p>}>
       <VerifyEmailContent />
     </Suspense>
   );

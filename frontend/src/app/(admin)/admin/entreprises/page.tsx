@@ -24,8 +24,8 @@ export default function AdminCompaniesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Entreprises</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Entreprises</h1>
+        <p className="mt-1 text-sm text-ink-500">
           Comptes entreprise multi-postes. Ajustez le nombre de postes accordés ou suspendez un compte. La
           gestion des collaborateurs se fait depuis le tableau de bord du responsable.
         </p>
@@ -34,7 +34,7 @@ export default function AdminCompaniesPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement…</p>
+            <p className="p-5 text-sm text-ink-500">Chargement…</p>
           ) : !companies || companies.length === 0 ? (
             <EmptyState title="Aucune entreprise inscrite" />
           ) : (

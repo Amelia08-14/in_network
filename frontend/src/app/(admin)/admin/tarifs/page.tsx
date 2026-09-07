@@ -47,13 +47,13 @@ function PlanRow({ plan }: { plan: MembershipPlan }) {
 
   return (
     <tr>
-      <td className="px-5 py-3 font-medium text-gray-800">{plan.name}</td>
-      <td className="px-5 py-3 text-gray-500">{plan.billingCycle}</td>
+      <td className="px-5 py-3 font-medium text-ink-800">{plan.name}</td>
+      <td className="px-5 py-3 text-ink-500">{plan.billingCycle}</td>
       <td className="px-5 py-3">
         {editing ? (
           <Input className="h-9 w-32" type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
         ) : (
-          <span className="text-gray-800">{Number(plan.price).toLocaleString('fr-FR')} {plan.currency}</span>
+          <span className="text-ink-800">{Number(plan.price).toLocaleString('fr-FR')} {plan.currency}</span>
         )}
       </td>
       <td className="px-5 py-3 text-right">
@@ -108,11 +108,11 @@ function SpaceRow({ space }: { space: SpaceResource }) {
   if (!editing) {
     return (
       <tr>
-        <td className="px-5 py-3 font-medium text-gray-800">{space.name}</td>
-        <td className="px-5 py-3 text-gray-600">
+        <td className="px-5 py-3 font-medium text-ink-800">{space.name}</td>
+        <td className="px-5 py-3 text-ink-600">
           {space.hourlyRateMember}/{space.halfDayRateMember}/{space.dailyRateMember} DA
         </td>
-        <td className="px-5 py-3 text-gray-600">
+        <td className="px-5 py-3 text-ink-600">
           {space.hourlyRateExternal}/{space.halfDayRateExternal}/{space.dailyRateExternal} DA
         </td>
         <td className="px-5 py-3 text-right">
@@ -126,7 +126,7 @@ function SpaceRow({ space }: { space: SpaceResource }) {
 
   return (
     <tr>
-      <td className="px-5 py-3 font-medium text-gray-800 align-top">{space.name}</td>
+      <td className="px-5 py-3 font-medium text-ink-800 align-top">{space.name}</td>
       <td className="px-5 py-3 align-top" colSpan={2}>
         <div className="grid grid-cols-3 gap-2">
           {(
@@ -215,21 +215,21 @@ export default function AdminTarifsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Tarifs & espaces</h1>
-        <p className="mt-1 text-sm text-gray-500">Formules d&apos;abonnement et tarifs des salles de réunion.</p>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Tarifs & espaces</h1>
+        <p className="mt-1 text-sm text-ink-500">Formules d&apos;abonnement et tarifs des salles de réunion.</p>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <h2 className="px-5 pt-5 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">Formules</h2>
+          <h2 className="px-5 pt-5 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">Formules</h2>
           {plansLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : plans.length === 0 ? (
             <EmptyState title="Aucune formule" />
           ) : (
             <div className="mt-3 overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-accent-gray">
+                <thead className="border-b border-ink-900/8 text-left text-xs uppercase tracking-wide text-ink-500">
                   <tr>
                     <th className="px-5 py-3">Nom</th>
                     <th className="px-5 py-3">Cycle</th>
@@ -237,7 +237,7 @@ export default function AdminTarifsPage() {
                     <th className="px-5 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-ink-900/8">
                   {plans.map((plan) => (
                     <PlanRow key={plan.id} plan={plan} />
                   ))}
@@ -249,7 +249,7 @@ export default function AdminTarifsPage() {
       </Card>
 
       <div className="flex items-center justify-between">
-        <h2 className="font-heading text-sm font-bold uppercase tracking-wide text-gray-500">Espaces</h2>
+        <h2 className="font-heading text-sm font-bold uppercase tracking-wide text-ink-500">Espaces</h2>
         <Button size="sm" onClick={() => setShowSpaceForm((v) => !v)} disabled={sites.length === 0}>
           <Plus className="h-4 w-4" /> Nouvel espace
         </Button>
@@ -323,17 +323,17 @@ export default function AdminTarifsPage() {
 
       <Card>
         <CardContent className="p-0">
-          <h2 className="px-5 pt-5 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">
+          <h2 className="px-5 pt-5 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">
             Salles de réunion (tarif membre / externe)
           </h2>
           {spacesLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : spaces.length === 0 ? (
             <EmptyState title="Aucune salle" />
           ) : (
             <div className="mt-3 overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-accent-gray">
+                <thead className="border-b border-ink-900/8 text-left text-xs uppercase tracking-wide text-ink-500">
                   <tr>
                     <th className="px-5 py-3">Salle</th>
                     <th className="px-5 py-3">Membre (h/demi-j/j)</th>
@@ -341,7 +341,7 @@ export default function AdminTarifsPage() {
                     <th className="px-5 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-ink-900/8">
                   {spaces.map((space) => (
                     <SpaceRow key={space.id} space={space} />
                   ))}

@@ -9,7 +9,7 @@ const badgeVariants = cva('inline-flex items-center rounded-pill px-2.5 py-0.5 t
     variant: {
       freelance: 'bg-brand-blue/10 text-brand-blue',
       startup: 'bg-brand-orange/10 text-brand-orange',
-      entreprise: 'bg-brand-violet/10 text-brand-violet',
+      entreprise: 'bg-ink-900/10 text-ink-700',
       expert: 'bg-accent-green/20 text-green-800',
       neutral: 'bg-ink-900/6 text-ink-700',
       success: 'bg-accent-green/20 text-green-800',

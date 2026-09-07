@@ -23,8 +23,8 @@ export function ProfileCompletionBanner() {
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-brand-orange" />
         <div className="min-w-0">
-          <p className="font-heading text-sm font-bold text-brand-violet-dark">Complétez votre profil</p>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="font-heading text-sm font-bold text-ink-900">Complétez votre profil</p>
+          <p className="mt-1 text-sm text-ink-600">
             Il vous manque : {completeness.missing.join(', ')}. Un profil complet est requis pour souscrire à une
             formule, envoyer une demande, réserver un espace ou demander une mise en relation.
           </p>

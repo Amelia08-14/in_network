@@ -92,12 +92,12 @@ function AdminLoginScreen() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-brand-paper px-4">
       <Card className="w-full max-w-sm">
         <CardContent className="pt-6">
           <Logo />
-          <h1 className="mt-6 font-heading text-2xl font-bold text-brand-violet-dark">Administration</h1>
-          <p className="mt-1 text-sm text-gray-500">Réservé à l&apos;équipe IN NETWORK.</p>
+          <h1 className="mt-6 font-heading text-2xl font-bold text-ink-900">Administration</h1>
+          <p className="mt-1 text-sm text-ink-500">Réservé à l&apos;équipe IN NETWORK.</p>
 
           <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
             <div>
@@ -135,7 +135,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [status, hydrate]);
 
   if (status === 'idle' || status === 'loading') {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-50" />;
+    return <div className="flex min-h-screen items-center justify-center bg-brand-paper" />;
   }
 
   const isAdmin =

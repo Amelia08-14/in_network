@@ -54,20 +54,20 @@ export default function AdminServiceRequestsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Demandes de service</h1>
-        <p className="mt-1 text-sm text-gray-500">{data?.meta.total ?? 0} demandes au total.</p>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Demandes de service</h1>
+        <p className="mt-1 text-sm text-ink-500">{data?.meta.total ?? 0} demandes au total.</p>
       </div>
 
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : !data || data.data.length === 0 ? (
             <EmptyState title="Aucune demande de service" />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-accent-gray">
+                <thead className="border-b border-ink-900/8 text-left text-xs uppercase tracking-wide text-ink-500">
                   <tr>
                     <th className="px-5 py-3">Demandeur</th>
                     <th className="px-5 py-3">Type</th>
@@ -77,25 +77,25 @@ export default function AdminServiceRequestsPage() {
                     <th className="px-5 py-3">Statut</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-ink-900/8">
                   {data.data.map((req) => (
                     <tr
                       key={req.id}
                       onClick={() => setSelected(req)}
-                      className="cursor-pointer transition-colors hover:bg-gray-50"
+                      className="cursor-pointer transition-colors hover:bg-ink-900/5"
                     >
-                      <td className="px-5 py-3 font-medium text-gray-800">
+                      <td className="px-5 py-3 font-medium text-ink-800">
                         {requesterLabel(req)}
                         {!req.user && (req.guestEmail || req.guestPhone || req.guestCompany) && (
-                          <span className="block text-xs font-normal text-gray-400">
+                          <span className="block text-xs font-normal text-ink-400">
                             {[req.guestEmail, req.guestPhone, req.guestCompany].filter(Boolean).join(' · ')}
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-gray-500">{TARGET_TYPE_LABEL[req.targetType]}</td>
-                      <td className="px-5 py-3 text-gray-600">{targetLabel(req)}</td>
-                      <td className="px-5 py-3 text-gray-600">{formatQuote(req)}</td>
-                      <td className="px-5 py-3 text-gray-500">{new Date(req.createdAt).toLocaleDateString('fr-FR')}</td>
+                      <td className="px-5 py-3 text-ink-500">{TARGET_TYPE_LABEL[req.targetType]}</td>
+                      <td className="px-5 py-3 text-ink-600">{targetLabel(req)}</td>
+                      <td className="px-5 py-3 text-ink-600">{formatQuote(req)}</td>
+                      <td className="px-5 py-3 text-ink-500">{new Date(req.createdAt).toLocaleDateString('fr-FR')}</td>
                       <td className="px-5 py-3">
                         <Badge variant={STATUS_VARIANT[req.status]}>{STATUS_LABEL[req.status]}</Badge>
                       </td>
@@ -109,7 +109,7 @@ export default function AdminServiceRequestsPage() {
       </Card>
 
       {data && data.meta.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 text-sm text-gray-500">
+        <div className="flex items-center justify-center gap-3 text-sm text-ink-500">
           <button disabled={!data.meta.hasPrevPage} onClick={() => setPage((p) => p - 1)} className="disabled:opacity-40">
             Précédent
           </button>

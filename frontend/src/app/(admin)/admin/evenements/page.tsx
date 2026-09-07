@@ -91,7 +91,7 @@ function EditEventRow({ event, onClose }: { event: EventItem; onClose: () => voi
 
   return (
     <tr>
-      <td colSpan={6} className="bg-gray-50 p-5">
+      <td colSpan={6} className="bg-brand-paper p-5">
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -218,8 +218,8 @@ export default function AdminEvenementsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Événements</h1>
-          <p className="mt-1 text-sm text-gray-500">IN EVENT (interne), externes et co-organisés.</p>
+          <h1 className="font-heading text-2xl font-bold text-ink-900">Événements</h1>
+          <p className="mt-1 text-sm text-ink-500">IN EVENT (interne), externes et co-organisés.</p>
         </div>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus className="h-4 w-4" /> Nouvel événement
@@ -303,7 +303,7 @@ export default function AdminEvenementsPage() {
       )}
 
       <div className="relative max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
         <Input
           className="pl-9"
           placeholder="Rechercher un événement..."
@@ -315,13 +315,13 @@ export default function AdminEvenementsPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : events.length === 0 ? (
             <EmptyState title={search ? 'Aucun événement ne correspond à la recherche' : 'Aucun événement'} />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-accent-gray">
+                <thead className="border-b border-ink-900/8 text-left text-xs uppercase tracking-wide text-ink-500">
                   <tr>
                     <th className="px-5 py-3">Titre</th>
                     <th className="px-5 py-3">Catégorie</th>
@@ -331,20 +331,20 @@ export default function AdminEvenementsPage() {
                     <th className="px-5 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-ink-900/8">
                   {events.map((event) =>
                     editingId === event.id ? (
                       <EditEventRow key={event.id} event={event} onClose={() => setEditingId(null)} />
                     ) : (
                       <tr key={event.id}>
-                        <td className="px-5 py-3 font-medium text-gray-800">{event.title}</td>
+                        <td className="px-5 py-3 font-medium text-ink-800">{event.title}</td>
                         <td className="px-5 py-3">
                           <Badge variant="neutral">{EVENT_ORIGIN_LABEL[event.origin] ?? event.origin}</Badge>
                         </td>
-                        <td className="px-5 py-3 text-gray-600">
+                        <td className="px-5 py-3 text-ink-600">
                           {new Date(event.startAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
-                        <td className="px-5 py-3 text-gray-600">
+                        <td className="px-5 py-3 text-ink-600">
                           {event._count?.registrations ?? 0}/{event.capacity}
                         </td>
                         <td className="px-5 py-3">

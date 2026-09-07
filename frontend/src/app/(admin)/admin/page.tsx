@@ -22,8 +22,8 @@ export default function AdminOverviewPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Backoffice — Vue d'ensemble</h1>
-        <p className="mt-1 text-sm text-gray-500">IN NETWORK Hydra, Alger.</p>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Backoffice — Vue d'ensemble</h1>
+        <p className="mt-1 text-sm text-ink-500">IN NETWORK Hydra, Alger.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -41,8 +41,8 @@ export default function AdminPaiementsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Paiements</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Paiements</h1>
+        <p className="mt-1 text-sm text-ink-500">
           Les virements bancaires (CDC §1.4) sont confirmés manuellement ici une fois reçus.
         </p>
       </div>
@@ -50,13 +50,13 @@ export default function AdminPaiementsPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : !data || data.data.length === 0 ? (
             <EmptyState title="Aucun paiement" />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-accent-gray">
+                <thead className="border-b border-ink-900/8 text-left text-xs uppercase tracking-wide text-ink-500">
                   <tr>
                     <th className="px-5 py-3">Membre</th>
                     <th className="px-5 py-3">Montant</th>
@@ -66,17 +66,17 @@ export default function AdminPaiementsPage() {
                     <th className="px-5 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-ink-900/8">
                   {data.data.map((p) => (
                     <tr key={p.id}>
-                      <td className="px-5 py-3 font-medium text-gray-800">
+                      <td className="px-5 py-3 font-medium text-ink-800">
                         {p.user.profile ? `${p.user.profile.firstName} ${p.user.profile.lastName}` : p.user.email}
                       </td>
-                      <td className="px-5 py-3 text-gray-600">
+                      <td className="px-5 py-3 text-ink-600">
                         {p.amount} {p.currency}
                       </td>
-                      <td className="px-5 py-3 text-gray-600">{p.method === 'CARD' ? 'Carte' : 'Virement'}</td>
-                      <td className="px-5 py-3 text-gray-500">{p.relatedType}</td>
+                      <td className="px-5 py-3 text-ink-600">{p.method === 'CARD' ? 'Carte' : 'Virement'}</td>
+                      <td className="px-5 py-3 text-ink-500">{p.relatedType}</td>
                       <td className="px-5 py-3">
                         <Badge variant={STATUS_VARIANT[p.status] ?? 'neutral'}>{p.status}</Badge>
                       </td>

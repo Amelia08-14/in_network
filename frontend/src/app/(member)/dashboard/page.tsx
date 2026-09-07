@@ -47,8 +47,8 @@ export default function DashboardOverviewPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Vue d&apos;ensemble</h1>
-        <p className="mt-1 text-sm text-gray-500">Bienvenue sur ton espace membre IN NETWORK.</p>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Vue d&apos;ensemble</h1>
+        <p className="mt-1 text-sm text-ink-500">Bienvenue sur ton espace membre IN NETWORK.</p>
       </div>
 
       {company && (
@@ -95,11 +95,11 @@ export default function DashboardOverviewPage() {
           {upcomingBookings.length === 0 ? (
             <EmptyState title="Aucune réservation à venir" description="Réserve un espace depuis l'onglet Réservations." />
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-ink-900/8">
               {upcomingBookings.slice(0, 5).map((b) => (
                 <li key={b.id} className="flex items-center justify-between py-3 text-sm">
-                  <span className="font-medium text-gray-700">{b.space.name}</span>
-                  <span className="text-accent-gray">
+                  <span className="font-medium text-ink-700">{b.space.name}</span>
+                  <span className="text-ink-500">
                     {new Date(b.startAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
                   </span>
                 </li>

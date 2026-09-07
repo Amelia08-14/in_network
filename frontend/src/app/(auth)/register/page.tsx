@@ -137,8 +137,8 @@ export default function RegisterPage() {
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-green/10 text-accent-green">
             <PartyPopper className="h-6 w-6" />
           </div>
-          <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Merci pour ton inscription !</h1>
-          <p className="max-w-sm text-sm text-gray-500">
+          <h1 className="font-heading text-2xl font-bold text-ink-900">Merci pour ton inscription !</h1>
+          <p className="max-w-sm text-sm text-ink-500">
             Ton compte IN NETWORK a bien été créé. Notre équipe revient vers toi très prochainement.
           </p>
         </CardContent>
@@ -149,8 +149,8 @@ export default function RegisterPage() {
   return (
     <Card>
       <CardContent className="pt-6">
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Devenir membre</h1>
-        <p className="mt-1 text-sm text-gray-500">Crée ton profil en {STEPS.length} étapes.</p>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Devenir membre</h1>
+        <p className="mt-1 text-sm text-ink-500">Crée ton profil en {STEPS.length} étapes.</p>
 
         <div className="mt-5 flex items-center gap-2">
           {STEPS.map((s, i) => (
@@ -162,12 +162,12 @@ export default function RegisterPage() {
                     ? 'bg-accent-green text-white'
                     : i === step
                       ? 'bg-brand-orange text-white'
-                      : 'bg-gray-100 text-gray-400',
+                      : 'bg-ink-900/5 text-ink-400',
                 )}
               >
                 {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
               </div>
-              {i < STEPS.length - 1 && <div className="h-0.5 flex-1 bg-gray-100" />}
+              {i < STEPS.length - 1 && <div className="h-0.5 flex-1 bg-ink-900/5" />}
             </div>
           ))}
         </div>
@@ -187,7 +187,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600"
                     aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -209,7 +209,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600"
                     aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                   >
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -290,13 +290,13 @@ export default function RegisterPage() {
           </div>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-ink-500">
           Déjà membre ?{' '}
           <Link href="/login" className="font-medium text-brand-blue hover:underline">
             Se connecter
           </Link>
         </p>
-        <p className="mt-2 text-center text-sm text-gray-500">
+        <p className="mt-2 text-center text-sm text-ink-500">
           Vous inscrivez une entreprise et son équipe ?{' '}
           <Link href="/inscription-entreprise" className="font-medium text-brand-blue hover:underline">
             Créer un compte entreprise

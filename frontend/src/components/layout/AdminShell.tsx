@@ -23,9 +23,9 @@ export function AdminShell({ children, navItems }: { children: React.ReactNode; 
   const logout = useAdminAuthStore((s) => s.logout);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-gray-100 bg-white md:flex">
-        <div className="flex h-16 items-center border-b border-gray-100 px-6">
+    <div className="flex min-h-screen bg-brand-paper">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-ink-900/8 bg-white md:flex">
+        <div className="flex h-16 items-center border-b border-ink-900/8 px-6">
           <Logo />
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
@@ -37,7 +37,7 @@ export function AdminShell({ children, navItems }: { children: React.ReactNode; 
                 href={item.href}
                 className={cn(
                   'flex items-center gap-3 rounded-card px-3 py-2 text-sm font-medium transition-colors',
-                  active ? 'bg-brand-violet/10 text-brand-violet' : 'text-gray-600 hover:bg-gray-50',
+                  active ? 'bg-ink-900/10 text-ink-700' : 'text-ink-600 hover:bg-ink-900/5',
                 )}
               >
                 <item.icon className="h-4 w-4" /> {item.label}
@@ -45,10 +45,10 @@ export function AdminShell({ children, navItems }: { children: React.ReactNode; 
             );
           })}
         </nav>
-        <div className="border-t border-gray-100 p-4">
+        <div className="border-t border-ink-900/8 p-4">
           <button
             onClick={() => logout()}
-            className="flex w-full items-center gap-3 rounded-card px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="flex w-full items-center gap-3 rounded-card px-3 py-2 text-sm font-medium text-ink-600 hover:bg-ink-900/5"
           >
             <LogOut className="h-4 w-4" /> Déconnexion
           </button>
@@ -56,7 +56,7 @@ export function AdminShell({ children, navItems }: { children: React.ReactNode; 
       </aside>
 
       <div className="flex-1">
-        <header className="flex h-16 items-center justify-between border-b border-gray-100 bg-white px-4 md:hidden">
+        <header className="flex h-16 items-center justify-between border-b border-ink-900/8 bg-white px-4 md:hidden">
           <Logo />
         </header>
         <main className="p-4 md:p-8">{children}</main>

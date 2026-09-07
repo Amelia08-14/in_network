@@ -70,8 +70,8 @@ export default function AdminTemoignagesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Témoignages</h1>
-          <p className="mt-1 text-sm text-gray-500">Avis de membres publiés sur le site.</p>
+          <h1 className="font-heading text-2xl font-bold text-ink-900">Témoignages</h1>
+          <p className="mt-1 text-sm text-ink-500">Avis de membres publiés sur le site.</p>
         </div>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus className="h-4 w-4" /> Nouveau témoignage
@@ -120,21 +120,21 @@ export default function AdminTemoignagesPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : testimonials.length === 0 ? (
             <EmptyState title="Aucun témoignage" />
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-ink-900/8">
               {testimonials.map((t) => (
                 <div key={t.id} className="flex items-start gap-4 p-5">
                   {t.videoUrl && (
                     <video src={t.videoUrl} className="h-16 w-16 shrink-0 rounded-card bg-ink-900 object-cover" muted playsInline />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-800">
-                      {t.authorName} {t.authorRole && <span className="font-normal text-gray-500">— {t.authorRole}</span>}
+                    <p className="font-medium text-ink-800">
+                      {t.authorName} {t.authorRole && <span className="font-normal text-ink-500">— {t.authorRole}</span>}
                     </p>
-                    {t.content && <p className="mt-1 text-sm text-gray-600">{t.content}</p>}
+                    {t.content && <p className="mt-1 text-sm text-ink-600">{t.content}</p>}
                     {t.videoUrl && <p className="mt-1 text-xs font-medium text-brand-blue">Vidéo jointe</p>}
                   </div>
                   <Badge variant={t.isPublished ? 'success' : 'neutral'}>{t.isPublished ? 'Publié' : 'Brouillon'}</Badge>

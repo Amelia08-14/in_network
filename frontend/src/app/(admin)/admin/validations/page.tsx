@@ -68,7 +68,7 @@ export default function AdminValidationsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-validations'] }),
   });
 
-  if (isLoading) return <p className="text-sm text-gray-500">Chargement...</p>;
+  if (isLoading) return <p className="text-sm text-ink-500">Chargement...</p>;
 
   const events = data?.pendingEvents ?? [];
   const serviceRequests = data?.pendingServiceRequests ?? [];
@@ -78,12 +78,12 @@ export default function AdminValidationsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Validations</h1>
-        <p className="mt-1 text-sm text-gray-500">Tout ce qui attend une décision admin, au même endroit.</p>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Validations</h1>
+        <p className="mt-1 text-sm text-ink-500">Tout ce qui attend une décision admin, au même endroit.</p>
       </div>
 
       <section>
-        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">
+        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">
           Nouveaux membres ({members.length})
         </h2>
         <Card>
@@ -91,15 +91,15 @@ export default function AdminValidationsPage() {
             {members.length === 0 ? (
               <EmptyState title="Rien à valider" className="py-8" />
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-ink-900/8">
                 {members.map((m) => (
                   <div key={m.userId} className="flex items-center gap-4 p-5">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-800">
+                      <p className="font-medium text-ink-800">
                         {m.firstName} {m.lastName}
-                        {m.companyName && <span className="font-normal text-gray-500"> — {m.companyName}</span>}
+                        {m.companyName && <span className="font-normal text-ink-500"> — {m.companyName}</span>}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-ink-500">
                         {m.user.email} · {m.memberType}
                         {!m.user.emailVerified && <span className="ml-1.5 text-brand-orange">· email non vérifié</span>}
                       </p>
@@ -116,7 +116,7 @@ export default function AdminValidationsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">
+        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">
           Événements en attente ({events.length})
         </h2>
         <Card>
@@ -124,12 +124,12 @@ export default function AdminValidationsPage() {
             {events.length === 0 ? (
               <EmptyState title="Rien à valider" className="py-8" />
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-ink-900/8">
                 {events.map((event) => (
                   <div key={event.id} className="flex items-center gap-4 p-5">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-800">{event.title}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-medium text-ink-800">{event.title}</p>
+                      <p className="text-sm text-ink-500">
                         {EVENT_ORIGIN_LABEL[event.origin]} · {new Date(event.startAt).toLocaleDateString('fr-FR')}
                       </p>
                     </div>
@@ -148,7 +148,7 @@ export default function AdminValidationsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">
+        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">
           Demandes de service ({serviceRequests.length})
         </h2>
         <Card>
@@ -156,13 +156,13 @@ export default function AdminValidationsPage() {
             {serviceRequests.length === 0 ? (
               <EmptyState title="Rien à valider" className="py-8" />
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-ink-900/8">
                 {serviceRequests.map((req) => (
                   <div key={req.id} className="flex items-center gap-4 p-5">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-800">{serviceTargetLabel(req)}</p>
-                      <p className="text-sm text-gray-500">{serviceRequesterLabel(req)}</p>
-                      {req.notes && <p className="mt-1 text-sm text-gray-600">{req.notes}</p>}
+                      <p className="font-medium text-ink-800">{serviceTargetLabel(req)}</p>
+                      <p className="text-sm text-ink-500">{serviceRequesterLabel(req)}</p>
+                      {req.notes && <p className="mt-1 text-sm text-ink-600">{req.notes}</p>}
                     </div>
                     <Button size="sm" onClick={() => setSelectedRequest(req)}>
                       Traiter la demande
@@ -176,7 +176,7 @@ export default function AdminValidationsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">
+        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">
           Virements bancaires en attente ({payments.length})
         </h2>
         <Card>
@@ -184,14 +184,14 @@ export default function AdminValidationsPage() {
             {payments.length === 0 ? (
               <EmptyState title="Rien à valider" className="py-8" />
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-ink-900/8">
                 {payments.map((payment) => (
                   <div key={payment.id} className="flex items-center gap-4 p-5">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-800">
+                      <p className="font-medium text-ink-800">
                         {payment.amount} {payment.currency}
                       </p>
-                      <p className="text-sm text-gray-500">{userLabel(payment.user)}</p>
+                      <p className="text-sm text-ink-500">{userLabel(payment.user)}</p>
                     </div>
                     <Button size="sm" onClick={() => confirmPayment.mutate(payment.id)}>
                       Confirmer la réception

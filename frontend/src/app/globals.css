@@ -3,13 +3,15 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-brand-violet: #334155;
+  /* Palette de la charte — navy (ink) + accent orange unique + fond paper.
+     Les anciens tokens brand-violet* / accent-gray ont été remplacés
+     site-wide par l'échelle ink-* (une seule source de vérité). */
   --color-brand-orange: #d44835;
   --color-brand-blue: #1d4ed8;
-  --color-brand-violet-dark: #0f1b2e;
   --color-brand-paper: #f5f0eb;
   --color-brand-paper-deep: #ece3d6;
 
+  --color-ink-400: #94a3b8;
   --color-ink-500: #64748b;
   --color-ink-600: #475569;
   --color-ink-700: #2b3b54;
@@ -21,7 +23,6 @@
   --color-accent-green: #73b866;
 
   --color-accent-yellow: #ffc25a;
-  --color-accent-gray: #64748b;
 
   --font-heading: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
   --font-body:

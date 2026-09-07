@@ -113,8 +113,8 @@ export default function ReservationsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Réservations</h1>
-        <p className="mt-1 text-sm text-gray-500">Réserve un espace ou une salle de réunion.</p>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Réservations</h1>
+        <p className="mt-1 text-sm text-ink-500">Réserve un espace ou une salle de réunion.</p>
       </div>
 
       <Card>
@@ -157,7 +157,7 @@ export default function ReservationsPage() {
                     setFeedback(null);
                     setPendingSlot(slot);
                   }}
-                  className="rounded-card border border-gray-200 py-2 text-xs font-medium text-gray-700 hover:border-brand-violet hover:text-brand-violet disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-300"
+                  className="rounded-card border border-ink-900/10 py-2 text-xs font-medium text-ink-700 hover:border-ink-900 hover:text-ink-900 disabled:cursor-not-allowed disabled:bg-brand-paper disabled:text-ink-400"
                 >
                   {new Date(slot.startAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </button>
@@ -169,8 +169,8 @@ export default function ReservationsPage() {
               instantanément, sans étape de confirmation — un misclick créait une
               réservation qu'il fallait ensuite annuler manuellement. */}
           {pendingSlot && (
-            <div className="rounded-card border border-brand-violet/30 bg-brand-violet/5 p-4">
-              <p className="text-sm text-gray-700">
+            <div className="rounded-card border border-ink-900/20 bg-ink-900/5 p-4">
+              <p className="text-sm text-ink-700">
                 Confirmer la réservation de <strong>{selectedSpaceName}</strong> le{' '}
                 <strong>
                   {new Date(pendingSlot.startAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
@@ -192,7 +192,7 @@ export default function ReservationsPage() {
             </div>
           )}
 
-          {feedback && <p className="text-sm text-brand-violet">{feedback}</p>}
+          {feedback && <p className="text-sm text-ink-700">{feedback}</p>}
         </CardContent>
       </Card>
 
@@ -204,12 +204,12 @@ export default function ReservationsPage() {
           {!bookings || bookings.length === 0 ? (
             <EmptyState icon={CalendarCheck} title="Aucune réservation" />
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-ink-900/8">
               {bookings.map((b) => (
                 <li key={b.id} className="flex items-center justify-between py-3 text-sm">
                   <div>
-                    <p className="font-medium text-gray-700">{b.space.name}</p>
-                    <p className="text-xs text-accent-gray">
+                    <p className="font-medium text-ink-700">{b.space.name}</p>
+                    <p className="text-xs text-ink-500">
                       {new Date(b.startAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
                   </div>
@@ -218,7 +218,7 @@ export default function ReservationsPage() {
                     {(b.status === 'PENDING' || b.status === 'CONFIRMED') && (
                       <button
                         onClick={() => cancelMutation.mutate(b.id)}
-                        className="text-accent-gray hover:text-brand-orange"
+                        className="text-ink-500 hover:text-brand-orange"
                         aria-label="Annuler"
                       >
                         <X className="h-4 w-4" />
@@ -240,22 +240,22 @@ export default function ReservationsPage() {
           {!serviceRequests || serviceRequests.length === 0 ? (
             <EmptyState icon={CalendarCheck} title="Aucune demande de service" />
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-ink-900/8">
               {serviceRequests.map((r) => (
                 <li key={r.id} className="flex items-center justify-between py-3 text-sm">
                   <div>
-                    <p className="font-medium text-gray-700">{requestTargetLabel(r)}</p>
-                    <p className="text-xs text-accent-gray">
+                    <p className="font-medium text-ink-700">{requestTargetLabel(r)}</p>
+                    <p className="text-xs text-ink-500">
                       {new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
-                    {r.notes && <p className="mt-1 text-xs text-accent-gray">{r.notes}</p>}
+                    {r.notes && <p className="mt-1 text-xs text-ink-500">{r.notes}</p>}
                     {r.quotedAmount != null && (
-                      <p className="mt-1 text-xs font-semibold text-brand-violet-dark">
+                      <p className="mt-1 text-xs font-semibold text-ink-900">
                         Devis : {Number(r.quotedAmount).toLocaleString('fr-FR')} {r.quotedCurrency}
                       </p>
                     )}
                     {r.confirmedAt && r.adminDetails && (
-                      <p className="mt-1 whitespace-pre-line text-xs text-accent-gray">{r.adminDetails}</p>
+                      <p className="mt-1 whitespace-pre-line text-xs text-ink-500">{r.adminDetails}</p>
                     )}
                   </div>
                   <Badge variant={REQUEST_STATUS_VARIANT[r.status] ?? 'neutral'}>

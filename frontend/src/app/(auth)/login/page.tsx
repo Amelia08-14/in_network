@@ -43,8 +43,8 @@ export default function LoginPage() {
   return (
     <Card>
       <CardContent className="pt-6">
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Connexion</h1>
-        <p className="mt-1 text-sm text-gray-500">Accède à ton espace membre IN NETWORK.</p>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Connexion</h1>
+        <p className="mt-1 text-sm text-ink-500">Accède à ton espace membre IN NETWORK.</p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div>
@@ -70,7 +70,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-ink-500">
           Pas encore membre ?{' '}
           <Link href="/register" className="font-medium text-brand-blue hover:underline">
             Créer un compte

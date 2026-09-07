@@ -51,8 +51,8 @@ export default function AdminGaleriePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Galerie du lieu</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Galerie du lieu</h1>
+        <p className="mt-1 text-sm text-ink-500">
           {site ? `Photos de ${site.name} — affichées sur la page d'accueil du site.` : 'Chargement du lieu...'}
         </p>
       </div>
@@ -68,13 +68,13 @@ export default function AdminGaleriePage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : !images || images.length === 0 ? (
             <EmptyState title="Aucune photo pour le moment" description="Ajoute la première photo réelle du lieu ci-dessus." className="py-12" />
           ) : (
             <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 lg:grid-cols-4">
               {images.map((image) => (
-                <div key={image.id} className="group relative aspect-square overflow-hidden rounded-card bg-gray-100">
+                <div key={image.id} className="group relative aspect-square overflow-hidden rounded-card bg-ink-900/5">
                   {image.type === 'VIDEO' ? (
                     <>
                       <MotionSafeVideo src={image.url} playsInline className="absolute inset-0 h-full w-full object-cover" />

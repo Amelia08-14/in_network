@@ -54,13 +54,13 @@ export default function ProfilPage() {
     queryFn: () => api.get<{ data: MemberProfileSummary }>('/api/profiles/me').then((r) => r.data),
   });
 
-  if (isLoading || !profile) return <p className="text-sm text-gray-500">Chargement...</p>;
+  if (isLoading || !profile) return <p className="text-sm text-ink-500">Chargement...</p>;
 
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Mon profil</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Mon profil</h1>
+        <p className="mt-1 text-sm text-ink-500">
           Ces informations apparaissent dans l&apos;annuaire et alimentent le moteur de mise en relation.
         </p>
       </div>
@@ -153,7 +153,7 @@ function ProfilForm({ profile }: { profile: MemberProfileSummary }) {
     >
       <div>
         <Label>Logo de l&apos;entreprise</Label>
-        <p className="mt-0.5 text-xs text-gray-500">
+        <p className="mt-0.5 text-xs text-ink-500">
           Affiché sur votre fiche dans l&apos;annuaire. PNG, JPG ou SVG, 10 Mo maximum.
         </p>
         <div className="mt-2 flex items-center gap-4">

@@ -23,8 +23,8 @@ export default function ForgotPasswordPage() {
   return (
     <Card>
       <CardContent className="pt-6">
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Mot de passe oublié</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Mot de passe oublié</h1>
+        <p className="mt-1 text-sm text-ink-500">
           Indique ton email : si un compte existe, tu recevras un lien de réinitialisation.
         </p>
 

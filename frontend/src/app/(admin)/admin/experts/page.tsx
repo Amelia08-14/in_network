@@ -76,8 +76,8 @@ export default function AdminExpertsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Experts</h1>
-          <p className="mt-1 text-sm text-gray-500">Annuaire d&apos;experts publié sur le site.</p>
+          <h1 className="font-heading text-2xl font-bold text-ink-900">Experts</h1>
+          <p className="mt-1 text-sm text-ink-500">Annuaire d&apos;experts publié sur le site.</p>
         </div>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus className="h-4 w-4" /> Nouvel expert
@@ -117,7 +117,7 @@ export default function AdminExpertsPage() {
       )}
 
       <div className="relative max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
         <Input
           className="pl-9"
           placeholder="Rechercher un expert..."
@@ -129,17 +129,17 @@ export default function AdminExpertsPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : experts.length === 0 ? (
             <EmptyState title={search ? 'Aucun expert ne correspond à la recherche' : 'Aucun expert'} />
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-ink-900/8">
               {experts.map((expert) => (
                 <div key={expert.id} className="flex items-center gap-4 p-5">
                   <AvatarPlaceholder name={expert.displayName} photoUrl={expert.photoUrl} size={44} />
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-800">{expert.displayName}</p>
-                    <p className="text-sm text-gray-500">{expert.expertiseArea}</p>
+                    <p className="font-medium text-ink-800">{expert.displayName}</p>
+                    <p className="text-sm text-ink-500">{expert.expertiseArea}</p>
                   </div>
                   {!expert.photoUrl && <Badge variant="startup">Photo manquante</Badge>}
                   <Badge variant={expert.isPublic ? 'success' : 'neutral'}>

@@ -48,12 +48,12 @@ export default function AdminMembresPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Membres</h1>
-        <p className="mt-1 text-sm text-gray-500">{data?.meta.total ?? 0} membres inscrits.</p>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Membres</h1>
+        <p className="mt-1 text-sm text-ink-500">{data?.meta.total ?? 0} membres inscrits.</p>
       </div>
 
       <div className="relative max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
         <Input
           placeholder="Rechercher..."
           className="pl-9"
@@ -68,13 +68,13 @@ export default function AdminMembresPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : !data || data.data.length === 0 ? (
             <EmptyState title="Aucun membre trouvé" />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-accent-gray">
+                <thead className="border-b border-ink-900/8 text-left text-xs uppercase tracking-wide text-ink-500">
                   <tr>
                     <th className="px-5 py-3">Nom</th>
                     <th className="px-5 py-3">Email</th>
@@ -84,20 +84,20 @@ export default function AdminMembresPage() {
                     <th className="px-5 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-ink-900/8">
                   {data.data.map((member) => (
                     <tr key={member.id}>
-                      <td className="px-5 py-3 font-medium text-gray-800">
+                      <td className="px-5 py-3 font-medium text-ink-800">
                         {member.profile ? `${member.profile.firstName} ${member.profile.lastName}` : '—'}
                       </td>
-                      <td className="px-5 py-3 text-gray-600">{member.email}</td>
-                      <td className="px-5 py-3 text-gray-600">{member.profile?.memberType ?? '—'}</td>
+                      <td className="px-5 py-3 text-ink-600">{member.email}</td>
+                      <td className="px-5 py-3 text-ink-600">{member.profile?.memberType ?? '—'}</td>
                       <td className="px-5 py-3">
                         <Badge variant={member.isActive ? 'success' : 'startup'}>
                           {member.isActive ? 'Actif' : 'Désactivé'}
                         </Badge>
                       </td>
-                      <td className="px-5 py-3 text-gray-500">
+                      <td className="px-5 py-3 text-ink-500">
                         {new Date(member.createdAt).toLocaleDateString('fr-FR')}
                       </td>
                       <td className="px-5 py-3 text-right">
@@ -152,7 +152,7 @@ export default function AdminMembresPage() {
           <Button variant="outline" size="sm" disabled={!data.meta.hasPrevPage} onClick={() => setPage((p) => p - 1)}>
             Précédent
           </Button>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-ink-500">
             Page {data.meta.page} / {data.meta.totalPages}
           </span>
           <Button variant="outline" size="sm" disabled={!data.meta.hasNextPage} onClick={() => setPage((p) => p + 1)}>

@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils';
 // recommandé pour masquer le liseré du motif).
 const TINT = {
   light: 'bg-white',
-  aubergine: 'bg-brand-violet-dark',
-  violet: 'bg-brand-violet',
+  aubergine: 'bg-ink-900',
+  violet: 'bg-ink-900',
 } as const;
 
 export function Motif({

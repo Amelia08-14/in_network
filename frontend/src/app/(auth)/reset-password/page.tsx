@@ -37,7 +37,7 @@ function ResetPasswordContent() {
     return (
       <Card>
         <CardContent className="pt-6 text-center">
-          <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Réinitialisation du mot de passe</h1>
+          <h1 className="font-heading text-2xl font-bold text-ink-900">Réinitialisation du mot de passe</h1>
           <p className="mt-4 text-sm text-brand-orange">Lien de réinitialisation invalide.</p>
         </CardContent>
       </Card>
@@ -47,7 +47,7 @@ function ResetPasswordContent() {
   return (
     <Card>
       <CardContent className="pt-6">
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Réinitialisation du mot de passe</h1>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Réinitialisation du mot de passe</h1>
 
         {status === 'success' ? (
           <p className="mt-6 text-sm text-accent-green">
@@ -83,7 +83,7 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<p className="text-center text-sm text-gray-500">Chargement...</p>}>
+    <Suspense fallback={<p className="text-center text-sm text-ink-500">Chargement...</p>}>
       <ResetPasswordContent />
     </Suspense>
   );

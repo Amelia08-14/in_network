@@ -50,7 +50,7 @@ export default function AdminStatistiquesPage() {
     queryFn: () => api.get<{ data: AdminStats }>('/api/admin/stats').then((r) => r.data),
   });
 
-  if (isLoading) return <p className="text-sm text-gray-500">Chargement...</p>;
+  if (isLoading) return <p className="text-sm text-ink-500">Chargement...</p>;
   if (!stats) return <EmptyState title="Statistiques indisponibles" />;
 
   const revenue = stats.revenueByMonth.map((p) => ({ ...p, label: monthLabel(p.month) }));
@@ -59,14 +59,14 @@ export default function AdminStatistiquesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Statistiques</h1>
-        <p className="mt-1 text-sm text-gray-500">Revenu total : {Number(stats.totalRevenue).toLocaleString('fr-FR')} DZD</p>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Statistiques</h1>
+        <p className="mt-1 text-sm text-ink-500">Revenu total : {Number(stats.totalRevenue).toLocaleString('fr-FR')} DZD</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardContent>
-            <h2 className="mb-4 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">
+            <h2 className="mb-4 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">
               Revenu encaissé (12 derniers mois)
             </h2>
             <div className="h-64">
@@ -85,7 +85,7 @@ export default function AdminStatistiquesPage() {
 
         <Card>
           <CardContent>
-            <h2 className="mb-4 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">
+            <h2 className="mb-4 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">
               Nouveaux membres (12 derniers mois)
             </h2>
             <div className="h-64">
@@ -104,7 +104,7 @@ export default function AdminStatistiquesPage() {
 
         <Card>
           <CardContent>
-            <h2 className="mb-4 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">
+            <h2 className="mb-4 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">
               Réservations par espace
             </h2>
             {stats.bookingsBySpace.length === 0 ? (
@@ -127,7 +127,7 @@ export default function AdminStatistiquesPage() {
 
         <Card>
           <CardContent>
-            <h2 className="mb-4 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">
+            <h2 className="mb-4 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">
               Événements les plus suivis
             </h2>
             {stats.topEvents.length === 0 ? (

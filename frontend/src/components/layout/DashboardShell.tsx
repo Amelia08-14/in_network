@@ -43,9 +43,9 @@ export function DashboardShell({
   }, [status, user, requireRole, router]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-gray-100 bg-white md:flex">
-        <div className="flex h-16 items-center border-b border-gray-100 px-6">
+    <div className="flex min-h-screen bg-brand-paper">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-ink-900/8 bg-white md:flex">
+        <div className="flex h-16 items-center border-b border-ink-900/8 px-6">
           <Logo />
         </div>
         <nav className="flex-1 space-y-1 p-4">
@@ -57,7 +57,7 @@ export function DashboardShell({
                 href={item.href}
                 className={cn(
                   'flex items-center gap-3 rounded-card px-3 py-2 text-sm font-medium transition-colors',
-                  active ? 'bg-brand-violet/10 text-brand-violet' : 'text-gray-600 hover:bg-gray-50',
+                  active ? 'bg-ink-900/10 text-ink-700' : 'text-ink-600 hover:bg-ink-900/5',
                 )}
               >
                 <item.icon className="h-4 w-4" /> {item.label}
@@ -65,16 +65,16 @@ export function DashboardShell({
             );
           })}
         </nav>
-        <div className="border-t border-gray-100 p-4">
+        <div className="border-t border-ink-900/8 p-4">
           <Link
             href="/"
-            className="flex w-full items-center gap-3 rounded-card px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="flex w-full items-center gap-3 rounded-card px-3 py-2 text-sm font-medium text-ink-600 hover:bg-ink-900/5"
           >
             <ArrowLeft className="h-4 w-4" /> Retour au site
           </Link>
           <button
             onClick={() => logout().then(() => router.push('/'))}
-            className="flex w-full items-center gap-3 rounded-card px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            className="flex w-full items-center gap-3 rounded-card px-3 py-2 text-sm font-medium text-ink-600 hover:bg-ink-900/5"
           >
             <LogOut className="h-4 w-4" /> Déconnexion
           </button>
@@ -82,13 +82,13 @@ export function DashboardShell({
       </aside>
 
       <div className="flex-1">
-        <header className="flex h-16 items-center justify-between border-b border-gray-100 bg-white px-4 md:hidden">
+        <header className="flex h-16 items-center justify-between border-b border-ink-900/8 bg-white px-4 md:hidden">
           <Logo />
-          <Link href="/" className="flex items-center gap-1.5 text-sm font-medium text-gray-600">
+          <Link href="/" className="flex items-center gap-1.5 text-sm font-medium text-ink-600">
             <ArrowLeft className="h-4 w-4" /> Site
           </Link>
         </header>
-        <nav className="flex gap-1 overflow-x-auto border-b border-gray-100 bg-white p-2 md:hidden">
+        <nav className="flex gap-1 overflow-x-auto border-b border-ink-900/8 bg-white p-2 md:hidden">
           {navItems.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (

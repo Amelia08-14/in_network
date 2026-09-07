@@ -44,7 +44,7 @@ function PermissionMatrix({
     <div className="grid gap-2 sm:grid-cols-2">
       {DASHBOARD_RESOURCES.map((res) => (
         <label key={res.key} className="flex items-center justify-between gap-3 rounded-xl border border-ink-900/8 px-3 py-2 text-sm">
-          <span className="text-gray-700">{res.label}</span>
+          <span className="text-ink-700">{res.label}</span>
           <Select
             className="h-8 w-44 text-xs"
             value={value[res.key] ?? ''}
@@ -130,7 +130,7 @@ function CreateSystemUserForm({ canCreateAdmin }: { canCreateAdmin: boolean }) {
 
         {form.role === 'OFFICE_MANAGER' && (
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500">Accès par bloc</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-500">Accès par bloc</p>
             <PermissionMatrix value={permissions} onChange={setPermissions} />
           </div>
         )}
@@ -198,11 +198,11 @@ function SystemUserRow({ user, currentUserId }: { user: SystemUser; currentUserI
     <div className="p-5">
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-gray-800">
+          <p className="font-medium text-ink-800">
             {user.displayName || user.email}
-            {isSelf && <span className="ml-2 text-xs font-normal text-gray-400">(vous)</span>}
+            {isSelf && <span className="ml-2 text-xs font-normal text-ink-400">(vous)</span>}
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-ink-500">
             {user.email} · {ROLE_LABEL[user.role] ?? user.role}
           </p>
         </div>
@@ -259,7 +259,7 @@ function SystemUserRow({ user, currentUserId }: { user: SystemUser; currentUserI
             >
               Enregistrer les accès
             </Button>
-            {message && <span className="text-xs text-gray-500">{message}</span>}
+            {message && <span className="text-xs text-ink-500">{message}</span>}
           </div>
         </div>
       )}
@@ -284,8 +284,8 @@ export default function AdminSystemUsersPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Utilisateurs système</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Utilisateurs système</h1>
+        <p className="mt-1 text-sm text-ink-500">
           Comptes de l&apos;équipe backoffice : rôles et accès par bloc. Le mot de passe est généré et envoyé par email
           à la création.
         </p>
@@ -298,11 +298,11 @@ export default function AdminSystemUsersPage() {
           <Card>
             <CardContent className="p-0">
               {isLoading ? (
-                <p className="p-5 text-sm text-gray-500">Chargement...</p>
+                <p className="p-5 text-sm text-ink-500">Chargement...</p>
               ) : !users || users.length === 0 ? (
                 <EmptyState title="Aucun utilisateur système" />
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-ink-900/8">
                   {users.map((u) => (
                     <SystemUserRow key={u.id} user={u} currentUserId={currentUser?.id} />
                   ))}
@@ -314,7 +314,7 @@ export default function AdminSystemUsersPage() {
       )}
 
       <section>
-        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-gray-500">Mon mot de passe</h2>
+        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">Mon mot de passe</h2>
         <ChangePasswordCard />
       </section>
     </div>
@@ -383,7 +383,7 @@ function ChangePasswordCard() {
               value={form.newPassword}
               onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
             />
-            <p className="mt-1 text-xs text-gray-500">Au moins 8 caractères.</p>
+            <p className="mt-1 text-xs text-ink-500">Au moins 8 caractères.</p>
           </div>
           <div>
             <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>

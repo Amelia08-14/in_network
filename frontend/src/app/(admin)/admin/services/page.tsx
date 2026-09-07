@@ -73,8 +73,8 @@ export default function AdminServicesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-brand-violet-dark">Catalogue de services</h1>
-          <p className="mt-1 text-sm text-gray-500">Secrétariat, création juridique et autres prestations à la carte.</p>
+          <h1 className="font-heading text-2xl font-bold text-ink-900">Catalogue de services</h1>
+          <p className="mt-1 text-sm text-ink-500">Secrétariat, création juridique et autres prestations à la carte.</p>
         </div>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus className="h-4 w-4" /> Nouveau service
@@ -150,27 +150,27 @@ export default function AdminServicesPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-5 text-sm text-gray-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : services.length === 0 ? (
             <EmptyState title="Aucun service" />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-accent-gray">
+                <thead className="border-b border-ink-900/8 text-left text-xs uppercase tracking-wide text-ink-500">
                   <tr>
                     <th className="px-5 py-3">Titre</th>
                     <th className="px-5 py-3">Catégorie</th>
                     <th className="px-5 py-3">Tarif</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-ink-900/8">
                   {services.map((service) => (
                     <tr key={service.id}>
-                      <td className="px-5 py-3 font-medium text-gray-800">{service.title}</td>
+                      <td className="px-5 py-3 font-medium text-ink-800">{service.title}</td>
                       <td className="px-5 py-3">
                         <Badge variant="neutral">{service.category}</Badge>
                       </td>
-                      <td className="px-5 py-3 text-gray-600">
+                      <td className="px-5 py-3 text-ink-600">
                         {service.pricingTiers && service.pricingTiers.length > 0
                           ? service.pricingTiers.map((t) => `${t.label}: ${t.price} DA`).join(' · ')
                           : service.priceFrom
