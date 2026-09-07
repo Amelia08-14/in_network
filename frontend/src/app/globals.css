@@ -115,6 +115,26 @@
     position: relative;
   }
 
+  /* Lenis (défilement lissé, pages publiques — cf. SmoothScroll.tsx).
+     Quand Lenis est actif, le scroll natif doit être neutralisé ; les
+     conteneurs marqués [data-lenis-prevent] gardent leur scroll propre. */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+  .lenis.lenis-smooth iframe {
+    pointer-events: none;
+  }
+
   /* Texture de marque du groupe (La Maison IN Groupe) en couche globale fixe
      derrière tout le site — même technique que in-academy.dz : motif
      background.svg tuilé, soft-light, très discret, sous le contenu. */
