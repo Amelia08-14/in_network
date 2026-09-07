@@ -2,6 +2,7 @@
 
 import { LayoutDashboard, UserRound, CalendarDays, Users2 } from 'lucide-react';
 import { DashboardShell, type NavItem } from '@/components/layout/DashboardShell';
+import { ProfileCompletionBanner } from '@/components/features/ProfileCompletionBanner';
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: "Vue d'ensemble", icon: LayoutDashboard },
@@ -11,5 +12,10 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return <DashboardShell navItems={NAV_ITEMS}>{children}</DashboardShell>;
+  return (
+    <DashboardShell navItems={NAV_ITEMS}>
+      <ProfileCompletionBanner />
+      {children}
+    </DashboardShell>
+  );
 }

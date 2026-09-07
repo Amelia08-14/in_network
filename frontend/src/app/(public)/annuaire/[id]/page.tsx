@@ -69,7 +69,17 @@ export default function MemberDetailPage() {
                 </Badge>
               </div>
               {profile.jobTitle && <p className="mt-1 text-lg font-medium text-brand-blue">{profile.jobTitle}</p>}
-              {profile.companyName && <p className="mt-1 flex items-center gap-2 text-sm text-ink-500"><Building2 className="h-4 w-4" /> {profile.companyName}</p>}
+              {profile.companyName && (
+                <p className="mt-1 flex items-center gap-2 text-sm text-ink-500">
+                  {profile.companyLogoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={profile.companyLogoUrl} alt="" className="h-5 w-5 rounded object-contain" />
+                  ) : (
+                    <Building2 className="h-4 w-4" />
+                  )}
+                  {profile.companyName}
+                </p>
+              )}
             </div>
           </div>
 

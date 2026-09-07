@@ -16,12 +16,21 @@ const EMAIL_VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-function publicUser(user: { id: string; email: string; role: string; emailVerified: Date | null }) {
+function publicUser(user: {
+  id: string;
+  email: string;
+  role: string;
+  emailVerified: Date | null;
+  permissions?: unknown;
+  displayName?: string | null;
+}) {
   return {
     id: user.id,
     email: user.email,
     role: user.role,
     emailVerified: Boolean(user.emailVerified),
+    permissions: user.permissions ?? null,
+    displayName: user.displayName ?? null,
   };
 }
 
@@ -71,6 +80,20 @@ export async function register(input: RegisterInput) {
     include: { profile: true },
   });
 
+  // Notification de complétion de profil (demande client 07/09/2026) — au
+  // moins un rappel visible dès l'inscription ; la bannière du dashboard
+  // prend le relais tant que le profil reste incomplet. Non bloquant.
+  prisma.notification
+    .create({
+      data: {
+        userId: user.id,
+        type: 'profile_incomplete',
+        title: 'Complétez votre profil',
+        body: 'Renseignez votre poste, votre entreprise, votre présentation et vos secteurs pour activer les demandes, réservations et la mise en relation.',
+      },
+    })
+    .catch((err) => console.error('[auth] échec création notification profil', err));
+
   // Envoi non bloquant : un aléa du serveur SMTP de l'hébergeur ne doit
   // jamais faire échouer la création de compte (retour QA #4 — l'inscription
   // échouait précisément à cause de ça).
@@ -113,7 +136,7 @@ export async function adminLogin(input: LoginInput) {
   const validPassword = await comparePassword(input.password, user.passwordHash);
   if (!validPassword) throw ApiError.unauthorized('Email ou mot de passe incorrect');
 
-  if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+  if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN' && user.role !== 'OFFICE_MANAGER') {
     throw ApiError.forbidden('Ce compte ne dispose pas des droits administrateur');
   }
 

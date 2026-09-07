@@ -38,6 +38,7 @@ function serializeProfile(
     lastName: profile.lastName,
     memberType: profile.memberType,
     avatarUrl: profile.avatarUrl,
+    companyLogoUrl: profile.companyLogoUrl,
     jobTitle: profile.jobTitle,
     companyName: profile.companyName,
     siteId: profile.siteId,
@@ -113,13 +114,56 @@ export async function getProfileById(id: string, viewerId: string | undefined) {
   return serializeProfile(profile, viewerId, contactUnlocked);
 }
 
+// Complétude du profil (demande client 07/09/2026) : sert la bannière du
+// dashboard membre et le garde-fou `requireCompleteProfile` (une action
+// engageante — souscription, demande, réservation, mise en relation — exige
+// un profil complet). Une seule source de vérité, facile à ajuster ici.
+const COMPLETENESS_FIELDS = [
+  { key: 'jobTitle', label: 'Poste / activité' },
+  { key: 'companyName', label: 'Entreprise' },
+  { key: 'bio', label: 'Présentation (bio)' },
+  { key: 'phone', label: 'Téléphone' },
+  { key: 'sectors', label: 'Au moins un secteur d’activité' },
+] as const;
+
+export interface ProfileCompleteness {
+  isComplete: boolean;
+  missing: string[];
+  missingKeys: string[];
+}
+
+export async function getProfileCompleteness(userId: string): Promise<ProfileCompleteness> {
+  const profile = await prisma.memberProfile.findUnique({
+    where: { userId },
+    include: { user: { select: { phone: true } }, tags: { include: { tag: true } } },
+  });
+  if (!profile) {
+    return { isComplete: false, missing: ['Profil membre'], missingKeys: ['profile'] };
+  }
+
+  const checks: Record<(typeof COMPLETENESS_FIELDS)[number]['key'], boolean> = {
+    jobTitle: Boolean(profile.jobTitle?.trim()),
+    companyName: Boolean(profile.companyName?.trim()),
+    bio: Boolean(profile.bio?.trim()),
+    phone: Boolean(profile.user.phone?.trim()),
+    sectors: profile.tags.some((pt) => pt.tag.category === 'SECTOR' && pt.relation === 'OFFER'),
+  };
+
+  const missing = COMPLETENESS_FIELDS.filter((f) => !checks[f.key]);
+  return {
+    isComplete: missing.length === 0,
+    missing: missing.map((f) => f.label),
+    missingKeys: missing.map((f) => f.key),
+  };
+}
+
 export async function getMyProfile(userId: string) {
   const profile = await prisma.memberProfile.findUnique({
     where: { userId },
     include: profileWithTags,
   });
   if (!profile) throw ApiError.notFound('Profil introuvable');
-  return serializeProfile(profile, userId);
+  return { ...serializeProfile(profile, userId), completeness: await getProfileCompleteness(userId) };
 }
 
 async function replaceProfileTags(

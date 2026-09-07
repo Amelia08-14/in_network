@@ -1,29 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
+import {
+  ServiceRequestPanel,
+  targetLabel,
+  requesterLabel,
+  type AdminServiceRequest,
+} from '@/components/features/ServiceRequestPanel';
 import { api } from '@/lib/admin-api';
 import type { ApiListResponse } from '@/types';
-
-interface AdminServiceRequest {
-  id: string;
-  status: 'NEW' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
-  notes: string | null;
-  createdAt: string;
-  targetType: 'SERVICE' | 'SPACE' | 'PLAN';
-  service: { title: string } | null;
-  space: { name: string } | null;
-  plan: { name: string } | null;
-  user: { email: string; profile: { firstName: string; lastName: string } | null } | null;
-  guestName: string | null;
-  guestEmail: string | null;
-  guestPhone: string | null;
-  guestCompany: string | null;
-}
 
 const TARGET_TYPE_LABEL: Record<AdminServiceRequest['targetType'], string> = {
   SERVICE: 'Service',
@@ -31,18 +20,9 @@ const TARGET_TYPE_LABEL: Record<AdminServiceRequest['targetType'], string> = {
   PLAN: 'Formule',
 };
 
-function targetLabel(req: AdminServiceRequest) {
-  return req.service?.title ?? req.space?.name ?? req.plan?.name ?? '—';
-}
-
-function requesterLabel(req: AdminServiceRequest) {
-  if (req.user) return req.user.profile ? `${req.user.profile.firstName} ${req.user.profile.lastName}` : req.user.email;
-  return req.guestName ?? 'Visiteur';
-}
-
 const STATUS_LABEL: Record<AdminServiceRequest['status'], string> = {
   NEW: 'Nouvelle',
-  IN_PROGRESS: 'En cours',
+  IN_PROGRESS: 'Prise en charge',
   DONE: 'Terminée',
   CANCELLED: 'Annulée',
 };
@@ -53,21 +33,22 @@ const STATUS_VARIANT: Record<AdminServiceRequest['status'], 'neutral' | 'startup
   CANCELLED: 'neutral',
 };
 
-// Liste complète des demandes de service (tous statuts) — Validations
-// n'affiche que les demandes NEW en attente ; ici on suit tout le cycle.
+function formatQuote(req: AdminServiceRequest) {
+  if (req.quotedAmount == null) return '—';
+  return `${Number(req.quotedAmount).toLocaleString('fr-FR')} ${req.quotedCurrency}`;
+}
+
+// Liste complète des demandes de service (tous statuts). Cliquer sur une ligne
+// ouvre le panneau d'édition : l'admin ajuste le devis et les détails, puis
+// valide — c'est seulement à la validation que l'email de confirmation part.
 export default function AdminServiceRequestsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<AdminServiceRequest | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-service-requests', page],
     queryFn: () => api.get<ApiListResponse<AdminServiceRequest>>(`/api/admin/service-requests?page=${page}&limit=20`),
-  });
-
-  const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: AdminServiceRequest['status'] }) =>
-      api.patch(`/api/admin/service-requests/${id}`, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-service-requests'] }),
   });
 
   return (
@@ -91,14 +72,18 @@ export default function AdminServiceRequestsPage() {
                     <th className="px-5 py-3">Demandeur</th>
                     <th className="px-5 py-3">Type</th>
                     <th className="px-5 py-3">Cible</th>
-                    <th className="px-5 py-3">Notes</th>
+                    <th className="px-5 py-3">Devis</th>
                     <th className="px-5 py-3">Reçue le</th>
                     <th className="px-5 py-3">Statut</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {data.data.map((req) => (
-                    <tr key={req.id}>
+                    <tr
+                      key={req.id}
+                      onClick={() => setSelected(req)}
+                      className="cursor-pointer transition-colors hover:bg-gray-50"
+                    >
                       <td className="px-5 py-3 font-medium text-gray-800">
                         {requesterLabel(req)}
                         {!req.user && (req.guestEmail || req.guestPhone || req.guestCompany) && (
@@ -109,28 +94,10 @@ export default function AdminServiceRequestsPage() {
                       </td>
                       <td className="px-5 py-3 text-gray-500">{TARGET_TYPE_LABEL[req.targetType]}</td>
                       <td className="px-5 py-3 text-gray-600">{targetLabel(req)}</td>
-                      <td className="px-5 py-3 max-w-xs truncate text-gray-500">{req.notes ?? '—'}</td>
+                      <td className="px-5 py-3 text-gray-600">{formatQuote(req)}</td>
                       <td className="px-5 py-3 text-gray-500">{new Date(req.createdAt).toLocaleDateString('fr-FR')}</td>
                       <td className="px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={STATUS_VARIANT[req.status]}>{STATUS_LABEL[req.status]}</Badge>
-                          <Select
-                            className="h-8 w-36 text-xs"
-                            value={req.status}
-                            onChange={(e) =>
-                              statusMutation.mutate({
-                                id: req.id,
-                                status: e.target.value as AdminServiceRequest['status'],
-                              })
-                            }
-                          >
-                            {Object.entries(STATUS_LABEL).map(([value, label]) => (
-                              <option key={value} value={value}>
-                                {label}
-                              </option>
-                            ))}
-                          </Select>
-                        </div>
+                        <Badge variant={STATUS_VARIANT[req.status]}>{STATUS_LABEL[req.status]}</Badge>
                       </td>
                     </tr>
                   ))}
@@ -154,6 +121,13 @@ export default function AdminServiceRequestsPage() {
           </button>
         </div>
       )}
+
+      <ServiceRequestPanel
+        key={selected?.id}
+        request={selected}
+        onClose={() => setSelected(null)}
+        onChanged={() => queryClient.invalidateQueries({ queryKey: ['admin-service-requests'] })}
+      />
     </div>
   );
 }

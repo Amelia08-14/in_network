@@ -1,24 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EVENT_ORIGIN_LABEL } from '@/components/ui/badge';
+import {
+  ServiceRequestPanel,
+  targetLabel as serviceTargetLabel,
+  requesterLabel as serviceRequesterLabel,
+  type AdminServiceRequest,
+} from '@/components/features/ServiceRequestPanel';
 import { api } from '@/lib/admin-api';
 import type { EventItem } from '@/types';
-
-interface ServiceRequestItem {
-  id: string;
-  notes: string | null;
-  targetType: 'SERVICE' | 'SPACE' | 'PLAN';
-  service: { title: string } | null;
-  space: { name: string } | null;
-  plan: { name: string } | null;
-  user: { email: string; profile: { firstName: string; lastName: string } | null } | null;
-  guestName: string | null;
-  guestEmail: string | null;
-}
 
 interface PaymentItem {
   id: string;
@@ -39,7 +34,7 @@ interface PendingMemberItem {
 
 interface ValidationsResponse {
   pendingEvents: EventItem[];
-  pendingServiceRequests: ServiceRequestItem[];
+  pendingServiceRequests: AdminServiceRequest[];
   pendingBankTransfers: PaymentItem[];
   pendingMembers: PendingMemberItem[];
 }
@@ -48,20 +43,9 @@ function userLabel(user: { email: string; profile: { firstName: string; lastName
   return user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : user.email;
 }
 
-// Une demande est soit rattachée à un compte (user), soit soumise par un
-// visiteur non connecté (guestName/guestEmail) — cf. services.routes.ts.
-function requesterLabel(req: ServiceRequestItem) {
-  if (req.user) return userLabel(req.user);
-  if (req.guestName) return `${req.guestName} (visiteur)${req.guestEmail ? ` · ${req.guestEmail}` : ''}`;
-  return 'Visiteur';
-}
-
-function targetLabel(req: ServiceRequestItem) {
-  return req.service?.title ?? req.space?.name ?? req.plan?.name ?? 'Demande';
-}
-
 export default function AdminValidationsPage() {
   const queryClient = useQueryClient();
+  const [selectedRequest, setSelectedRequest] = useState<AdminServiceRequest | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ['admin-validations'],
     queryFn: () => api.get<{ data: ValidationsResponse }>('/api/admin/validations').then((r) => r.data),
@@ -73,10 +57,6 @@ export default function AdminValidationsPage() {
   });
   const rejectEvent = useMutation({
     mutationFn: (id: string) => api.patch(`/api/admin/events/${id}`, { status: 'DRAFT' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-validations'] }),
-  });
-  const resolveServiceRequest = useMutation({
-    mutationFn: (id: string) => api.patch(`/api/admin/service-requests/${id}`, { status: 'IN_PROGRESS' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-validations'] }),
   });
   const confirmPayment = useMutation({
@@ -180,12 +160,12 @@ export default function AdminValidationsPage() {
                 {serviceRequests.map((req) => (
                   <div key={req.id} className="flex items-center gap-4 p-5">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-800">{targetLabel(req)}</p>
-                      <p className="text-sm text-gray-500">{requesterLabel(req)}</p>
+                      <p className="font-medium text-gray-800">{serviceTargetLabel(req)}</p>
+                      <p className="text-sm text-gray-500">{serviceRequesterLabel(req)}</p>
                       {req.notes && <p className="mt-1 text-sm text-gray-600">{req.notes}</p>}
                     </div>
-                    <Button size="sm" onClick={() => resolveServiceRequest.mutate(req.id)}>
-                      Prendre en charge
+                    <Button size="sm" onClick={() => setSelectedRequest(req)}>
+                      Traiter la demande
                     </Button>
                   </div>
                 ))}
@@ -223,6 +203,13 @@ export default function AdminValidationsPage() {
           </CardContent>
         </Card>
       </section>
+
+      <ServiceRequestPanel
+        key={selectedRequest?.id}
+        request={selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+        onChanged={() => queryClient.invalidateQueries({ queryKey: ['admin-validations'] })}
+      />
     </div>
   );
 }

@@ -42,6 +42,7 @@ export const updateProfileSchema = z.object({
   jobTitle: optionalText(200),
   bio: optionalText(2000),
   avatarUrl: optionalUrl,
+  companyLogoUrl: optionalUrl,
   website: optionalUrl,
   linkedinUrl: optionalUrl,
   isPublic: z.boolean().optional(),

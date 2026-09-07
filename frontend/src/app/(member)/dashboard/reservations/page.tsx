@@ -34,6 +34,10 @@ interface ServiceRequestItem {
   createdAt: string;
   status: string;
   notes: string | null;
+  adminDetails: string | null;
+  quotedAmount: string | null;
+  quotedCurrency: string;
+  confirmedAt: string | null;
   service: { title: string } | null;
   space: { name: string } | null;
   plan: { name: string } | null;
@@ -245,6 +249,14 @@ export default function ReservationsPage() {
                       {new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
                     {r.notes && <p className="mt-1 text-xs text-accent-gray">{r.notes}</p>}
+                    {r.quotedAmount != null && (
+                      <p className="mt-1 text-xs font-semibold text-brand-violet-dark">
+                        Devis : {Number(r.quotedAmount).toLocaleString('fr-FR')} {r.quotedCurrency}
+                      </p>
+                    )}
+                    {r.confirmedAt && r.adminDetails && (
+                      <p className="mt-1 whitespace-pre-line text-xs text-accent-gray">{r.adminDetails}</p>
+                    )}
                   </div>
                   <Badge variant={REQUEST_STATUS_VARIANT[r.status] ?? 'neutral'}>
                     {REQUEST_STATUS_LABEL[r.status] ?? r.status}

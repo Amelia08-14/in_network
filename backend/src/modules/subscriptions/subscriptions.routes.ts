@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/auth';
+import { requireCompleteProfile } from '../../middleware/requireCompleteProfile';
 import { validate } from '../../middleware/validate';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, ApiError } from '../../utils/apiResponse';
@@ -22,6 +23,7 @@ subscriptionsRouter.get(
 subscriptionsRouter.post(
   '/',
   requireAuth,
+  requireCompleteProfile,
   validate({ body: createSubscriptionSchema }),
   asyncHandler(async (req, res) => {
     if (!req.user) throw ApiError.unauthorized();

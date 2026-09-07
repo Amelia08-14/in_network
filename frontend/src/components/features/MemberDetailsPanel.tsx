@@ -18,6 +18,7 @@ interface MemberDetail {
     lastName: string;
     memberType: string;
     companyName: string | null;
+    companyLogoUrl: string | null;
     jobTitle: string | null;
     bio: string | null;
     website: string | null;
@@ -87,7 +88,16 @@ export function MemberDetailsPanel({
               <dl className="mt-3 grid gap-4 rounded-2xl border border-ink-900/8 p-4 text-sm sm:grid-cols-2">
                 <div><dt className="text-ink-500">Email</dt><dd className="mt-1 break-all font-medium text-ink-900">{member.email}</dd></div>
                 <div><dt className="text-ink-500">Téléphone</dt><dd className="mt-1 font-medium text-ink-900">{member.phone || 'Non renseigné'}</dd></div>
-                <div><dt className="text-ink-500">Entreprise</dt><dd className="mt-1 font-medium text-ink-900">{member.profile?.companyName || 'Non renseignée'}</dd></div>
+                <div>
+                  <dt className="text-ink-500">Entreprise</dt>
+                  <dd className="mt-1 flex items-center gap-2 font-medium text-ink-900">
+                    {member.profile?.companyLogoUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={member.profile.companyLogoUrl} alt="" className="h-6 w-6 rounded border border-ink-900/8 object-contain" />
+                    )}
+                    {member.profile?.companyName || 'Non renseignée'}
+                  </dd>
+                </div>
                 <div><dt className="text-ink-500">Poste</dt><dd className="mt-1 font-medium text-ink-900">{member.profile?.jobTitle || 'Non renseigné'}</dd></div>
                 <div><dt className="text-ink-500">Type</dt><dd className="mt-1 font-medium text-ink-900">{member.profile?.memberType || 'Non renseigné'}</dd></div>
                 <div>

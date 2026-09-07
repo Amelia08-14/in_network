@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dashboardPermissionsSchema } from './permissions';
 import {
   SpaceType,
   PlanBillingCycle,
@@ -58,13 +59,35 @@ export const updateServiceCatalogSchema = createServiceCatalogSchema.partial().e
   isActive: z.boolean().optional(),
 });
 
+// Édition d'une demande de service par l'admin AVANT validation : ajustement
+// du devis et des détails. N'envoie aucun email — la confirmation part
+// uniquement via POST /service-requests/:id/confirm.
 export const updateServiceRequestSchema = z.object({
-  status: z.nativeEnum(ServiceRequestStatus),
-  notes: z.string().optional(),
+  status: z.nativeEnum(ServiceRequestStatus).optional(),
+  notes: z.string().max(2000).nullish(),
+  adminDetails: z.string().max(4000).nullish(),
+  quotedAmount: z.number().nonnegative().nullish(),
+  quotedCurrency: z.string().trim().min(1).max(8).optional(),
 });
 
 export const updateBookingStatusSchema = z.object({
   status: z.nativeEnum(BookingStatus),
+});
+
+// --- Utilisateurs système (équipe backoffice) ---
+export const createSystemUserSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Email invalide'),
+  displayName: z.string().trim().min(1, 'Le nom est obligatoire').max(120),
+  phone: z.string().trim().max(30).optional(),
+  role: z.enum(['ADMIN', 'OFFICE_MANAGER']),
+  permissions: dashboardPermissionsSchema.optional(),
+});
+
+export const updateSystemUserSchema = z.object({
+  displayName: z.string().trim().min(1).max(120).optional(),
+  role: z.enum(['ADMIN', 'OFFICE_MANAGER']).optional(),
+  permissions: dashboardPermissionsSchema.optional(),
+  isActive: z.boolean().optional(),
 });
 
 export const updateContactMessageSchema = z.object({

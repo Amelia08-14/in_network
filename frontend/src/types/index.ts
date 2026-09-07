@@ -1,11 +1,48 @@
-export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER';
+export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'OFFICE_MANAGER' | 'MEMBER';
 export type MemberType = 'FREELANCE' | 'STARTUP' | 'ENTREPRISE';
+
+export type PermissionLevel = 'read' | 'write';
+export type DashboardPermissions = Record<string, PermissionLevel>;
+
+// Blocs du backoffice pilotables par permission (miroir de
+// backend/src/modules/admin/permissions.ts).
+export const DASHBOARD_RESOURCES: { key: string; label: string }[] = [
+  { key: 'stats', label: 'Statistiques & vue d’ensemble' },
+  { key: 'validations', label: 'Validations' },
+  { key: 'members', label: 'Membres' },
+  { key: 'service_requests', label: 'Demandes de service' },
+  { key: 'services', label: 'Catalogue de services' },
+  { key: 'bookings', label: 'Réservations' },
+  { key: 'payments', label: 'Paiements' },
+  { key: 'events', label: 'Événements' },
+  { key: 'experts', label: 'Experts' },
+  { key: 'partners', label: 'Partenaires' },
+  { key: 'testimonials', label: 'Témoignages' },
+  { key: 'galerie', label: 'Galerie du lieu & sites' },
+  { key: 'spaces', label: 'Espaces' },
+  { key: 'plans', label: 'Formules d’abonnement' },
+  { key: 'contact', label: 'Messages de contact' },
+];
 
 export interface AuthUser {
   id: string;
   email: string;
   role: Role;
   emailVerified: boolean;
+  permissions?: DashboardPermissions | null;
+  displayName?: string | null;
+}
+
+export interface SystemUser {
+  id: string;
+  email: string;
+  role: Role;
+  permissions: DashboardPermissions | null;
+  displayName: string | null;
+  isActive: boolean;
+  phone: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MemberProfileSummary {
@@ -15,6 +52,7 @@ export interface MemberProfileSummary {
   lastName: string;
   memberType: MemberType;
   avatarUrl: string | null;
+  companyLogoUrl: string | null;
   jobTitle: string | null;
   companyName: string | null;
   siteId: string;
@@ -27,6 +65,13 @@ export interface MemberProfileSummary {
   email?: string;
   isPublic?: boolean;
   updatedAt?: string;
+  completeness?: ProfileCompleteness;
+}
+
+export interface ProfileCompleteness {
+  isComplete: boolean;
+  missing: string[];
+  missingKeys: string[];
 }
 
 export interface MembershipPlan {

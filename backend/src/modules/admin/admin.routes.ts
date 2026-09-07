@@ -59,11 +59,63 @@ import {
   replyContactMessageSchema,
 } from './admin.schema';
 import { sendEmail } from '../../lib/email';
+import { confirmServiceRequest } from '../services/serviceRequests.service';
+import { adminPermission } from '../../middleware/adminPermission';
+import { createSystemUserSchema, updateSystemUserSchema } from './admin.schema';
+import * as systemUsers from './systemUsers.service';
 
 export const adminRouter = Router();
 
-// Toutes les routes admin sont réservées à ADMIN / SUPER_ADMIN (CDC §7.2)
-adminRouter.use(requireAuth, requireRole('ADMIN', 'SUPER_ADMIN'));
+// Backoffice : ADMIN / SUPER_ADMIN ont un accès total ; OFFICE_MANAGER est
+// admis mais chaque route est filtrée par adminPermission selon
+// User.permissions (demande client 07/09/2026).
+adminRouter.use(requireAuth, requireRole('ADMIN', 'SUPER_ADMIN', 'OFFICE_MANAGER'), adminPermission);
+
+// --- Utilisateurs système (équipe backoffice) — ADMIN / SUPER_ADMIN only,
+// garanti par adminPermission qui refuse la ressource system_users aux
+// OFFICE_MANAGER. Création d'un ADMIN réservée au SUPER_ADMIN (cf. service).
+adminRouter.get(
+  '/system-users',
+  asyncHandler(async (_req, res) => {
+    ok(res, await systemUsers.listSystemUsers());
+  }),
+);
+adminRouter.post(
+  '/system-users',
+  validate({ body: createSystemUserSchema }),
+  asyncHandler(async (req, res) => {
+    ok(res, await systemUsers.createSystemUser({ ...req.body, actorRole: req.user!.role }), 201);
+  }),
+);
+adminRouter.patch(
+  '/system-users/:id',
+  validate({ body: updateSystemUserSchema }),
+  asyncHandler(async (req, res) => {
+    ok(
+      res,
+      await systemUsers.updateSystemUser({
+        ...req.body,
+        targetId: param(req, 'id'),
+        actorId: req.user!.id,
+        actorRole: req.user!.role,
+      }),
+    );
+  }),
+);
+adminRouter.post(
+  '/system-users/:id/reset-password',
+  asyncHandler(async (req, res) => {
+    await systemUsers.resetSystemUserPassword(param(req, 'id'), req.user!.id);
+    ok(res, { success: true });
+  }),
+);
+adminRouter.delete(
+  '/system-users/:id',
+  asyncHandler(async (req, res) => {
+    await systemUsers.deleteSystemUser(param(req, 'id'), req.user!.id);
+    res.status(204).send();
+  }),
+);
 
 // --- Statistiques (vue d'ensemble backoffice, CDC §1.2 module 12) ---
 adminRouter.get(
@@ -509,6 +561,8 @@ adminRouter.get(
     okPaginated(res, requests, buildPaginationMeta(page, limit, total));
   }),
 );
+// Édition libre par l'admin AVANT validation (devis, détails, notes, statut).
+// N'envoie aucun email : la confirmation part uniquement via /confirm.
 adminRouter.patch(
   '/service-requests/:id',
   validate({ body: updateServiceRequestSchema }),
@@ -516,8 +570,17 @@ adminRouter.patch(
     const request = await prisma.serviceRequest.update({
       where: { id: param(req, 'id') },
       data: req.body,
+      include: { user: { select: SAFE_USER_SELECT }, service: true, space: true, plan: true },
     });
     ok(res, request);
+  }),
+);
+// Validation finale — passe la demande en IN_PROGRESS, horodate confirmedAt
+// et envoie l'email de confirmation au demandeur (demande client 07/09/2026).
+adminRouter.post(
+  '/service-requests/:id/confirm',
+  asyncHandler(async (req, res) => {
+    ok(res, await confirmServiceRequest(param(req, 'id')));
   }),
 );
 

@@ -25,6 +25,10 @@ datasource db {
 enum Role {
   SUPER_ADMIN
   ADMIN
+  // Compte staff à droits restreints (demande client 07/09/2026) : accès au
+  // backoffice borné par User.permissions (lecture/écriture par bloc). Créé
+  // depuis /admin/compte (« Utilisateurs système ») par un SUPER_ADMIN.
+  OFFICE_MANAGER
   MEMBER
 }
 
@@ -179,6 +183,12 @@ model User {
   passwordHash         String
   phone                String?
   role                 Role      @default(MEMBER)
+  // Permissions backoffice granulaires pour les rôles staff restreints
+  // (OFFICE_MANAGER) : { "<bloc>": "read" | "write" }. Ignoré pour
+  // SUPER_ADMIN / ADMIN (accès total) et MEMBER (pas de backoffice).
+  permissions          Json?
+  // Nom affiché pour les comptes staff (qui n'ont pas de MemberProfile).
+  displayName          String?
   isActive             Boolean   @default(true)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -227,6 +237,11 @@ model MemberProfile {
   jobTitle    String?
   bio         String?    @db.Text
   avatarUrl   String?
+  // Logo de l'entreprise du membre — géré par le membre lui-même depuis son
+  // espace (/dashboard/profil), distinct de l'avatar (portrait). S'affiche
+  // dans l'annuaire et le panneau admin. Toujours parler de « logo », pas de
+  // « photo » (demande client 07/09/2026).
+  companyLogoUrl String?
   website     String?
   linkedinUrl String?
   // Faux par défaut : un profil n'apparaît dans l'annuaire qu'après
@@ -446,6 +461,13 @@ model ServiceRequest {
   planId          String?
   status          ServiceRequestStatus @default(NEW)
   notes           String?              @db.Text
+  // Traitement admin avant validation (demande client 07/09/2026) : l'admin
+  // ajuste le devis et les détails, PUIS valide — c'est seulement à la
+  // validation (confirmedAt renseigné) qu'un email de confirmation part.
+  quotedAmount    Decimal?             @db.Decimal(10, 2)
+  quotedCurrency  String               @default("DZD")
+  adminDetails    String?              @db.Text
+  confirmedAt     DateTime?
   guestName       String?
   guestEmail      String?
   guestPhone      String?

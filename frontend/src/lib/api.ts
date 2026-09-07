@@ -104,3 +104,30 @@ export async function apiUpload(file: File, category: string): Promise<{ url: st
   const json = await response.json();
   return json.data as { url: string };
 }
+
+// Upload libre-service d'un membre connecté (logo d'entreprise, avatar) —
+// POST /api/uploads/me, images uniquement, retourne l'URL absolue à
+// enregistrer ensuite via PUT /api/profiles/me.
+export async function apiUploadMine(file: File): Promise<{ url: string }> {
+  const accessToken = getAccessTokenCookie();
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${getClientApiUrl()}/api/uploads/me`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorBody = (await response.json().catch(() => null)) as ApiErrorBody | null;
+    throw new ApiRequestError(
+      response.status,
+      errorBody?.error.code ?? 'UNKNOWN_ERROR',
+      errorBody?.error.message ?? "Échec de l'envoi du fichier",
+    );
+  }
+  const json = await response.json();
+  return json.data as { url: string };
+}

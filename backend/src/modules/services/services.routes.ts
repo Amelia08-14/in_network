@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
 import { requireAuth } from '../../middleware/auth';
+import { requireCompleteProfile } from '../../middleware/requireCompleteProfile';
 import { inquiryRateLimit } from '../../middleware/rateLimit';
 import { validate } from '../../middleware/validate';
 import { asyncHandler } from '../../utils/asyncHandler';
@@ -52,6 +53,7 @@ servicesRouter.post(
   '/requests',
   inquiryRateLimit,
   requireAuth,
+  requireCompleteProfile,
   validate({ body: createInquirySchema }),
   asyncHandler(async (req, res) => {
     if (!req.user) throw ApiError.unauthorized();

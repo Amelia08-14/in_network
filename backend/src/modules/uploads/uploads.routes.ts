@@ -37,7 +37,55 @@ const upload = multer({
   },
 });
 
+// Upload libre-service pour un membre connecté (logo d'entreprise, avatar) —
+// contrairement à l'upload admin : images uniquement, plafond bien plus bas
+// (pas de vidéo, donc pas besoin des 200MB), catégorie forcée à `members`.
+const memberUpload = multer({
+  storage: multer.diskStorage({
+    destination: TMP_DIR,
+    filename: (_req, file, cb) => cb(null, `${crypto.randomUUID()}-${file.originalname}`),
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB — large pour un logo/portrait
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      cb(new Error('Seuls les fichiers image sont acceptés'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
 export const uploadsRouter = Router();
+
+// POST /api/uploads/me — un membre téléverse son propre logo/avatar depuis
+// /dashboard/profil. L'URL renvoyée est ensuite enregistrée via PUT /api/profiles/me.
+uploadsRouter.post(
+  '/me',
+  requireAuth,
+  memberUpload.single('file'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw ApiError.badRequest('Aucun fichier reçu');
+
+    const dir = path.join(UPLOADS_DIR, 'members');
+    fs.mkdirSync(dir, { recursive: true });
+
+    const filename = `${crypto.randomUUID()}.webp`;
+    const destPath = path.join(dir, filename);
+
+    try {
+      await sharp(req.file.path, { failOn: 'none' })
+        .rotate()
+        .resize({ width: 600, height: 600, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toFile(destPath);
+    } finally {
+      fs.rm(req.file.path, { force: true }, () => {});
+    }
+
+    const url = `${req.protocol}://${req.get('host')}/uploads/members/${filename}`;
+    ok(res, { url }, 201);
+  }),
+);
 
 // Upload admin (événements, experts, partenaires, sites, témoignages) — images
 // converties en webp via sharp ; vidéos sauvegardées telles quelles, pas de

@@ -31,7 +31,13 @@ export function MemberCard({ profile }: { profile: MemberProfileSummary }) {
               {profile.jobTitle && <p className="mt-0.5 truncate text-sm font-medium text-brand-blue">{profile.jobTitle}</p>}
               {profile.companyName && (
                 <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] font-semibold uppercase tracking-wide text-ink-500">
-                  <Building2 className="h-3 w-3 shrink-0" /> {profile.companyName}
+                  {profile.companyLogoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={profile.companyLogoUrl} alt="" className="h-3.5 w-3.5 shrink-0 rounded-sm object-contain" />
+                  ) : (
+                    <Building2 className="h-3 w-3 shrink-0" />
+                  )}{' '}
+                  {profile.companyName}
                 </p>
               )}
             </div>
