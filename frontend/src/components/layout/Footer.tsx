@@ -4,13 +4,24 @@ import { Container } from '@/components/ui/container';
 import { Logo } from './Logo';
 import { NetworkMotif } from '@/components/ui/network-motif';
 
+// Mêmes regroupements que le menu principal : l'offre, le réseau, puis
+// l'entreprise et le légal.
 const COLUMNS = [
   {
-    title: 'Découvrir',
+    title: 'Services & tarifs',
+    links: [
+      { href: '/services#espaces', label: 'Espaces & abonnements' },
+      { href: '/services#salles', label: 'Salles de réunion' },
+      { href: '/services#services', label: 'Services aux entreprises' },
+      { href: '/devis', label: 'Ma demande de devis' },
+    ],
+  },
+  {
+    title: 'Le réseau',
     links: [
       { href: '/annuaire', label: 'Annuaire des membres' },
-      { href: '/experts', label: 'Experts & partenaires' },
-      { href: '/services', label: 'Services entrepreneuriaux' },
+      { href: '/experts', label: 'Experts' },
+      { href: '/partenaires', label: 'Partenaires' },
       { href: '/evenements', label: 'Événements' },
     ],
   },
@@ -18,13 +29,7 @@ const COLUMNS = [
     title: 'IN NETWORK',
     links: [
       { href: '/a-propos', label: 'À propos' },
-      { href: '/tarifs', label: 'Tarifs & abonnements' },
       { href: '/contact', label: 'Contact' },
-    ],
-  },
-  {
-    title: 'Légal',
-    links: [
       { href: '/mentions-legales', label: 'Mentions légales' },
       { href: '/cgu', label: "Conditions d'utilisation" },
     ],

@@ -61,6 +61,9 @@ import {
 import { sendEmail } from '../../lib/email';
 import { confirmServiceRequest } from '../services/serviceRequests.service';
 import { adminPermission } from '../../middleware/adminPermission';
+import { crmRouter, invoicesRouter, quotesRouter, serviceOrdersRouter } from '../crm/crm.routes';
+import { paymentProofsAdminRouter } from '../situation/situation.routes';
+import { approveAccount } from '../situation/situation.service';
 import { createSystemUserSchema, updateSystemUserSchema } from './admin.schema';
 import * as systemUsers from './systemUsers.service';
 import * as companiesService from '../companies/companies.service';
@@ -72,6 +75,15 @@ export const adminRouter = Router();
 // admis mais chaque route est filtrée par adminPermission selon
 // User.permissions (demande client 07/09/2026).
 adminRouter.use(requireAuth, requireRole('ADMIN', 'SUPER_ADMIN', 'OFFICE_MANAGER'), adminPermission);
+
+// CRM commercial : leads → devis → factures → lancement des services
+// (demande client 20/09/2026). Filtrés par adminPermission ci-dessus.
+adminRouter.use('/crm', crmRouter);
+adminRouter.use('/quotes', quotesRouter);
+adminRouter.use('/invoices', invoicesRouter);
+adminRouter.use('/service-orders', serviceOrdersRouter);
+// Justificatifs de paiement envoyés par les membres (vérification par l'équipe).
+adminRouter.use('/payment-proofs', paymentProofsAdminRouter);
 
 // --- Utilisateurs système (équipe backoffice) — ADMIN / SUPER_ADMIN only,
 // garanti par adminPermission qui refuse la ressource system_users aux
@@ -154,6 +166,8 @@ adminRouter.get(
       upcomingBookings,
       revenue,
       recentPayments,
+      paidInvoicesTotal,
+      recentPaidInvoices,
       recentMembers,
       bookingsWithSpace,
       eventsWithRegistrations,
@@ -166,6 +180,12 @@ adminRouter.get(
       prisma.payment.findMany({
         where: { status: 'COMPLETED', paidAt: { gte: twelveMonthsAgo } },
         select: { amount: true, paidAt: true },
+      }),
+      // Chaîne commerciale (CRM) : les factures payées comptent dans le revenu.
+      prisma.invoice.aggregate({ where: { status: 'PAID' }, _sum: { total: true } }),
+      prisma.invoice.findMany({
+        where: { status: 'PAID', paidAt: { gte: twelveMonthsAgo } },
+        select: { total: true, paidAt: true },
       }),
       prisma.user.findMany({
         where: { role: 'MEMBER', createdAt: { gte: twelveMonthsAgo } },
@@ -188,8 +208,15 @@ adminRouter.get(
       newMembersLast30Days: newMembers,
       activeSubscriptions,
       upcomingBookings,
-      totalRevenue: revenue._sum.amount ?? 0,
-      revenueByMonth: bucketByMonth(recentPayments, (p) => p.paidAt, (p) => Number(p.amount)),
+      totalRevenue: Number(revenue._sum.amount ?? 0) + Number(paidInvoicesTotal._sum.total ?? 0),
+      revenueByMonth: bucketByMonth(
+        [
+          ...recentPayments.map((p) => ({ date: p.paidAt, value: Number(p.amount) })),
+          ...recentPaidInvoices.map((i) => ({ date: i.paidAt, value: Number(i.total) })),
+        ],
+        (item) => item.date,
+        (item) => item.value,
+      ),
       newMembersByMonth: bucketByMonth(recentMembers, (m) => m.createdAt, () => 1),
       bookingsBySpace: countBy(bookingsWithSpace, (b) => b.space?.name ?? 'Autre'),
       topEvents: eventsWithRegistrations.map((e) => ({ title: e.title, registrations: e._count.registrations })),
@@ -230,7 +257,7 @@ adminRouter.get(
       prisma.event.findMany({ where: { status: 'PENDING_REVIEW' }, orderBy: { startAt: 'asc' } }),
       prisma.serviceRequest.findMany({
         where: { status: 'NEW' },
-        include: { user: { select: SAFE_USER_SELECT }, service: true, space: true, plan: true },
+        include: { user: { select: SAFE_USER_SELECT }, items: { orderBy: { createdAt: 'asc' } } },
         orderBy: { createdAt: 'asc' },
       }),
       prisma.payment.findMany({
@@ -247,14 +274,14 @@ adminRouter.get(
     ok(res, { pendingEvents, pendingServiceRequests, pendingBankTransfers, pendingMembers });
   }),
 );
+// Validation d'un compte : déverrouille l'espace du membre, le notifie (in-app +
+// email) et le note dans le fil de ses leads (cf. situation.service.ts).
 adminRouter.patch(
   '/members/:id/approve',
   asyncHandler(async (req, res) => {
-    const profile = await prisma.memberProfile.update({
-      where: { userId: param(req, 'id') },
-      data: { isPublic: true },
-    });
-    ok(res, profile);
+    const userId = param(req, 'id');
+    await approveAccount(userId, req.user!.id);
+    ok(res, await prisma.memberProfile.findUnique({ where: { userId } }));
   }),
 );
 
@@ -572,7 +599,7 @@ adminRouter.get(
     const [total, requests] = await Promise.all([
       prisma.serviceRequest.count(),
       prisma.serviceRequest.findMany({
-        include: { user: { select: SAFE_USER_SELECT }, service: true, space: true, plan: true },
+        include: { user: { select: SAFE_USER_SELECT }, items: { orderBy: { createdAt: 'asc' } } },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -590,7 +617,7 @@ adminRouter.patch(
     const request = await prisma.serviceRequest.update({
       where: { id: param(req, 'id') },
       data: req.body,
-      include: { user: { select: SAFE_USER_SELECT }, service: true, space: true, plan: true },
+      include: { user: { select: SAFE_USER_SELECT }, items: { orderBy: { createdAt: 'asc' } } },
     });
     ok(res, request);
   }),

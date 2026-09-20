@@ -9,7 +9,6 @@ import {
   CalendarCheck,
   CreditCard,
   CalendarDays,
-  Building2,
   Landmark,
   Briefcase,
   ClipboardList,
@@ -19,6 +18,13 @@ import {
   Images,
   Mail,
   UserCog,
+  Gauge,
+  KanbanSquare,
+  CalendarClock,
+  NotebookPen,
+  FileText,
+  Receipt,
+  Rocket,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,26 +38,45 @@ import { ApiRequestError } from '@/lib/admin-api';
 // `resource` = clé de permission (cf. types DASHBOARD_RESOURCES) utilisée
 // pour masquer l'entrée aux OFFICE_MANAGER sans le droit correspondant.
 // `superOnly` = visible seulement pour ADMIN / SUPER_ADMIN.
-type NavEntry = AdminNavItem & { resource?: string; superOnly?: boolean };
+type NavEntry = AdminNavItem & {
+  resource?: string;
+  /** Visible dès que l'un de ces droits est accordé. */
+  resources?: string[];
+  /** Chemin d'entrée quand seul un droit secondaire est accordé. */
+  fallbackHref?: string;
+  superOnly?: boolean;
+};
 
 const NAV_ITEMS: NavEntry[] = [
-  { href: '/admin', label: "Vue d'ensemble", icon: LayoutDashboard, resource: 'stats' },
-  { href: '/admin/validations', label: 'Validations', icon: ShieldCheck, resource: 'validations' },
-  { href: '/admin/statistiques', label: 'Statistiques', icon: BarChart3, resource: 'stats' },
-  { href: '/admin/membres', label: 'Membres', icon: Users, resource: 'members' },
-  { href: '/admin/entreprises', label: 'Entreprises', icon: Landmark, resource: 'companies' },
-  { href: '/admin/reservations', label: 'Réservations', icon: CalendarCheck, resource: 'bookings' },
-  { href: '/admin/paiements', label: 'Paiements', icon: CreditCard, resource: 'payments' },
-  { href: '/admin/evenements', label: 'Événements', icon: CalendarDays, resource: 'events' },
-  { href: '/admin/tarifs', label: 'Tarifs & espaces', icon: Building2, resource: 'spaces' },
-  { href: '/admin/services', label: 'Services', icon: Briefcase, resource: 'services' },
-  { href: '/admin/services-demandes', label: 'Demandes de service', icon: ClipboardList, resource: 'service_requests' },
-  { href: '/admin/experts', label: 'Experts', icon: BadgeCheck, resource: 'experts' },
-  { href: '/admin/partenaires', label: 'Partenaires', icon: Handshake, resource: 'partners' },
-  { href: '/admin/temoignages', label: 'Témoignages', icon: MessageSquareQuote, resource: 'testimonials' },
-  { href: '/admin/galerie', label: 'Galerie du lieu', icon: Images, resource: 'galerie' },
-  { href: '/admin/contact', label: 'Messages de contact', icon: Mail, resource: 'contact' },
-  { href: '/admin/compte', label: 'Utilisateurs système', icon: UserCog, superOnly: true },
+  // Pilotage
+  { href: '/admin', label: "Vue d'ensemble", icon: LayoutDashboard, resource: 'stats', section: 'Pilotage' },
+  { href: '/admin/validations', label: 'Validations', icon: ShieldCheck, resource: 'validations', section: 'Pilotage' },
+  { href: '/admin/statistiques', label: 'Statistiques', icon: BarChart3, resource: 'stats', section: 'Pilotage' },
+  // Commercial : du lead à la facture et au lancement du service
+  { href: '/admin/crm', label: 'Tableau commercial', icon: Gauge, resource: 'crm', section: 'Commercial' },
+  { href: '/admin/crm/pipeline', label: 'Pipeline', icon: KanbanSquare, resource: 'crm', section: 'Commercial' },
+  { href: '/admin/crm/agenda', label: 'Agenda', icon: CalendarClock, resource: 'crm', section: 'Commercial' },
+  { href: '/admin/crm/activite', label: 'Activité', icon: NotebookPen, resource: 'crm', section: 'Commercial' },
+  { href: '/admin/devis', label: 'Devis', icon: FileText, resource: 'quotes', section: 'Commercial' },
+  { href: '/admin/factures', label: 'Factures', icon: Receipt, resource: 'invoices', section: 'Commercial' },
+  { href: '/admin/lancements', label: 'Lancement des services', icon: Rocket, resource: 'fulfilment', section: 'Commercial' },
+  { href: '/admin/services-demandes', label: 'Demandes de service', icon: ClipboardList, resource: 'service_requests', section: 'Commercial' },
+  { href: '/admin/paiements', label: 'Paiements', icon: CreditCard, resource: 'payments', section: 'Commercial' },
+  // Communauté
+  { href: '/admin/membres', label: 'Membres', icon: Users, resource: 'members', section: 'Communauté' },
+  { href: '/admin/entreprises', label: 'Entreprises', icon: Landmark, resource: 'companies', section: 'Communauté' },
+  { href: '/admin/reservations', label: 'Réservations', icon: CalendarCheck, resource: 'bookings', section: 'Communauté' },
+  { href: '/admin/evenements', label: 'Événements', icon: CalendarDays, resource: 'events', section: 'Communauté' },
+  { href: '/admin/experts', label: 'Experts', icon: BadgeCheck, resource: 'experts', section: 'Communauté' },
+  { href: '/admin/partenaires', label: 'Partenaires', icon: Handshake, resource: 'partners', section: 'Communauté' },
+  { href: '/admin/temoignages', label: 'Témoignages', icon: MessageSquareQuote, resource: 'testimonials', section: 'Communauté' },
+  // Catalogue & site
+  // Services et tarifs : un seul onglet (deux vues, cf. ServicesTarifsHeader).
+  { href: '/admin/services', alsoMatch: ['/admin/tarifs'], label: 'Services & tarifs', icon: Briefcase, resources: ['services', 'plans', 'spaces'], fallbackHref: '/admin/tarifs', section: 'Catalogue & site' },
+  { href: '/admin/galerie', label: 'Galerie du lieu', icon: Images, resource: 'galerie', section: 'Catalogue & site' },
+  { href: '/admin/contact', label: 'Messages de contact', icon: Mail, resource: 'contact', section: 'Catalogue & site' },
+  // Système
+  { href: '/admin/compte', label: 'Utilisateurs système', icon: UserCog, superOnly: true, section: 'Système' },
 ];
 
 function visibleNavItems(role: string, permissions: Record<string, string> | null | undefined): AdminNavItem[] {
@@ -59,8 +84,13 @@ function visibleNavItems(role: string, permissions: Record<string, string> | nul
   return NAV_ITEMS.filter((item) => {
     if (item.superOnly) return isFullAccess;
     if (isFullAccess) return true;
-    return item.resource ? Boolean(permissions?.[item.resource]) : false;
-  }).map(({ resource, superOnly, ...navItem }) => navItem);
+    const keys = item.resources ?? (item.resource ? [item.resource] : []);
+    return keys.some((key) => Boolean(permissions?.[key]));
+  }).map(({ resource, resources, fallbackHref, superOnly, ...navItem }) => ({
+    ...navItem,
+    // Compte restreint sans droit sur le premier volet : on entre par l'autre.
+    href: !isFullAccess && fallbackHref && resources && !permissions?.[resources[0]] ? fallbackHref : navItem.href,
+  }));
 }
 
 // Porte de connexion admin — même principe que in_academy (frontend/app/(admin)/layout.tsx

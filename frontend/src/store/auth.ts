@@ -56,6 +56,8 @@ interface AuthState {
   }) => Promise<void>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
+  // Recharge l'utilisateur sans repasser par « loading » (ex. compte validé entre-temps).
+  refreshUser: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -88,6 +90,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     clearAccessTokenCookie();
     stopTokenRefreshLoop();
     set({ user: null, status: 'unauthenticated' });
+  },
+
+  refreshUser: async () => {
+    try {
+      const res = await api.get<{ data: AuthUser }>('/api/auth/me');
+      set({ user: res.data, status: 'authenticated' });
+    } catch {
+      // Session expirée : le prochain appel authentifié redirigera vers /login.
+    }
   },
 
   hydrate: async () => {

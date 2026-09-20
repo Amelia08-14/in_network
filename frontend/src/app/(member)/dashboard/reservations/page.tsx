@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { api, ApiRequestError } from '@/lib/api';
+import { itemLabel, requestSummary, type QuoteItem } from '@/lib/quote';
 
 interface SpaceResource {
   id: string;
@@ -38,9 +39,7 @@ interface ServiceRequestItem {
   quotedAmount: string | null;
   quotedCurrency: string;
   confirmedAt: string | null;
-  service: { title: string } | null;
-  space: { name: string } | null;
-  plan: { name: string } | null;
+  items: QuoteItem[];
 }
 
 const STATUS_VARIANT: Record<string, 'success' | 'neutral' | 'startup'> = {
@@ -64,7 +63,7 @@ const REQUEST_STATUS_LABEL: Record<string, string> = {
 };
 
 function requestTargetLabel(r: ServiceRequestItem) {
-  return r.service?.title ?? r.space?.name ?? r.plan?.name ?? 'Demande';
+  return requestSummary(r.items);
 }
 
 export default function ReservationsPage() {
@@ -245,6 +244,13 @@ export default function ReservationsPage() {
                 <li key={r.id} className="flex items-center justify-between py-3 text-sm">
                   <div>
                     <p className="font-medium text-ink-700">{requestTargetLabel(r)}</p>
+                    {r.items.length > 1 && (
+                      <ul className="mt-1 list-inside list-disc text-xs text-ink-500">
+                        {r.items.map((item) => (
+                          <li key={item.id}>{itemLabel(item)}</li>
+                        ))}
+                      </ul>
+                    )}
                     <p className="text-xs text-ink-500">
                       {new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>

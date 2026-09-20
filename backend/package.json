@@ -37,6 +37,7 @@
     "multer": "^2.2.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^9.0.5",
+    "pdfkit": "^0.17.2",
     "sharp": "^0.35.3",
     "zod": "^3.23.8"
   },
@@ -50,6 +51,7 @@
     "@types/node": "^20.16.0",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^8.0.1",
+    "@types/pdfkit": "^0.17.6",
     "prisma": "^7.10.0",
     "tsx": "^4.19.0",
     "typescript": "^7.0.2"

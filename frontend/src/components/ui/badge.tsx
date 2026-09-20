@@ -48,9 +48,10 @@ export const MEMBER_TYPE_ACCENT: Record<string, CardAccent> = {
 export const SERVICE_CATEGORY_ACCENT: Record<string, CardAccent> = {
   DOMICILIATION: 'blue',
   CREATION_ENTREPRISE: 'orange',
-  COMPTABILITE: 'green',
+  ADMINISTRATION: 'blue',
+  COMPTABILITE: 'yellow',
   JURIDIQUE: 'ink',
-  MARKETING: 'yellow',
+  MARKETING: 'teal',
   SECRETARIAT: 'green',
   AUTRE: 'none',
 };

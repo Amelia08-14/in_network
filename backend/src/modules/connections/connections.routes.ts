@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from '../../middleware/auth';
 import { requireCompleteProfile } from '../../middleware/requireCompleteProfile';
+import { requireValidatedAccount } from '../../middleware/requireValidatedAccount';
 import { validate } from '../../middleware/validate';
 import {
   updateSuggestionSchema,
@@ -39,6 +40,7 @@ connectionsRouter.get('/requests', requireAuth, listRequestsHandler);
 connectionsRouter.post(
   '/requests',
   requireAuth,
+  requireValidatedAccount,
   requireCompleteProfile,
   validate({ body: createConnectionRequestSchema }),
   createRequestHandler,

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,10 +12,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { api, ApiRequestError } from '@/lib/admin-api';
 import { revalidatePublic } from '@/lib/revalidate-public';
-import { slugify } from '@/lib/utils';
+import { ServicesTarifsHeader } from '@/components/admin/ServicesTarifsHeader';
+import { cn, slugify } from '@/lib/utils';
+import { HUE, SERVICE_HUE } from '@/lib/palette';
+import { CATEGORY_LABEL } from '@/components/features/ServiceCard';
 import type { ApiListResponse, PricingTier, ServiceCatalogItem } from '@/types';
 
-const CATEGORIES = ['DOMICILIATION', 'CREATION_ENTREPRISE', 'COMPTABILITE', 'JURIDIQUE', 'MARKETING', 'SECRETARIAT', 'AUTRE'];
+const CATEGORIES = ['DOMICILIATION', 'CREATION_ENTREPRISE', 'ADMINISTRATION', 'COMPTABILITE', 'JURIDIQUE', 'MARKETING', 'SECRETARIAT', 'AUTRE'];
 
 const EMPTY_FORM = {
   title: '',
@@ -71,9 +73,10 @@ export default function AdminServicesPage() {
 
   return (
     <div className="space-y-6">
+      <ServicesTarifsHeader active="catalogue" />
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-ink-900">Catalogue de services</h1>
+          <h2 className="font-heading text-lg font-bold text-ink-900">Catalogue de services</h2>
           <p className="mt-1 text-sm text-ink-500">Secrétariat, création juridique et autres prestations à la carte.</p>
         </div>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
@@ -168,7 +171,9 @@ export default function AdminServicesPage() {
                     <tr key={service.id}>
                       <td className="px-5 py-3 font-medium text-ink-800">{service.title}</td>
                       <td className="px-5 py-3">
-                        <Badge variant="neutral">{service.category}</Badge>
+                        <span className={cn('inline-flex items-center gap-1.5 rounded-pill px-2.5 py-0.5 text-xs font-semibold', HUE[SERVICE_HUE[service.category] ?? 'gray'].soft, HUE[SERVICE_HUE[service.category] ?? 'gray'].text)}>
+                          {CATEGORY_LABEL[service.category] ?? service.category}
+                        </span>
                       </td>
                       <td className="px-5 py-3 text-ink-600">
                         {service.pricingTiers && service.pricingTiers.length > 0

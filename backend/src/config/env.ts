@@ -49,6 +49,21 @@ export const env = {
     webhookSecret: process.env.CHARGILY_WEBHOOK_SECRET ?? '',
   },
 
+  // Émetteur des devis et factures (PDF). Les identifiants légaux (NIF, RC,
+  // AI, NIS, RIB) ne sont jamais inventés : vides tant qu'ils ne sont pas
+  // renseignés dans l'environnement, ils sont simplement omis du PDF.
+  company: {
+    name: process.env.COMPANY_NAME ?? 'IN NETWORK — La Maison IN Groupe',
+    address: process.env.COMPANY_ADDRESS ?? 'Hydra, Alger, Algérie',
+    phone: process.env.COMPANY_PHONE ?? '+213 5 60 06 74 86',
+    email: process.env.COMPANY_EMAIL ?? 'Contact@in-network.dz',
+    nif: process.env.COMPANY_NIF ?? '',
+    rc: process.env.COMPANY_RC ?? '',
+    ai: process.env.COMPANY_AI ?? '',
+    nis: process.env.COMPANY_NIS ?? '',
+    rib: process.env.COMPANY_RIB ?? '',
+  },
+
   matchingScoreThreshold: Number(process.env.MATCHING_SCORE_THRESHOLD ?? 40),
 
   isProduction: process.env.NODE_ENV === 'production',

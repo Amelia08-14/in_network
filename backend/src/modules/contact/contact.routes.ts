@@ -5,6 +5,7 @@ import { validate } from '../../middleware/validate';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok } from '../../utils/apiResponse';
 import { createContactMessageSchema } from './contact.schema';
+import { createLeadFromContactMessage } from '../crm/leads.service';
 
 export const contactRouter = Router();
 
@@ -17,6 +18,8 @@ contactRouter.post(
   validate({ body: createContactMessageSchema }),
   asyncHandler(async (req, res) => {
     const message = await prisma.contactMessage.create({ data: req.body });
+    // Chaque message devient un lead « Nouveau » pour l'équipe commerciale.
+    await createLeadFromContactMessage(message.id).catch((err) => console.error('[crm] lead non créé', err));
     ok(res, message, 201);
   }),
 );

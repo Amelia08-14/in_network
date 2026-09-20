@@ -85,6 +85,7 @@ enum PaymentRelatedType {
 enum ServiceCategory {
   DOMICILIATION
   CREATION_ENTREPRISE
+  ADMINISTRATION
   COMPTABILITE
   JURIDIQUE
   MARKETING
@@ -159,9 +160,9 @@ enum GalleryItemType {
   VIDEO
 }
 
-// Cible d'une demande (formulaire "Demander ce service" / "Demander" sur un
-// tarif d'espace ou une formule d'abonnement) — un seul modèle de demande,
-// un seul dashboard admin, quelle que soit la nature du catalogue visé.
+// Nature d'une ligne du panier de devis (service du catalogue, salle de
+// réunion ou formule d'abonnement) — un seul modèle de demande, un seul
+// dashboard admin, quelle que soit la nature du catalogue visé.
 enum InquiryTargetType {
   SERVICE
   SPACE
@@ -201,8 +202,8 @@ model User {
 
   profile                    MemberProfile?
   expertProfile              ExpertProfile?
-  company                    Company?  @relation("CompanyMembers", fields: [companyId], references: [id])
-  ownedCompany               Company?  @relation("CompanyOwner")
+  company                    Company?                  @relation("CompanyMembers", fields: [companyId], references: [id])
+  ownedCompany               Company?                  @relation("CompanyOwner")
   subscriptions              Subscription[]
   bookings                   Booking[]
   payments                   Payment[]
@@ -210,11 +211,21 @@ model User {
   eventRegistrations         EventRegistration[]
   notifications              Notification[]
   refreshTokens              RefreshToken[]
-  sentConnectionRequests     ConnectionRequest[]    @relation("SentRequests")
-  receivedConnectionRequests ConnectionRequest[]    @relation("ReceivedRequests")
-  suggestionsFor             ConnectionSuggestion[] @relation("SuggestionOwner")
-  suggestionsAs              ConnectionSuggestion[] @relation("SuggestedMember")
+  sentConnectionRequests     ConnectionRequest[]       @relation("SentRequests")
+  receivedConnectionRequests ConnectionRequest[]       @relation("ReceivedRequests")
+  suggestionsFor             ConnectionSuggestion[]    @relation("SuggestionOwner")
+  suggestionsAs              ConnectionSuggestion[]    @relation("SuggestedMember")
   expertConnectionRequests   ExpertConnectionRequest[]
+  assignedLeads              Lead[]                    @relation("LeadAssignee")
+  memberLeads                Lead[]                    @relation("LeadMember")
+  leadActivities             LeadActivity[]            @relation("ActivityAuthor")
+  appointments               Appointment[]             @relation("AppointmentAssignee")
+  createdQuotes              Quote[]                   @relation("QuoteCreator")
+  createdInvoices            Invoice[]                 @relation("InvoiceCreator")
+  assignedServiceOrders      ServiceOrder[]            @relation("OrderAssignee")
+  memberServiceOrders        ServiceOrder[]            @relation("OrderMember")
+  paymentProofs              PaymentProof[]            @relation("ProofOwner")
+  reviewedPaymentProofs      PaymentProof[]            @relation("ProofReviewer")
 
   @@index([email])
   @@index([role])
@@ -268,30 +279,30 @@ model RefreshToken {
 }
 
 model MemberProfile {
-  id          String     @id @default(cuid())
-  userId      String     @unique
-  firstName   String
-  lastName    String
-  memberType  MemberType @default(FREELANCE)
-  companyName String?
-  jobTitle    String?
-  bio         String?    @db.Text
-  avatarUrl   String?
+  id             String     @id @default(cuid())
+  userId         String     @unique
+  firstName      String
+  lastName       String
+  memberType     MemberType @default(FREELANCE)
+  companyName    String?
+  jobTitle       String?
+  bio            String?    @db.Text
+  avatarUrl      String?
   // Logo de l'entreprise du membre — géré par le membre lui-même depuis son
   // espace (/dashboard/profil), distinct de l'avatar (portrait). S'affiche
   // dans l'annuaire et le panneau admin. Toujours parler de « logo », pas de
   // « photo » (demande client 07/09/2026).
   companyLogoUrl String?
-  website     String?
-  linkedinUrl String?
+  website        String?
+  linkedinUrl    String?
   // Faux par défaut : un profil n'apparaît dans l'annuaire qu'après
   // validation Admin (brief client §3.1 — la validation manuelle,
   // temporairement retirée courant août, est redemandée explicitement).
   // L'Admin bascule ce champ à true depuis /admin/validations.
-  isPublic    Boolean    @default(false)
-  siteId      String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  isPublic       Boolean    @default(false)
+  siteId         String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   site Site         @relation(fields: [siteId], references: [id])
@@ -315,7 +326,7 @@ model ExpertProfile {
   isPublic        Boolean  @default(true)
   order           Int      @default(0)
 
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User?                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   connectionRequests ExpertConnectionRequest[]
 
   @@map("expert_profiles")
@@ -375,9 +386,9 @@ model SpaceResource {
   photos              Json? // string[] (MySQL: pas de scalar list natif)
   isActive            Boolean   @default(true)
 
-  site     Site             @relation(fields: [siteId], references: [id])
-  bookings Booking[]
-  requests ServiceRequest[]
+  site         Site                 @relation(fields: [siteId], references: [id])
+  bookings     Booking[]
+  requestItems ServiceRequestItem[]
 
   @@index([siteId, type])
   @@map("space_resources")
@@ -398,7 +409,7 @@ model MembershipPlan {
   isActive             Boolean          @default(true)
 
   subscriptions Subscription[]
-  requests      ServiceRequest[]
+  requestItems  ServiceRequestItem[]
 
   @@map("membership_plans")
 }
@@ -413,9 +424,10 @@ model Subscription {
   autoRenew Boolean            @default(false)
   createdAt DateTime           @default(now())
 
-  user    User           @relation(fields: [userId], references: [id])
-  plan    MembershipPlan @relation(fields: [planId], references: [id])
-  payment Payment?
+  user         User           @relation(fields: [userId], references: [id])
+  plan         MembershipPlan @relation(fields: [planId], references: [id])
+  payment      Payment?
+  serviceOrder ServiceOrder?
 
   @@index([userId, status])
   @@map("subscriptions")
@@ -483,23 +495,20 @@ model ServiceCatalogItem {
   pricingTiers Json? // [{ label: string, price: number }] pour les grilles à paliers
   isActive     Boolean         @default(true)
 
-  requests ServiceRequest[]
+  requestItems ServiceRequestItem[]
 
   @@map("service_catalog_items")
 }
 
-// Demande générique déclenchée par un formulaire "Demander" — catalogue de
-// services entrepreneuriaux, tarif d'espace ou formule d'abonnement. userId
-// est optionnel : un visiteur non-inscrit peut soumettre une demande via ses
-// coordonnées (guest*) ; la contrainte "userId OU guestName+guestEmail" est
-// appliquée au niveau applicatif (zod), pas en DB.
+// Demande de devis = panier : une demande (ServiceRequest) regroupe une ou
+// plusieurs lignes (ServiceRequestItem) — services du catalogue, salles de
+// réunion ou formules d'abonnement. userId est optionnel : un visiteur
+// non-inscrit peut soumettre une demande via ses coordonnées (guest*) ; la
+// contrainte "userId OU guestName+guestEmail" est appliquée au niveau
+// applicatif (zod), pas en DB.
 model ServiceRequest {
   id              String               @id @default(cuid())
   userId          String?
-  targetType      InquiryTargetType    @default(SERVICE)
-  serviceId       String?
-  spaceId         String?
-  planId          String?
   status          ServiceRequestStatus @default(NEW)
   notes           String?              @db.Text
   // Traitement admin avant validation (demande client 07/09/2026) : l'admin
@@ -517,15 +526,41 @@ model ServiceRequest {
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
-  user    User?               @relation(fields: [userId], references: [id])
+  user    User?                @relation(fields: [userId], references: [id])
+  items   ServiceRequestItem[]
+  payment Payment?
+  lead    Lead?
+
+  @@index([status])
+  @@map("service_requests")
+}
+
+// Ligne du panier. title / tierLabel / unitPrice / priceUnit sont un
+// instantané pris à l'envoi (le catalogue peut évoluer ensuite sans réécrire
+// l'historique d'un devis). unitPrice null = « sur devis » (ou grille
+// horaire d'une salle, non réductible à un prix unique).
+model ServiceRequestItem {
+  id         String            @id @default(cuid())
+  requestId  String
+  targetType InquiryTargetType
+  serviceId  String?
+  spaceId    String?
+  planId     String?
+  title      String
+  tierLabel  String?
+  unitPrice  Decimal?          @db.Decimal(10, 2)
+  // Périodicité du prix : MONTHLY / ANNUAL / DAY_PASS (formules), null pour
+  // un tarif de service ponctuel.
+  priceUnit  String?
+  createdAt  DateTime          @default(now())
+
+  request ServiceRequest      @relation(fields: [requestId], references: [id], onDelete: Cascade)
   service ServiceCatalogItem? @relation(fields: [serviceId], references: [id])
   space   SpaceResource?      @relation(fields: [spaceId], references: [id])
   plan    MembershipPlan?     @relation(fields: [planId], references: [id])
-  payment Payment?
 
-  @@index([status])
-  @@index([targetType])
-  @@map("service_requests")
+  @@index([requestId])
+  @@map("service_request_items")
 }
 
 // ============================================
@@ -696,15 +731,409 @@ model Notification {
 // de rattachement à un compte (contrairement à ServiceRequest, qui cible un
 // service/espace/formule précis). Un visiteur, un message.
 model ContactMessage {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
   email     String
-  message   String   @db.Text
-  isRead    Boolean  @default(false)
-  replyText String?  @db.Text
+  message   String    @db.Text
+  isRead    Boolean   @default(false)
+  replyText String?   @db.Text
   repliedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  lead      Lead?
 
   @@index([isRead])
   @@map("contact_messages")
+}
+
+// ============================================
+// CRM & CHAÎNE COMMERCIALE (demande client 20/09/2026)
+// Lead → opportunité (pipeline) → devis → facture → lancement du service.
+// Équipe commerciale unique ; accès via les permissions backoffice
+// `crm`, `quotes`, `invoices`, `fulfilment` (comptes OFFICE_MANAGER).
+// ============================================
+
+enum LeadStage {
+  NEW
+  CONTACTED
+  QUALIFIED
+  QUOTE_SENT
+  WON
+  LOST
+}
+
+enum LeadSource {
+  REGISTRATION
+  WEBSITE_QUOTE
+  CONTACT_FORM
+  PHONE
+  VISIT
+  REFERRAL
+  EVENT
+  OTHER
+}
+
+enum ActivityType {
+  NOTE
+  CALL
+  EMAIL
+  MEETING
+  VISIT
+  SYSTEM
+}
+
+enum AppointmentType {
+  CALL
+  VISIT
+  MEETING
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  DONE
+  CANCELLED
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  CANCELLED
+}
+
+enum InvoicePaymentMethod {
+  BANK_TRANSFER
+  CASH
+  CHEQUE
+  CARD
+}
+
+enum ServiceOrderStatus {
+  TO_START
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+// Compteurs de numérotation séquentielle (LD-2026-0001, DV-…, FA-…), un par
+// préfixe et par année. Incrémentés dans une transaction (cf. crm/numbering.ts).
+model DocumentSequence {
+  key   String @id
+  value Int    @default(0)
+
+  @@map("document_sequences")
+}
+
+// Un lead devient une opportunité en avançant dans le pipeline (même fiche,
+// seule l'étape change). Sources automatiques : demande de devis du site
+// (serviceRequestId) et formulaire de contact (contactMessageId).
+model Lead {
+  id                  String     @id @default(cuid())
+  reference           String     @unique
+  title               String
+  contactName         String
+  email               String?
+  phone               String?
+  companyName         String?
+  source              LeadSource @default(OTHER)
+  stage               LeadStage  @default(NEW)
+  expectedAmount      Decimal?   @db.Decimal(12, 2)
+  notes               String?    @db.Text
+  lostReason          String?
+  nextActionAt        DateTime?
+  // Automatisations : horodatage de la dernière alerte envoyée, pour ne pas
+  // notifier en boucle (cf. crm/automations.service.ts).
+  nextActionAlertedAt DateTime?
+  dormantAlertedAt    DateTime?
+  assignedToId        String?
+  userId              String?
+  serviceRequestId    String?    @unique
+  contactMessageId    String?    @unique
+  wonAt               DateTime?
+  lostAt              DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  assignedTo     User?           @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  user           User?           @relation("LeadMember", fields: [userId], references: [id], onDelete: SetNull)
+  serviceRequest ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: SetNull)
+  contactMessage ContactMessage? @relation(fields: [contactMessageId], references: [id], onDelete: SetNull)
+  activities     LeadActivity[]
+  appointments   Appointment[]
+  quotes         Quote[]
+  invoices       Invoice[]
+  serviceOrders  ServiceOrder[]
+
+  @@index([stage])
+  @@index([assignedToId])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+// Journal de la fiche : notes, appels, emails, visites, événements système
+// (changement d'étape, relances automatiques). Sert aussi de reporting
+// quotidien des commerciaux.
+model LeadActivity {
+  id         String       @id @default(cuid())
+  leadId     String
+  authorId   String?
+  type       ActivityType @default(NOTE)
+  content    String       @db.Text
+  occurredAt DateTime     @default(now())
+  createdAt  DateTime     @default(now())
+
+  lead   Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author User? @relation("ActivityAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, occurredAt])
+  @@index([authorId, occurredAt])
+  @@map("lead_activities")
+}
+
+model Appointment {
+  id             String            @id @default(cuid())
+  leadId         String
+  assigneeId     String?
+  type           AppointmentType   @default(MEETING)
+  status         AppointmentStatus @default(SCHEDULED)
+  startAt        DateTime
+  endAt          DateTime?
+  location       String?
+  notes          String?           @db.Text
+  reminderSentAt DateTime?
+  createdAt      DateTime          @default(now())
+
+  lead     Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignee User? @relation("AppointmentAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([startAt])
+  @@index([assigneeId, startAt])
+  @@map("appointments")
+}
+
+model Quote {
+  id             String      @id @default(cuid())
+  number         String      @unique
+  leadId         String
+  status         QuoteStatus @default(DRAFT)
+  validUntil     DateTime?
+  notes          String?     @db.Text
+  vatRate        Decimal     @default(19) @db.Decimal(5, 2)
+  subtotal       Decimal     @default(0) @db.Decimal(12, 2)
+  total          Decimal     @default(0) @db.Decimal(12, 2)
+  sentAt         DateTime?
+  acceptedAt     DateTime?
+  rejectedAt     DateTime?
+  lastReminderAt DateTime?
+  reminderCount  Int         @default(0)
+  createdById    String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  lead      Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdBy User?          @relation("QuoteCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  lines     QuoteLine[]
+  invoices  Invoice[]
+  proofs    PaymentProof[]
+
+  @@index([leadId])
+  @@index([status])
+  @@map("quotes")
+}
+
+// Les lignes gardent un instantané (description, prix) : serviceId / planId /
+// spaceId ne sont que des repères vers le catalogue (pas de clé étrangère —
+// le catalogue peut évoluer sans réécrire un devis déjà envoyé).
+model QuoteLine {
+  id          String  @id @default(cuid())
+  quoteId     String
+  position    Int     @default(0)
+  description String  @db.Text
+  quantity    Decimal @default(1) @db.Decimal(10, 2)
+  unitPrice   Decimal @default(0) @db.Decimal(12, 2)
+  serviceId   String?
+  planId      String?
+  spaceId     String?
+  tierLabel   String?
+
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+  @@map("quote_lines")
+}
+
+// Modèles de devis (automatisation) : un devis pré-rempli en un clic.
+// lines = [{ description, quantity, unitPrice, serviceSlug?, tierLabel? }]
+model QuoteTemplate {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  description  String?
+  validityDays Int      @default(15)
+  notes        String?  @db.Text
+  lines        Json
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@map("quote_templates")
+}
+
+// Le numéro n'est attribué qu'à l'émission (statut DRAFT → SENT) : une
+// numérotation continue sans trous, y compris si un brouillon est supprimé.
+model Invoice {
+  id              String                @id @default(cuid())
+  number          String?               @unique
+  leadId          String?
+  quoteId         String?
+  status          InvoiceStatus         @default(DRAFT)
+  customerName    String
+  customerCompany String?
+  customerEmail   String?
+  customerPhone   String?
+  customerAddress String?
+  customerNif     String?
+  customerRc      String?
+  customerAi      String?
+  issueDate       DateTime?
+  dueDate         DateTime?
+  vatRate         Decimal               @default(19) @db.Decimal(5, 2)
+  subtotal        Decimal               @default(0) @db.Decimal(12, 2)
+  vatAmount       Decimal               @default(0) @db.Decimal(12, 2)
+  total           Decimal               @default(0) @db.Decimal(12, 2)
+  currency        String                @default("DZD")
+  notes           String?               @db.Text
+  paidAt          DateTime?
+  paymentMethod   InvoicePaymentMethod?
+  paymentRef      String?
+  lastReminderAt  DateTime?
+  reminderCount   Int                   @default(0)
+  createdById     String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  lead          Lead?          @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  quote         Quote?         @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  createdBy     User?          @relation("InvoiceCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  lines         InvoiceLine[]
+  serviceOrders ServiceOrder[]
+  proofs        PaymentProof[]
+
+  @@index([status])
+  @@index([leadId])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  position    Int     @default(0)
+  description String  @db.Text
+  quantity    Decimal @default(1) @db.Decimal(10, 2)
+  unitPrice   Decimal @default(0) @db.Decimal(12, 2)
+  serviceId   String?
+  planId      String?
+  spaceId     String?
+  tierLabel   String?
+
+  invoice       Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  serviceOrders ServiceOrder[]
+
+  @@index([invoiceId])
+  @@map("invoice_lines")
+}
+
+// Lancement du service : une commande de service par ligne de facture payée,
+// avec sa checklist. Une ligne « formule d'abonnement » active en plus
+// l'abonnement du membre rattaché (subscriptionId).
+model ServiceOrder {
+  id             String             @id @default(cuid())
+  invoiceId      String
+  invoiceLineId  String?
+  leadId         String?
+  userId         String?
+  title          String
+  status         ServiceOrderStatus @default(TO_START)
+  assignedToId   String?
+  dueAt          DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  notes          String?            @db.Text
+  subscriptionId String?            @unique
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  invoice      Invoice            @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceLine  InvoiceLine?       @relation(fields: [invoiceLineId], references: [id], onDelete: SetNull)
+  lead         Lead?              @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  user         User?              @relation("OrderMember", fields: [userId], references: [id], onDelete: SetNull)
+  assignedTo   User?              @relation("OrderAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  subscription Subscription?      @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  tasks        ServiceOrderTask[]
+
+  @@index([status])
+  @@index([invoiceId])
+  @@map("service_orders")
+}
+
+model ServiceOrderTask {
+  id       String    @id @default(cuid())
+  orderId  String
+  position Int       @default(0)
+  title    String
+  isDone   Boolean   @default(false)
+  doneAt   DateTime?
+
+  order ServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("service_order_tasks")
+}
+
+// ============================================
+// JUSTIFICATIFS DE PAIEMENT (demande client 20/09/2026)
+// Envoyés par le membre depuis « Situation du compte » ; vérifiés par
+// l'équipe, qui enregistre le paiement et valide le compte. Les fichiers
+// sont stockés hors du dossier public (jamais servis en statique) et
+// relus via une route authentifiée.
+// ============================================
+
+enum PaymentProofStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model PaymentProof {
+  id           String             @id @default(cuid())
+  userId       String
+  quoteId      String?
+  invoiceId    String?
+  // Chemin relatif au dossier privé des justificatifs (jamais une URL).
+  filePath     String
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  amount       Decimal?           @db.Decimal(12, 2)
+  reference    String?
+  note         String?            @db.Text
+  status       PaymentProofStatus @default(PENDING)
+  reviewNote   String?            @db.Text
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime           @default(now())
+
+  user       User     @relation("ProofOwner", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User?    @relation("ProofReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  quote      Quote?   @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  invoice    Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([userId])
+  @@map("payment_proofs")
 }

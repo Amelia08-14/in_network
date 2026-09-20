@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
 import { api, ApiRequestError } from '@/lib/admin-api';
 import { revalidatePublic } from '@/lib/revalidate-public';
+import { ServicesTarifsHeader } from '@/components/admin/ServicesTarifsHeader';
 import type { ApiListResponse, MembershipPlan, Site, SpaceResource } from '@/types';
 
 const SPACE_TYPE_LABEL: Record<SpaceResource['type'], string> = {
@@ -214,10 +215,7 @@ export default function AdminTarifsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-ink-900">Tarifs & espaces</h1>
-        <p className="mt-1 text-sm text-ink-500">Formules d&apos;abonnement et tarifs des salles de réunion.</p>
-      </div>
+      <ServicesTarifsHeader active="tarifs" />
 
       <Card>
         <CardContent className="p-0">

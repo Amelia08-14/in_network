@@ -7,6 +7,8 @@ import { validate } from '../../middleware/validate';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, ApiError } from '../../utils/apiResponse';
 import { createInquirySchema } from './services.schema';
+import { createServiceRequest } from './serviceRequests.service';
+import { createLeadFromServiceRequest } from '../crm/leads.service';
 import { param } from '../../utils/httpParams';
 
 export const servicesRouter = Router();
@@ -39,16 +41,17 @@ servicesRouter.get(
     if (!req.user) throw ApiError.unauthorized();
     const requests = await prisma.serviceRequest.findMany({
       where: { userId: req.user.id },
-      include: { service: true, space: true, plan: true, payment: true },
+      include: { items: { orderBy: { createdAt: 'asc' } }, payment: true },
       orderBy: { createdAt: 'desc' },
     });
     ok(res, requests);
   }),
 );
 
-// Formulaire "Demander" — catalogue de services, tarif d'espace ou formule
-// d'abonnement, discriminé par targetType. Réservé aux membres connectés
-// (retour QA E2E#3/#5 : une demande sans compte n'est plus autorisée).
+// Envoi du panier de devis — une demande, plusieurs lignes (services du
+// catalogue, salles de réunion, formules d'abonnement). Réservé aux membres
+// connectés (retour QA E2E#3/#5 : une demande sans compte n'est plus
+// autorisée) ; le panier lui-même se remplit sans compte côté navigateur.
 servicesRouter.post(
   '/requests',
   inquiryRateLimit,
@@ -57,29 +60,11 @@ servicesRouter.post(
   validate({ body: createInquirySchema }),
   asyncHandler(async (req, res) => {
     if (!req.user) throw ApiError.unauthorized();
-    const { targetType, serviceId, spaceId, planId, notes } = req.body;
-
-    if (targetType === 'SERVICE') {
-      const service = await prisma.serviceCatalogItem.findUnique({ where: { id: serviceId } });
-      if (!service || !service.isActive) throw ApiError.notFound('Service introuvable');
-    } else if (targetType === 'SPACE') {
-      const space = await prisma.spaceResource.findUnique({ where: { id: spaceId } });
-      if (!space || !space.isActive) throw ApiError.notFound('Espace introuvable');
-    } else {
-      const plan = await prisma.membershipPlan.findUnique({ where: { id: planId } });
-      if (!plan || !plan.isActive) throw ApiError.notFound('Formule introuvable');
-    }
-
-    const request = await prisma.serviceRequest.create({
-      data: {
-        userId: req.user.id,
-        targetType,
-        serviceId: targetType === 'SERVICE' ? serviceId : undefined,
-        spaceId: targetType === 'SPACE' ? spaceId : undefined,
-        planId: targetType === 'PLAN' ? planId : undefined,
-        notes,
-      },
-    });
+    const { items, notes } = req.body;
+    const request = await createServiceRequest(req.user.id, items, notes);
+    // La demande alimente le CRM : un lead « Nouveau » est créé pour l'équipe
+    // commerciale. Un souci côté CRM ne doit jamais faire échouer l'envoi du client.
+    await createLeadFromServiceRequest(request.id).catch((err) => console.error('[crm] lead non créé', err));
     ok(res, request, 201);
   }),
 );

@@ -19,11 +19,13 @@ import { TestimonialReels } from '@/components/features/TestimonialReels';
 import { buttonVariants } from '@/components/ui/button';
 import { MemberCard } from '@/components/features/MemberCard';
 import { ServiceCard } from '@/components/features/ServiceCard';
+import { ServicesCarousel } from '@/components/features/ServicesCarousel';
 import { EventCard } from '@/components/features/EventCard';
 import { EmptyState } from '@/components/ui/empty-state';
 import { NetworkMotif } from '@/components/ui/network-motif';
 import { cn } from '@/lib/utils';
 import { serverGet } from '@/lib/server-api';
+import { sortServices } from '@/lib/services-order';
 import type { MemberProfileSummary, ServiceCatalogItem, EventItem } from '@/types';
 
 interface Testimonial {
@@ -197,23 +199,30 @@ export default async function HomePage() {
       </Section>
 
       <Section tone="paper">
-        <SectionHeading
-          eyebrow="Services"
-          title={
-            <>
-              Catalogue de services <span className="text-brand-orange">entrepreneuriaux</span>
-            </>
-          }
-          lead="Domiciliation, création d'entreprise, comptabilité, juridique et plus encore."
-        />
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <SectionHeading
+            eyebrow="Services & tarifs"
+            title={
+              <>
+                Des services pour <span className="text-brand-orange">chaque étape</span>
+              </>
+            }
+            lead="Secrétariat, administration, création d'entreprise, comptabilité, juridique, communication — ajoutez-en plusieurs à une seule demande de devis."
+          />
+          <Link href="/services" className={cn(buttonVariants({ variant: 'outline', size: 'md' }), 'gap-2')}>
+            Voir tous les services <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
         {services.length === 0 ? (
           <EmptyState className="mt-12" title="Catalogue en préparation" />
         ) : (
-          <ScrollReveal stagger={80} className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {services.slice(0, 4).map((service) => (
-              <ServiceCard key={service.id} service={service} />
-            ))}
-          </ScrollReveal>
+          <div className="mt-12">
+            <ServicesCarousel label="Services IN NETWORK">
+              {sortServices(services).map((service) => (
+                <ServiceCard key={service.id} service={service} />
+              ))}
+            </ServicesCarousel>
+          </div>
         )}
       </Section>
 
@@ -282,17 +291,17 @@ export default async function HomePage() {
               Prêt à rejoindre le réseau ?
             </h2>
             <p className="max-w-xl text-white/85">
-              Créez votre profil, découvrez l&apos;annuaire et réservez votre premier espace en quelques minutes.
+              Indépendant·e ou entreprise, créez votre compte en quelques minutes et suivez votre validation depuis votre espace.
             </p>
             <div className="mt-2 flex flex-col gap-3 sm:flex-row">
               <Link href="/register" className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))}>
                 Devenir membre
               </Link>
               <Link
-                href="/inscription-entreprise"
+                href="/services"
                 className="inline-flex h-12 items-center justify-center rounded-card border border-white/40 px-7 text-base font-semibold text-white transition hover:bg-white/10"
               >
-                Inscrire mon entreprise
+                Découvrir les services
               </Link>
             </div>
           </div>

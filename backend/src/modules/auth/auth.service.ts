@@ -11,6 +11,8 @@ import { sendEmail } from '../../lib/email';
 import { ApiError } from '../../utils/apiResponse';
 import { env } from '../../config/env';
 import { createCompanyAccount } from '../companies/companies.service';
+import { createLeadFromRegistration } from '../crm/leads.service';
+import { isAccountValidated } from '../situation/accountState';
 import type { RegisterInput, LoginInput, RegisterCompanyInput } from './auth.schema';
 
 const EMAIL_VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -57,6 +59,8 @@ async function publicUser(user: {
     permissions: user.permissions ?? null,
     displayName: user.displayName ?? null,
     company: await companyForUser(user.id),
+    // Compte validé par l'équipe ? Sinon l'espace membre est verrouillé (Situation).
+    validated: user.role === 'MEMBER' ? await isAccountValidated(user.id) : true,
   };
 }
 
@@ -128,6 +132,9 @@ export async function register(input: RegisterInput) {
     subject: "Bienvenue dans l'espace IN NETWORK",
     html: `<p>Bonjour ${input.firstName},</p><p>Merci pour ton inscription — ton compte et ton espace membre IN NETWORK sont dès à présent actifs.</p><p>À très vite,<br/>L'équipe IN NETWORK</p>`,
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de bienvenue", err));
+
+  // L'inscription alimente le CRM (lead « Inscription ») ; non bloquant.
+  await createLeadFromRegistration(user.id).catch((err) => console.error('[crm] lead d\'inscription non créé', err));
 
   const tokens = await issueTokenPair(user.id, user.role);
   return { user: await publicUser(user), ...tokens };
@@ -345,7 +352,11 @@ export async function getMe(userId: string) {
   });
   if (!user) throw ApiError.notFound();
   const { passwordHash, emailVerifyToken, passwordResetToken, ...safe } = user;
-  return { ...safe, company: await companyForUser(userId) };
+  return {
+    ...safe,
+    company: await companyForUser(userId),
+    validated: user.role === 'MEMBER' ? await isAccountValidated(userId) : true,
+  };
 }
 
 // Parcours « Inscrire mon entreprise » — la création (compte représentant +
@@ -354,6 +365,7 @@ export async function getMe(userId: string) {
 export async function registerCompany(input: RegisterCompanyInput) {
   const ownerId = await createCompanyAccount(input);
   const user = await prisma.user.findUniqueOrThrow({ where: { id: ownerId } });
+  await createLeadFromRegistration(user.id).catch((err) => console.error("[crm] lead d'inscription entreprise non créé", err));
   const tokens = await issueTokenPair(user.id, user.role);
   return { user: await publicUser(user), ...tokens };
 }

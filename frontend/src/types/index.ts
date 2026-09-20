@@ -23,6 +23,10 @@ export const DASHBOARD_RESOURCES: { key: string; label: string }[] = [
   { key: 'spaces', label: 'Espaces' },
   { key: 'plans', label: 'Formules d’abonnement' },
   { key: 'contact', label: 'Messages de contact' },
+  { key: 'crm', label: 'CRM commercial (leads, pipeline, agenda)' },
+  { key: 'quotes', label: 'Devis' },
+  { key: 'invoices', label: 'Factures' },
+  { key: 'fulfilment', label: 'Lancement des services' },
 ];
 
 export interface AuthUser {
@@ -35,6 +39,8 @@ export interface AuthUser {
   // Rattachement à un compte entreprise (parcours « Inscrire mon entreprise »).
   // isOwner = ce compte a inscrit l'entreprise et gère les postes.
   company?: CompanySummary | null;
+  // Compte validé par l'équipe ? false = espace membre verrouillé (onglet « Situation »).
+  validated?: boolean;
 }
 
 export interface CompanySummary {

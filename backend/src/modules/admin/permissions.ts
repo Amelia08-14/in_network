@@ -24,6 +24,10 @@ export const DASHBOARD_RESOURCES = [
   { key: 'spaces', label: 'Espaces' },
   { key: 'plans', label: 'Formules d’abonnement' },
   { key: 'contact', label: 'Messages de contact' },
+  { key: 'crm', label: 'CRM commercial (leads, pipeline, agenda)' },
+  { key: 'quotes', label: 'Devis' },
+  { key: 'invoices', label: 'Factures' },
+  { key: 'fulfilment', label: 'Lancement des services' },
 ] as const;
 
 export type DashboardResource = (typeof DASHBOARD_RESOURCES)[number]['key'];
@@ -54,6 +58,11 @@ const PREFIX_TO_RESOURCE: Record<string, DashboardResource | 'system_users'> = {
   spaces: 'spaces',
   plans: 'plans',
   'contact-messages': 'contact',
+  crm: 'crm',
+  quotes: 'quotes',
+  invoices: 'invoices',
+  'payment-proofs': 'invoices',
+  'service-orders': 'fulfilment',
   'system-users': 'system_users',
 };
 

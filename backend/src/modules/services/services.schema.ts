@@ -1,26 +1,22 @@
 import { z } from 'zod';
 
-// Formulaire "Demander" générique — sert le catalogue de services
-// entrepreneuriaux, les tarifs d'espaces et les formules d'abonnement (même
-// endpoint, discriminé par targetType). Réservé aux membres connectés
-// (requireAuth côté route, cf. services.routes.ts) — le mode "invité" a été
-// retiré suite au retour QA (E2E#3/#5) : une demande de service/espace sans
-// être connecté n'est plus autorisée.
-export const createInquirySchema = z
-  .object({
-    targetType: z.enum(['SERVICE', 'SPACE', 'PLAN']).default('SERVICE'),
-    serviceId: z.string().min(1).optional(),
-    spaceId: z.string().min(1).optional(),
-    planId: z.string().min(1).optional(),
-    notes: z.string().max(2000).optional(),
-  })
-  .superRefine((data, ctx) => {
-    const targetField = data.targetType === 'SERVICE' ? 'serviceId' : data.targetType === 'SPACE' ? 'spaceId' : 'planId';
-    if (!data[targetField]) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `${targetField} requis pour une demande de type ${data.targetType}`,
-        path: [targetField],
-      });
-    }
-  });
+// Demande de devis sous forme de panier — plusieurs lignes (services du
+// catalogue, salles de réunion, formules d'abonnement) dans une même demande.
+// Réservé aux membres connectés (requireAuth côté route, cf. services.routes.ts)
+// — le mode "invité" a été retiré suite au retour QA (E2E#3/#5). Le client
+// n'envoie jamais de prix : libellés et tarifs sont relus en base à l'envoi.
+export const MAX_CART_ITEMS = 20;
+
+const cartItemSchema = z.object({
+  targetType: z.enum(['SERVICE', 'SPACE', 'PLAN']),
+  targetId: z.string().min(1),
+  // Palier choisi dans un service à grille (ex. « NET », « Formation … »).
+  tierLabel: z.string().min(1).max(200).optional(),
+});
+
+export const createInquirySchema = z.object({
+  items: z.array(cartItemSchema).min(1, 'Ajoute au moins un service à ta demande').max(MAX_CART_ITEMS),
+  notes: z.string().max(2000).optional(),
+});
+
+export type CartItemInput = z.infer<typeof cartItemSchema>;

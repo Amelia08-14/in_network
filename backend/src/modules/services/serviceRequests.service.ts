@@ -1,26 +1,85 @@
+import { Prisma } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import { sendEmail } from '../../lib/email';
 import { ApiError } from '../../utils/apiResponse';
+import type { CartItemInput } from './services.schema';
+import { lineLabel, requestLabel, type RequestItemLike } from './requestLabel';
 
-// Validation d'une demande de service par l'admin (demande client 07/09/2026).
-// Flux : l'admin ajuste d'abord le devis + les détails via PATCH
+// Demande de devis = panier (demande client 19/09/2026) : une ServiceRequest
+// regroupe plusieurs lignes (ServiceRequestItem). Ce module porte la création
+// (libellés/prix relus en base, jamais fournis par le client) et la validation
+// par l'admin.
+//
+// Validation d'une demande par l'admin (demande client 07/09/2026). Flux :
+// l'admin ajuste d'abord le devis + les détails via PATCH
 // /service-requests/:id (aucun email), PUIS valide ici — c'est le seul point
 // où un email de confirmation part vers le demandeur. sendEmail() n'est pas
 // bloquant : un aléa SMTP ne doit pas faire échouer la validation.
 
-const TARGET_INCLUDE = {
+const REQUEST_INCLUDE = {
   user: { select: { id: true, email: true } },
-  service: { select: { title: true } },
-  space: { select: { name: true } },
-  plan: { select: { name: true } },
-} as const;
+  items: { orderBy: { createdAt: 'asc' } },
+} satisfies Prisma.ServiceRequestInclude;
 
-function targetLabel(request: {
-  service: { title: string } | null;
-  space: { name: string } | null;
-  plan: { name: string } | null;
-}) {
-  return request.service?.title ?? request.space?.name ?? request.plan?.name ?? 'votre demande';
+interface PricingTier {
+  label: string;
+  price: number;
+}
+
+function asTiers(value: unknown): PricingTier[] {
+  return Array.isArray(value) ? (value as PricingTier[]) : [];
+}
+
+export async function createServiceRequest(userId: string, items: CartItemInput[], notes?: string) {
+  // Un même service/palier ajouté deux fois ne fait qu'une ligne.
+  const unique = [
+    ...new Map(items.map((item) => [`${item.targetType}:${item.targetId}:${item.tierLabel ?? ''}`, item])).values(),
+  ];
+
+  const idsOf = (type: CartItemInput['targetType']) => unique.filter((i) => i.targetType === type).map((i) => i.targetId);
+  const [services, spaces, plans] = await Promise.all([
+    prisma.serviceCatalogItem.findMany({ where: { id: { in: idsOf('SERVICE') }, isActive: true } }),
+    prisma.spaceResource.findMany({ where: { id: { in: idsOf('SPACE') }, isActive: true } }),
+    prisma.membershipPlan.findMany({ where: { id: { in: idsOf('PLAN') }, isActive: true } }),
+  ]);
+
+  const lines: Prisma.ServiceRequestItemCreateWithoutRequestInput[] = unique.map((item) => {
+    if (item.targetType === 'SERVICE') {
+      const service = services.find((s) => s.id === item.targetId);
+      if (!service) throw ApiError.notFound('Un des services de ta demande n’est plus disponible');
+      if (!item.tierLabel) {
+        return { targetType: 'SERVICE', service: { connect: { id: service.id } }, title: service.title };
+      }
+      const tier = asTiers(service.pricingTiers).find((t) => t.label === item.tierLabel);
+      if (!tier) throw ApiError.notFound(`« ${item.tierLabel} » n’est plus proposé pour ${service.title}`);
+      return {
+        targetType: 'SERVICE',
+        service: { connect: { id: service.id } },
+        title: service.title,
+        tierLabel: tier.label,
+        unitPrice: tier.price,
+      };
+    }
+    if (item.targetType === 'SPACE') {
+      const space = spaces.find((s) => s.id === item.targetId);
+      if (!space) throw ApiError.notFound('Une des salles de ta demande n’est plus disponible');
+      return { targetType: 'SPACE', space: { connect: { id: space.id } }, title: space.name };
+    }
+    const plan = plans.find((p) => p.id === item.targetId);
+    if (!plan) throw ApiError.notFound('Une des formules de ta demande n’est plus disponible');
+    return {
+      targetType: 'PLAN',
+      plan: { connect: { id: plan.id } },
+      title: plan.name,
+      unitPrice: plan.price,
+      priceUnit: plan.billingCycle,
+    };
+  });
+
+  return prisma.serviceRequest.create({
+    data: { userId, notes, items: { create: lines } },
+    include: REQUEST_INCLUDE,
+  });
 }
 
 function formatAmount(amount: unknown, currency: string) {
@@ -29,16 +88,17 @@ function formatAmount(amount: unknown, currency: string) {
   return `${value.toLocaleString('fr-FR')} ${currency}`;
 }
 
-function confirmationEmailBody(label: string, priceLine: string | null, details: string | null) {
-  const escape = (value: string) =>
-    value.replace(/[&<>"']/g, (char) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char] ?? char,
-    );
+const escapeHtml = (value: string) =>
+  value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char] ?? char);
+
+function confirmationEmailBody(items: RequestItemLike[], priceLine: string | null, details: string | null) {
+  const list = items.map((item) => `<li>${escapeHtml(lineLabel(item))}</li>`).join('');
   return [
     '<p>Bonjour,</p>',
-    `<p>Votre demande <strong>${escape(label)}</strong> a été prise en charge par l’équipe IN NETWORK.</p>`,
-    priceLine ? `<p><strong>Devis :</strong> ${escape(priceLine)}</p>` : '',
-    details ? `<p><strong>Détails :</strong><br>${escape(details).replace(/\n/g, '<br>')}</p>` : '',
+    `<p>Votre demande de devis a été prise en charge par l’équipe IN NETWORK. Elle porte sur :</p>`,
+    `<ul>${list}</ul>`,
+    priceLine ? `<p><strong>Devis :</strong> ${escapeHtml(priceLine)}</p>` : '',
+    details ? `<p><strong>Détails :</strong><br>${escapeHtml(details).replace(/\n/g, '<br>')}</p>` : '',
     '<p>Nous revenons vers vous très rapidement pour la suite.</p>',
     '<p>L’équipe IN NETWORK</p>',
   ]
@@ -49,7 +109,7 @@ function confirmationEmailBody(label: string, priceLine: string | null, details:
 export async function confirmServiceRequest(id: string) {
   const request = await prisma.serviceRequest.findUnique({
     where: { id },
-    include: TARGET_INCLUDE,
+    include: REQUEST_INCLUDE,
   });
   if (!request) throw ApiError.notFound('Demande introuvable');
   if (request.confirmedAt) {
@@ -66,13 +126,13 @@ export async function confirmServiceRequest(id: string) {
     );
   }
 
-  const label = targetLabel(request);
+  const label = requestLabel(request.items);
   const priceLine = request.quotedAmount != null ? formatAmount(request.quotedAmount, request.quotedCurrency) : null;
 
   const updated = await prisma.serviceRequest.update({
     where: { id },
     data: { status: 'IN_PROGRESS', confirmedAt: new Date() },
-    include: TARGET_INCLUDE,
+    include: REQUEST_INCLUDE,
   });
 
   if (request.userId) {
@@ -89,7 +149,7 @@ export async function confirmServiceRequest(id: string) {
   sendEmail({
     to: recipientEmail,
     subject: 'IN NETWORK — Votre demande a été prise en charge',
-    html: confirmationEmailBody(label, priceLine, request.adminDetails),
+    html: confirmationEmailBody(request.items, priceLine, request.adminDetails),
   }).catch((err) => console.error('[service-requests] échec envoi email de confirmation', err));
 
   return updated;

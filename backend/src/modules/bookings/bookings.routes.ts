@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/auth';
 import { requireCompleteProfile } from '../../middleware/requireCompleteProfile';
+import { requireValidatedAccount } from '../../middleware/requireValidatedAccount';
 import { validate } from '../../middleware/validate';
 import { createBookingSchema, updateBookingSchema } from './bookings.schema';
 import { listMyBookingsHandler, createBookingHandler, cancelBookingHandler } from './bookings.controller';
@@ -8,7 +9,7 @@ import { listMyBookingsHandler, createBookingHandler, cancelBookingHandler } fro
 export const bookingsRouter = Router();
 
 bookingsRouter.get('/', requireAuth, listMyBookingsHandler);
-bookingsRouter.post('/', requireAuth, requireCompleteProfile, validate({ body: createBookingSchema }), createBookingHandler);
+bookingsRouter.post('/', requireAuth, requireValidatedAccount, requireCompleteProfile, validate({ body: createBookingSchema }), createBookingHandler);
 bookingsRouter.put(
   '/:id',
   requireAuth,

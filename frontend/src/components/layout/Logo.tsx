@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-// CDC §3.1 — logo officiel IN NETWORK (public/LOGO_IN_NETWORK.png).
+// CDC §3.1 — logo officiel IN NETWORK (public/logo-in-network.png — LOGO_IN_NETWORK.png sans ses marges transparentes).
 // Sur fond sombre (footer, panneau auth), pas d'asset blanc dédié fourni :
 // on rend le logo en blanc monochrome via `brightness-0 invert` — net et
 // corporate. Fournir une version blanche vectorielle donnerait un rendu
@@ -10,9 +10,11 @@ import { cn } from '@/lib/utils';
 export function Logo({
   variant = 'dark',
   priority = false,
+  className,
 }: {
   variant?: 'dark' | 'light';
   priority?: boolean;
+  className?: string;
 }) {
   return (
     <Link
@@ -21,12 +23,12 @@ export function Logo({
       className="inline-flex items-center"
     >
       <Image
-        src="/LOGO_IN_NETWORK.png"
+        src="/logo-in-network.png"
         alt="IN NETWORK"
-        width={1191}
-        height={675}
+        width={1104}
+        height={595}
         priority={priority}
-        className={cn('h-9 w-auto', variant === 'light' && 'brightness-0 invert')}
+        className={cn('h-10 w-auto', variant === 'light' && 'brightness-0 invert', className)}
       />
     </Link>
   );

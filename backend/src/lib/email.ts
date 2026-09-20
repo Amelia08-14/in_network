@@ -1,10 +1,17 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env';
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+}
+
 interface SendEmailInput {
   to: string;
   subject: string;
   html: string;
+  /** Pièces jointes (devis / factures PDF) — SMTP et Resend. */
+  attachments?: EmailAttachment[];
 }
 
 // Pool + timeouts courts : le serveur SMTP de l'hébergeur est parfois lent à
@@ -38,9 +45,9 @@ function getTransporter(): ReturnType<typeof createSmtpTransporter> {
 // de SMTP configuré). En l'absence totale de configuration (dev local), on
 // se contente de logger le contenu pour ne pas bloquer le développement des
 // flux qui en dépendent (vérif. email, factures...).
-export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<void> {
+export async function sendEmail({ to, subject, html, attachments }: SendEmailInput): Promise<void> {
   if (env.smtp.host && env.smtp.user && env.smtp.pass) {
-    await getTransporter().sendMail({ from: env.emailFrom, to, subject, html });
+    await getTransporter().sendMail({ from: env.emailFrom, to, subject, html, attachments });
     return;
   }
 
@@ -51,7 +58,13 @@ export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<
         Authorization: `Bearer ${env.resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from: env.emailFrom, to, subject, html }),
+      body: JSON.stringify({
+        from: env.emailFrom,
+        to,
+        subject,
+        html,
+        attachments: attachments?.map((file) => ({ filename: file.filename, content: file.content.toString('base64') })),
+      }),
     });
 
     if (!response.ok) {
@@ -61,5 +74,6 @@ export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<
     return;
   }
 
-  console.log(`[email:dev] à=${to} sujet="${subject}"\n${html}\n`);
+  const attached = attachments?.length ? ` (+${attachments.length} pièce(s) jointe(s): ${attachments.map((a) => a.filename).join(', ')})` : '';
+  console.log(`[email:dev] à=${to} sujet="${subject}"${attached}\n${html}\n`);
 }

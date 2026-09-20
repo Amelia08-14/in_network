@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/auth';
 import { requireCompleteProfile } from '../../middleware/requireCompleteProfile';
+import { requireValidatedAccount } from '../../middleware/requireValidatedAccount';
 import { validate } from '../../middleware/validate';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, ApiError } from '../../utils/apiResponse';
@@ -23,6 +24,7 @@ subscriptionsRouter.get(
 subscriptionsRouter.post(
   '/',
   requireAuth,
+  requireValidatedAccount,
   requireCompleteProfile,
   validate({ body: createSubscriptionSchema }),
   asyncHandler(async (req, res) => {

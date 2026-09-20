@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { api, ApiRequestError } from '@/lib/admin-api';
+import { formatDzd, itemLabel, PRICE_UNIT_SUFFIX, requestSummary, summarizeAmounts, type QuoteItem } from '@/lib/quote';
 
 export type ServiceRequestStatus = 'NEW' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
 
@@ -22,10 +23,7 @@ export interface AdminServiceRequest {
   quotedCurrency: string;
   confirmedAt: string | null;
   createdAt: string;
-  targetType: 'SERVICE' | 'SPACE' | 'PLAN';
-  service: { title: string } | null;
-  space: { name: string } | null;
-  plan: { name: string } | null;
+  items: QuoteItem[];
   user: { email: string; profile: { firstName: string; lastName: string } | null } | null;
   guestName: string | null;
   guestEmail: string | null;
@@ -46,8 +44,14 @@ const STATUS_VARIANT: Record<ServiceRequestStatus, 'neutral' | 'startup' | 'succ
   CANCELLED: 'neutral',
 };
 
-export function targetLabel(req: Pick<AdminServiceRequest, 'service' | 'space' | 'plan'>) {
-  return req.service?.title ?? req.space?.name ?? req.plan?.name ?? 'Demande';
+export function targetLabel(req: Pick<AdminServiceRequest, 'items'>) {
+  return requestSummary(req.items);
+}
+
+function itemPriceLabel(item: QuoteItem) {
+  if (item.unitPrice == null) return item.targetType === 'SPACE' ? 'Selon la durée' : 'Sur devis';
+  const suffix = item.priceUnit ? ` ${PRICE_UNIT_SUFFIX[item.priceUnit] ?? ''}` : '';
+  return `${formatDzd(Number(item.unitPrice))}${suffix}`;
 }
 
 export function requesterLabel(req: AdminServiceRequest) {
@@ -117,6 +121,9 @@ export function ServiceRequestPanel({
   const email = recipientEmail(request);
   const alreadyConfirmed = Boolean(request.confirmedAt);
   const contactLine = [email, request.guestPhone, request.guestCompany].filter(Boolean).join(' · ');
+  const { rows: indicativeRows, unpriced } = summarizeAmounts(
+    request.items.map((item) => ({ amount: item.unitPrice == null ? null : Number(item.unitPrice), unit: item.priceUnit })),
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-ink-900/35 backdrop-blur-xs" onClick={onClose}>
@@ -142,6 +149,40 @@ export function ServiceRequestPanel({
               <Badge variant={STATUS_VARIANT[request.status]}>{STATUS_LABEL[request.status]}</Badge>
             </div>
           </div>
+
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-[0.14em] text-ink-500">
+              Panier — {request.items.length} ligne{request.items.length > 1 ? 's' : ''}
+            </h3>
+            <ul className="mt-2 divide-y divide-ink-900/8 rounded-2xl border border-ink-900/8">
+              {request.items.map((item) => (
+                <li key={item.id} className="flex items-baseline justify-between gap-4 px-4 py-3 text-sm">
+                  <span className="text-ink-800">{itemLabel(item)}</span>
+                  <span className="shrink-0 tabular-nums text-ink-600">{itemPriceLabel(item)}</span>
+                </li>
+              ))}
+            </ul>
+            {(indicativeRows.length > 0 || unpriced > 0) && (
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-500">
+                <span>
+                  Total indicatif :{' '}
+                  {indicativeRows.length > 0
+                    ? indicativeRows.map((row) => `${formatDzd(row.amount)} (${row.label.toLowerCase()})`).join(' + ')
+                    : '—'}
+                  {unpriced > 0 && ` · ${unpriced} ligne${unpriced > 1 ? 's' : ''} à chiffrer`}
+                </span>
+                {indicativeRows.length === 1 && !alreadyConfirmed && (
+                  <button
+                    type="button"
+                    className="font-medium text-brand-blue hover:underline"
+                    onClick={() => setQuotedAmount(String(indicativeRows[0].amount))}
+                  >
+                    Reprendre comme prix du devis
+                  </button>
+                )}
+              </div>
+            )}
+          </section>
 
           {request.notes && (
             <section>

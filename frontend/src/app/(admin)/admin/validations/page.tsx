@@ -12,6 +12,7 @@ import {
   requesterLabel as serviceRequesterLabel,
   type AdminServiceRequest,
 } from '@/components/features/ServiceRequestPanel';
+import { ProofList, type AdminProof } from '@/components/admin/PaymentProofs';
 import { api } from '@/lib/admin-api';
 import type { EventItem } from '@/types';
 
@@ -63,6 +64,15 @@ export default function AdminValidationsPage() {
     mutationFn: (id: string) => api.post(`/api/admin/payments/${id}/confirm`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-validations'] }),
   });
+  const { data: proofs } = useQuery({
+    queryKey: ['admin-payment-proofs', 'PENDING'],
+    queryFn: () => api.get<{ data: AdminProof[] }>('/api/admin/payment-proofs?status=PENDING').then((r) => r.data),
+    retry: false,
+  });
+  const refreshProofs = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-payment-proofs'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-validations'] });
+  };
   const approveMember = useMutation({
     mutationFn: (userId: string) => api.patch(`/api/admin/members/${userId}/approve`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-validations'] }),
@@ -105,11 +115,26 @@ export default function AdminValidationsPage() {
                       </p>
                     </div>
                     <Button size="sm" onClick={() => approveMember.mutate(m.userId)}>
-                      Approuver
+                      Valider le compte
                     </Button>
                   </div>
                 ))}
               </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section>
+        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">
+          Justificatifs de paiement à vérifier ({proofs?.length ?? 0})
+        </h2>
+        <Card>
+          <CardContent className="p-4">
+            {!proofs || proofs.length === 0 ? (
+              <EmptyState title="Aucun justificatif en attente" className="py-8" />
+            ) : (
+              <ProofList proofs={proofs} showMember onChanged={refreshProofs} />
             )}
           </CardContent>
         </Card>

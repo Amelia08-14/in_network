@@ -131,3 +131,48 @@ export async function apiUploadMine(file: File): Promise<{ url: string }> {
   const json = await response.json();
   return json.data as { url: string };
 }
+
+// Envoi multipart d'un membre connecté (justificatif de paiement) — hors
+// apiFetch car le body est un FormData (le navigateur pose lui-même le
+// Content-Type avec sa frontière). Rejoue une fois après refresh sur 401.
+export async function apiPostForm<T>(path: string, formData: FormData, retried = false): Promise<T> {
+  const accessToken = getAccessTokenCookie();
+  const response = await fetch(`${getClientApiUrl()}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    body: formData,
+  });
+
+  if (response.status === 401 && !retried && (await tryRefreshAccessToken().catch(() => false))) {
+    return apiPostForm<T>(path, formData, true);
+  }
+  if (!response.ok) {
+    const errorBody = (await response.json().catch(() => null)) as ApiErrorBody | null;
+    throw new ApiRequestError(
+      response.status,
+      errorBody?.error.code ?? 'UNKNOWN_ERROR',
+      errorBody?.error.message ?? "Échec de l'envoi du fichier",
+    );
+  }
+  return response.json();
+}
+
+// Documents protégés du membre (PDF de devis/facture, justificatifs) : pas de
+// lien direct possible, on les récupère avec le jeton puis on les ouvre dans
+// un nouvel onglet.
+export async function openMemberFile(path: string): Promise<void> {
+  const fetchFile = () => {
+    const accessToken = getAccessTokenCookie();
+    return fetch(`${getClientApiUrl()}${path}`, {
+      credentials: 'include',
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    });
+  };
+  let response = await fetchFile();
+  if (response.status === 401 && (await tryRefreshAccessToken().catch(() => false))) response = await fetchFile();
+  if (!response.ok) throw new Error('Impossible d’ouvrir le document.');
+  const url = URL.createObjectURL(await response.blob());
+  window.open(url, '_blank', 'noopener');
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}

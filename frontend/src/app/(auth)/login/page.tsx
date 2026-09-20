@@ -34,7 +34,10 @@ export default function LoginPage() {
     setServerError(null);
     try {
       await login(values.email, values.password);
-      router.push('/dashboard');
+      // ?redirect=/chemin (liens « se connecter pour… » : devis, annuaire,
+      // experts) — uniquement un chemin interne, jamais une URL externe.
+      const redirect = new URLSearchParams(window.location.search).get('redirect');
+      router.push(redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/dashboard');
     } catch (e) {
       setServerError(e instanceof ApiRequestError ? e.message : "Une erreur est survenue");
     }

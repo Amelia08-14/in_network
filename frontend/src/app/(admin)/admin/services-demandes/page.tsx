@@ -14,12 +14,6 @@ import {
 import { api } from '@/lib/admin-api';
 import type { ApiListResponse } from '@/types';
 
-const TARGET_TYPE_LABEL: Record<AdminServiceRequest['targetType'], string> = {
-  SERVICE: 'Service',
-  SPACE: 'Espace',
-  PLAN: 'Formule',
-};
-
 const STATUS_LABEL: Record<AdminServiceRequest['status'], string> = {
   NEW: 'Nouvelle',
   IN_PROGRESS: 'Prise en charge',
@@ -70,8 +64,8 @@ export default function AdminServiceRequestsPage() {
                 <thead className="border-b border-ink-900/8 text-left text-xs uppercase tracking-wide text-ink-500">
                   <tr>
                     <th className="px-5 py-3">Demandeur</th>
-                    <th className="px-5 py-3">Type</th>
-                    <th className="px-5 py-3">Cible</th>
+                    <th className="px-5 py-3">Lignes</th>
+                    <th className="px-5 py-3">Demande</th>
                     <th className="px-5 py-3">Devis</th>
                     <th className="px-5 py-3">Reçue le</th>
                     <th className="px-5 py-3">Statut</th>
@@ -92,7 +86,7 @@ export default function AdminServiceRequestsPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-ink-500">{TARGET_TYPE_LABEL[req.targetType]}</td>
+                      <td className="px-5 py-3 text-ink-500">{req.items.length}</td>
                       <td className="px-5 py-3 text-ink-600">{targetLabel(req)}</td>
                       <td className="px-5 py-3 text-ink-600">{formatQuote(req)}</td>
                       <td className="px-5 py-3 text-ink-500">{new Date(req.createdAt).toLocaleDateString('fr-FR')}</td>
