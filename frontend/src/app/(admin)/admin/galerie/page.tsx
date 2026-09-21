@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { GalleryBulkUploader } from '@/components/features/upload/GalleryBulkUploader';
 import { MotionSafeVideo } from '@/components/ui/motion-safe-video';
 import { api } from '@/lib/admin-api';
+import { revalidatePublic } from '@/lib/revalidate-public';
 import type { GalleryImageItem } from '@/types';
 
 interface Site {
@@ -40,12 +41,20 @@ export default function AdminGaleriePage() {
   const addMutation = useMutation({
     mutationFn: (url: string) =>
       api.post(`/api/admin/sites/${site!.id}/images`, { url, order: (images?.length ?? 0) + orderCounter.current++ }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-site-images', site?.id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-site-images', site?.id] });
+      // La galerie de la page d'accueil est en cache (ISR) : on la rafraîchit tout de suite.
+      revalidatePublic('site-gallery');
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (imageId: string) => api.delete(`/api/admin/sites/${site!.id}/images/${imageId}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-site-images', site?.id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-site-images', site?.id] });
+      // La galerie de la page d'accueil est en cache (ISR) : on la rafraîchit tout de suite.
+      revalidatePublic('site-gallery');
+    },
   });
 
   return (

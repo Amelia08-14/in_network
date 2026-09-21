@@ -8,8 +8,8 @@ interface SiteSummary {
 
 // Un seul lieu actif en V1 (Hydra, Alger) — cf. sites.routes.ts.
 export async function getPrimarySiteGallery(): Promise<GalleryImageItem[]> {
-  const sites = await serverGet<SiteSummary[]>('/api/sites', 3600, []);
+  const sites = await serverGet<SiteSummary[]>('/api/sites', 3600, [], 'site-gallery');
   const site = sites[0];
   if (!site) return [];
-  return serverGet<GalleryImageItem[]>(`/api/sites/${site.id}/gallery`, 900, []);
+  return serverGet<GalleryImageItem[]>(`/api/sites/${site.id}/gallery`, 900, [], 'site-gallery');
 }
