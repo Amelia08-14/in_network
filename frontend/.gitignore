@@ -6,6 +6,7 @@ build/
 .env.local
 .env*.local
 *.log
+/;claude
 
 # TypeScript / Next.js build artefacts
 *.tsbuildinfo
