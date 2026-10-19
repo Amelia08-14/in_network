@@ -1,6 +1,14 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // Racine de suivi des fichiers = ce dossier, toujours. Sans cela, Next remonte au
+  // premier dossier parent contenant un package-lock.json (cas du VPS, où le dépôt
+  // vit dans /var/www/in-network) et imbrique le build dans .next/standalone/frontend/ :
+  // PM2 ne trouve plus .next/standalone/server.js (502 Bad Gateway).
+  outputFileTracingRoot: path.dirname(fileURLToPath(import.meta.url)),
   // Services et tarifs ont fusionné en une seule page (/services) ; l'ancienne
   // URL redirige (liens externes, favoris, référencement).
   async redirects() {
