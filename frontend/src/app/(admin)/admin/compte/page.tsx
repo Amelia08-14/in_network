@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { ChangePasswordCard } from '@/components/features/ChangePasswordCard';
 import { api, ApiRequestError } from '@/lib/admin-api';
 import { useAdminAuthStore } from '@/store/admin-auth';
 import { cn } from '@/lib/utils';
@@ -552,10 +551,6 @@ export default function AdminSystemUsersPage() {
         </section>
       )}
 
-      <section>
-        <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">Mon mot de passe</h2>
-        <ChangePasswordCard client={api} />
-      </section>
     </div>
   );
 }

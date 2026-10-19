@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide de l’équipe commerciale — IN NETWORK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Guide d’utilisation · IN NETWORK</div>
+    <h1>Guide de l’équipe commerciale</h1>
+    <p>Du lead assigné à la facture payée : comment travailler vos opportunités, envoyer un devis, facturer et lancer le service. Une partie pour les commerciaux, une partie pour le responsable commercial.</p>
+    <div class="meta">
+      <span class="chip">Pour : Commerciaux · Responsable commercial</span>
+      <span class="chip">Accès : <strong>/admin</strong></span>
+      <span class="chip">Lecture : ~20 min</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Sommaire">
+  <strong>Sommaire</strong>
+  <ol>
+    <li><a href="#principe">Le principe</a></li>
+  </ol>
+  <div class="group">Commerciaux</div>
+  <ol>
+    <li><a href="#c-demarrer">1 · Démarrer</a></li>
+    <li><a href="#c-pipeline">2 · Votre pipeline</a></li>
+    <li><a href="#c-fiche">3 · La fiche d’un lead</a></li>
+    <li><a href="#c-journal">4 · Journal et rendez-vous</a></li>
+    <li><a href="#c-devis">5 · Envoyer un devis</a></li>
+    <li><a href="#c-facture">6 · Facturer et encaisser</a></li>
+    <li><a href="#c-lancement">7 · Lancer le service</a></li>
+    <li><a href="#c-alertes">8 · Alertes et relances</a></li>
+  </ol>
+  <div class="group">Responsable commercial</div>
+  <ol>
+    <li><a href="#r-entrants">9 · Leads à traiter</a></li>
+    <li><a href="#r-qualifier">10 · Qualifier et valider</a></li>
+    <li><a href="#r-assigner">11 · Assigner et réassigner</a></li>
+    <li><a href="#r-equipe">12 · Suivre l’équipe</a></li>
+    <li><a href="#r-modeles">13 · Modèles de devis</a></li>
+  </ol>
+  <div class="group">Pour tous</div>
+  <ol>
+    <li><a href="#bonnes-pratiques">14 · Bonnes pratiques</a></li>
+    <li><a href="#faq">15 · Questions fréquentes</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="principe">
+  <h2>Le principe : un seul parcours</h2>
+  <p class="lead">Chaque lead avance d’étape en étape. Savoir où il en est, c’est savoir quoi faire.</p>
+  <div class="flow">
+    <span class="stage badge b-blue">À qualifier</span><span class="arrow">→</span>
+    <span class="stage badge b-amber">À assigner</span><span class="arrow">→</span>
+    <span class="stage badge b-violet">Assigné</span><span class="arrow">→</span>
+    <span class="stage badge b-ink">Contacté</span><span class="arrow">→</span>
+    <span class="stage badge b-orange">Devis envoyé</span><span class="arrow">→</span>
+    <span class="stage badge b-green">Gagné</span><span class="arrow">/</span>
+    <span class="stage badge b-gray">Perdu</span>
+  </div>
+  <table>
+    <thead><tr><th>Étape</th><th>Qui s’en occupe ?</th><th>Ce qui se passe</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge b-blue">À qualifier</span></td><td>Responsable commercial</td><td>Le lead vient d’arriver (site, inscription, contact). On vérifie qu’il est sérieux et on le qualifie.</td></tr>
+      <tr><td><span class="badge b-amber">À assigner</span></td><td>Responsable commercial</td><td>Validé, il attend un commercial.</td></tr>
+      <tr><td><span class="badge b-violet">Assigné</span></td><td><strong>Vous</strong></td><td>Il vous est confié : il faut le contacter.</td></tr>
+      <tr><td><span class="badge b-ink">Contacté</span></td><td><strong>Vous</strong></td><td>Premier échange passé (automatique dès votre premier appel, email, réunion ou visite journalisé).</td></tr>
+      <tr><td><span class="badge b-orange">Devis envoyé</span></td><td><strong>Vous</strong></td><td>Le devis est parti (automatique à l’envoi).</td></tr>
+      <tr><td><span class="badge b-green">Gagné</span> / <span class="badge b-gray">Perdu</span></td><td><strong>Vous</strong></td><td>Gagné : devis accepté ou facture payée. Perdu : motif obligatoire.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout rule"><p><strong>Vous ne voyez que vos leads.</strong> Le responsable commercial voit tout. Vos collègues ne voient pas les vôtres.</p></div>
+</section>
+
+<!-- ======================= COMMERCIAUX ======================= -->
+
+<section id="c-demarrer">
+  <h2><span class="n">1</span> Démarrer <span class="badge b-blue" style="font-size:12px">Commerciaux</span></h2>
+  <ol class="steps">
+    <li><strong>Connectez-vous</strong> sur <code>votre-site/admin</code> avec l’email et le mot de passe reçus.</li>
+    <li><strong>Changez votre mot de passe</strong> : menu <em>Système → Mon compte</em>.</li>
+    <li><strong>Surveillez la cloche</strong> 🔔 : quand le responsable vous assigne un lead, vous êtes notifié ; un clic ouvre la fiche.</li>
+    <li><strong>Gardez sous la main</strong> la recherche <kbd>Ctrl</kbd> + <kbd>K</kbd> (leads, devis, factures).</li>
+  </ol>
+  <figure>
+    <img src="img/cloche.jpg" alt="Cloche de notifications">
+    <figcaption>La cloche : « Lead assigné », rappels de rendez-vous, devis sans réponse…</figcaption>
+  </figure>
+  <p>Votre menu <strong>Commercial</strong> contient : Tableau commercial, Pipeline, Agenda, Activité, Devis, et selon vos droits Factures et Lancement des services.</p>
+</section>
+
+<section id="c-pipeline">
+  <h2><span class="n">2</span> Votre pipeline <span class="badge b-blue" style="font-size:12px">Commerciaux</span></h2>
+  <p class="lead">Menu <strong>Pipeline</strong> : vos leads en colonnes, de « Assigné » à « Perdu ».</p>
+  <figure>
+    <img src="img/pipeline-commercial.jpg" alt="Pipeline d’un commercial">
+    <figcaption>Votre pipeline : une carte par lead, avec la température, le montant estimé et l’échéance.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Ouvrir un lead</strong> : cliquez sur la carte.</li>
+    <li><strong>Changer l’étape</strong> : faites glisser la carte vers une autre colonne, ou utilisez la liste déroulante en bas de la carte.</li>
+    <li><strong>Passer en « Perdu »</strong> : une fenêtre demande le <strong>motif</strong> (prix, concurrent, pas de suite…). Il est obligatoire.</li>
+    <li><strong>Vue Liste</strong> : un tableau plus dense, utile pour trier.</li>
+    <li><strong>Couleurs de température</strong> : <span class="badge b-blue">Froid</span> <span class="badge b-amber">Tiède</span> <span class="badge b-orange">Chaud</span> — posées par le responsable à la qualification. Traitez les chauds en premier.</li>
+  </ul>
+  <div class="callout tip"><p>Un lead que <em>vous</em> créez vous est attribué mais reste « À qualifier » jusqu’à validation par le responsable : un bandeau vous le rappelle au-dessus du pipeline.</p></div>
+  <p>Vous pouvez ajouter un lead à la main (« Nouveau lead ») pour un appel entrant, une visite ou une recommandation : renseignez le titre, le contact, la source et le montant estimé.</p>
+</section>
+
+<section id="c-fiche">
+  <h2><span class="n">3</span> La fiche d’un lead <span class="badge b-blue" style="font-size:12px">Commerciaux</span></h2>
+  <p class="lead">Tout ce qui concerne un client est sur une seule page.</p>
+  <figure>
+    <img src="img/fiche-lead-assigne.jpg" alt="Fiche d’un lead assigné">
+    <figcaption>La fiche : parcours en haut, informations à gauche, « Chaîne commerciale » (devis, factures, services) à droite.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Parcours</strong> (haut de page) : les étapes déjà franchies sont cochées. Vous cliquez sur « Contacté », « Devis envoyé » ou « Gagné » pour avancer ; « Marquer perdu » demande un motif.</li>
+    <li><strong>Informations</strong> : titre, contact, entreprise, email, téléphone, montant estimé, <strong>prochaine action</strong> (une date : vous serez alerté à l’échéance) et notes. Cliquez sur « Enregistrer » après modification.</li>
+    <li><strong>Qualification</strong> : la température, le besoin, le budget, le décideur et le délai notés par le responsable — votre point de départ pour l’appel.</li>
+    <li><strong>Demande du client (site)</strong> : si le lead vient du panier du site, les lignes demandées et leurs prix sont affichées.</li>
+    <li><strong>Chaîne commerciale</strong> : boutons « Créer un devis » et « Facturer directement », et la liste des devis, factures et lancements liés.</li>
+    <li><strong>Compte &amp; justificatifs</strong> : si le client a un compte membre, vous voyez son état (validé ou en attente) et ses reçus de paiement.</li>
+  </ul>
+</section>
+
+<section id="c-journal">
+  <h2><span class="n">4</span> Journal et rendez-vous <span class="badge b-blue" style="font-size:12px">Commerciaux</span></h2>
+  <p class="lead">Chaque échange doit laisser une trace : c’est votre mémoire et le reporting de l’équipe.</p>
+  <h3>Journaliser un échange</h3>
+  <ol class="steps">
+    <li>Dans « Journal et échanges », choisissez le type : <em>Note, Appel, Email, Réunion</em> ou <em>Visite</em>.</li>
+    <li>Écrivez le compte rendu : ce qui a été dit, décidé, la suite.</li>
+    <li>Pour prévenir un collègue, cochez son nom dans « Notifier un collègue (mention) ».</li>
+    <li>Cliquez sur « Ajouter au journal ».</li>
+  </ol>
+  <div class="callout ok"><p>Dès que vous journalisez un <strong>appel, un email, une réunion ou une visite</strong> sur un lead « Assigné », il passe tout seul à <strong>« Contacté »</strong>. Une simple note ne change pas l’étape.</p></div>
+  <h3>Programmer un rendez-vous</h3>
+  <p>Carte « Rendez-vous » → « Programmer » : type (appel, visite, réunion), date et heure, lieu. Un rappel vous est envoyé dans les 24 heures qui précèdent. Après le rendez-vous, cliquez sur « Marquer effectué » (ou « Annuler »).</p>
+  <figure>
+    <img src="img/agenda.jpg" alt="Agenda commercial">
+    <figcaption>L’agenda regroupe vos rendez-vous, jour par jour.</figcaption>
+  </figure>
+  <p>Le menu <strong>Activité</strong> présente votre journal par jour : utile pour préparer votre reporting.</p>
+</section>
+
+<section id="c-devis">
+  <h2><span class="n">5</span> Envoyer un devis <span class="badge b-blue" style="font-size:12px">Commerciaux</span></h2>
+  <ol class="steps">
+    <li><strong>Sur la fiche du lead</strong>, choisissez dans la liste le point de départ : « Devis pré-rempli avec la demande » (si le lead vient du site), « Devis vierge » ou un <em>modèle</em> (ex. Création d’entreprise — formule Complet).</li>
+    <li><strong>Cliquez sur « Créer un devis »</strong> : le brouillon s’ouvre.</li>
+    <li><strong>Vérifiez les lignes</strong> : désignation, quantité, prix unitaire HT. Ajoutez ou supprimez des lignes. La TVA (19 % par défaut) et le total TTC se calculent seuls.</li>
+    <li><strong>Réglez la validité</strong> (15 jours par défaut) et les <em>notes et conditions</em>, reprises sur le PDF (modalités de paiement, délais…).</li>
+    <li><strong>Cliquez sur « Enregistrer »</strong>, vérifiez le <strong>PDF</strong> si vous voulez, puis <strong>« Envoyer au client »</strong>.</li>
+  </ol>
+  <figure>
+    <img src="img/devis.jpg" alt="Devis en brouillon">
+    <figcaption>Un devis en brouillon : seul l’état « brouillon » est modifiable.</figcaption>
+  </figure>
+  <h3>Après l’envoi</h3>
+  <ul>
+    <li>Le client reçoit un <strong>email avec le PDF</strong> ; le lead passe à <span class="badge b-orange">Devis envoyé</span>.</li>
+    <li>Sans réponse, il est <strong>relancé automatiquement</strong> (tous les 3 jours, 2 fois maximum). Passé sa date de validité, il devient « Expiré ».</li>
+    <li>Le client accepte ? Cliquez sur <strong>« Marquer accepté »</strong> : le lead passe à <span class="badge b-green">Gagné</span>. Refus ? <strong>« Marquer refusé »</strong>.</li>
+    <li>Un devis refusé ou expiré peut être <strong>rouvert</strong> (bouton « Rouvrir ») pour repasser en brouillon : corrigez-le puis renvoyez-le. Impossible si une facture existe déjà pour ce devis.</li>
+  </ul>
+  <div class="callout rule"><p>Un devis envoyé n’est <strong>plus modifiable</strong> tant qu’il n’est pas rouvert. Les prix du catalogue sont une aide : vous pouvez les adapter ligne par ligne.</p></div>
+  <div class="callout warn"><p>L’envoi est refusé si le devis n’a <strong>aucune ligne</strong>, si une ligne n’a <strong>pas de prix</strong> (les lignes « sur devis » démarrent à 0 : chiffrez-les) ou si la <strong>date de validité est dépassée</strong>. Si le lead n’a <strong>pas d’adresse email</strong>, le devis est marqué « envoyé » mais rien n’est expédié : téléchargez le PDF et remettez-le vous-même, ou ajoutez l’email dans « Informations » avant l’envoi.</p></div>
+</section>
+
+<section id="c-facture">
+  <h2><span class="n">6</span> Facturer et encaisser <span class="badge b-blue" style="font-size:12px">Commerciaux</span></h2>
+  <p class="lead">Disponible si le bloc « Factures » vous est ouvert ; sinon la facture est préparée par la personne en charge de la facturation.</p>
+  <ol class="steps">
+    <li><strong>Depuis le devis accepté</strong>, cliquez sur « Créer la facture » (ou « Facturer directement » depuis la fiche du lead). Un <em>brouillon</em> est créé avec les lignes du devis.</li>
+    <li><strong>Complétez le client</strong> : nom, entreprise, email, téléphone, adresse et, pour une entreprise, NIF, RC et AI.</li>
+    <li><strong>Cliquez sur « Émettre la facture »</strong> : elle reçoit son <strong>numéro définitif</strong> (FA-AAAA-0001…) et une échéance (30 jours par défaut). Vous pouvez choisir de l’envoyer par email en même temps.</li>
+    <li><strong>Quand le client paie</strong> : « Enregistrer le paiement » → mode de paiement (virement, espèces, chèque, carte), date de réception, référence (n° de virement…).</li>
+  </ol>
+  <figure>
+    <img src="img/facture.jpg" alt="Facture en brouillon">
+    <figcaption>Une facture en brouillon, avant émission.</figcaption>
+  </figure>
+  <div class="callout rule"><ul>
+    <li>Le numéro n’est attribué <strong>qu’à l’émission</strong> : la suite des numéros n’a jamais de trou.</li>
+    <li>Une facture <strong>émise</strong> n’est plus modifiable. En cas d’erreur : « Annuler la facture » avec un motif, puis créez-en une nouvelle.</li>
+    <li>Un brouillon, lui, peut être supprimé.</li>
+    <li>Les factures échues sont <strong>relancées automatiquement</strong> chaque semaine (3 fois maximum).</li>
+  </ul></div>
+  <div class="callout ok"><p>À l’enregistrement du paiement, le lead passe à <span class="badge b-green">Gagné</span> et <strong>les services sont lancés automatiquement</strong> (section suivante).</p></div>
+</section>
+
+<section id="c-lancement">
+  <h2><span class="n">7</span> Lancer le service <span class="badge b-blue" style="font-size:12px">Commerciaux</span></h2>
+  <p class="lead">Menu <strong>Lancement des services</strong> (selon vos droits).</p>
+  <p>Chaque ligne de facture payée devient une <strong>commande de service</strong> avec sa checklist. Exemple : une « création d’entreprise — Complet » génère les 9 étapes à suivre (nom commercial au CNRC, statuts chez le notaire, bail, déclaration d’existence, compte bancaire, NIF, registre de commerce, CASNOS, NIS). Les formules Essentiel (étapes 1 à 4) et Avancé (1 à 7) n’affichent que leurs étapes, quand la ligne de facture porte bien la formule choisie.</p>
+  <ul>
+    <li><strong>Cochez les étapes</strong> au fil de l’avancement : l’avancement et le statut (À lancer / En cours / Livré) se mettent à jour.</li>
+    <li><strong>Désignez un responsable</strong> et une <strong>échéance</strong>, ajoutez des notes internes ou une étape de plus.</li>
+    <li>Quand tout est coché, la commande passe <strong>« Livré »</strong> et le client est informé.</li>
+    <li>Pour une <strong>formule d’abonnement</strong> payée par un membre, son abonnement est activé automatiquement.</li>
+  </ul>
+</section>
+
+<section id="c-alertes">
+  <h2><span class="n">8</span> Alertes et relances automatiques <span class="badge b-blue" style="font-size:12px">Commerciaux</span></h2>
+  <p>La plateforme travaille pour vous, toutes les heures :</p>
+  <table>
+    <thead><tr><th>Déclencheur</th><th>Ce qui se passe</th></tr></thead>
+    <tbody>
+      <tr><td>« Prochaine action » arrivée à échéance</td><td>Vous êtes alerté (cloche).</td></tr>
+      <tr><td>Aucune activité depuis 7 jours sur un lead ouvert</td><td>Alerte « Lead sans activité ».</td></tr>
+      <tr><td>Rendez-vous dans les 24 h</td><td>Rappel.</td></tr>
+      <tr><td>Devis sans réponse</td><td>Email de relance au client (tous les 3 jours, 2 fois) et alerte pour vous.</td></tr>
+      <tr><td>Facture échue</td><td>Rappel de paiement au client (chaque semaine, 3 fois) et alerte pour vous.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout tip"><p>Renseignez toujours une <strong>prochaine action</strong> avec une date sur chaque lead ouvert : c’est ce qui évite qu’il s’endorme.</p></div>
+</section>
+
+<!-- ======================= RESPONSABLE ======================= -->
+
+<section id="r-entrants">
+  <h2><span class="n">9</span> Leads à traiter <span class="badge b-violet" style="font-size:12px">Responsable commercial</span></h2>
+  <p class="lead">Votre porte d’entrée : tout ce qui arrive y atterrit, et vous êtes prévenu par la cloche.</p>
+  <figure>
+    <img src="img/leads-a-traiter.jpg" alt="Page Leads à traiter">
+    <figcaption>À gauche : les leads à qualifier (les plus anciens en premier). À droite : les leads validés, prêts à être assignés.</figcaption>
+  </figure>
+  <p>Trois sources alimentent la page : les <strong>inscriptions</strong> de nouveaux membres, les <strong>demandes de devis</strong> du site et de l’espace membre, et le <strong>formulaire de contact</strong>. Vous pouvez aussi créer un lead à la main : « Nouveau lead » (en choisissant un commercial, il est validé et assigné d’emblée).</p>
+  <p>Le <strong>Tableau commercial</strong> affiche en tête le nombre de leads à qualifier et à assigner, pour ne rien laisser traîner.</p>
+  <figure>
+    <img src="img/tableau-commercial.jpg" alt="Tableau commercial du responsable">
+    <figcaption>Tableau commercial : les deux compteurs en tête, puis les indicateurs de l’équipe.</figcaption>
+  </figure>
+</section>
+
+<section id="r-qualifier">
+  <h2><span class="n">10</span> Qualifier et valider <span class="badge b-violet" style="font-size:12px">Responsable commercial</span></h2>
+  <ol class="steps">
+    <li><strong>Cliquez sur « Qualifier »</strong> sur la carte du lead.</li>
+    <li><strong>Température</strong> : Froid, Tiède ou Chaud.</li>
+    <li><strong>Besoin, budget, décideur, délai, notes</strong> : en quelques mots. Ces champs apparaissent ensuite sur la fiche, pour le commercial.</li>
+    <li><strong>Assigner dans la foulée</strong> (« Valider et assigner ») ou laisser « Valider sans assigner ».</li>
+    <li><strong>Validez</strong> : le lead passe « À assigner » (ou « Assigné »). Pour écarter : <em>« Écarter… »</em> avec un motif.</li>
+  </ol>
+  <figure>
+    <img src="img/qualifier.jpg" alt="Fenêtre de qualification">
+    <figcaption>La qualification d’une inscription : la case verte valide aussi le compte du membre.</figcaption>
+  </figure>
+  <div class="callout ok"><p><strong>Lead d’inscription = compte à valider.</strong> Quand vous qualifiez une inscription, la case « Valider aussi le compte membre » (cochée par défaut) ouvre l’espace du client et le prévient : il n’y a pas de seconde validation à faire. L’inverse fonctionne aussi : un compte validé depuis la page « Validations » fait passer son lead à « À assigner ».</p></div>
+  <figure>
+    <img src="img/fiche-lead-inscription.jpg" alt="Fiche d’un lead d’inscription, à qualifier">
+    <figcaption>La fiche d’un lead à qualifier : le bouton « Qualifier et valider » et la carte « Compte &amp; justificatifs ».</figcaption>
+  </figure>
+</section>
+
+<section id="r-assigner">
+  <h2><span class="n">11</span> Assigner et réassigner <span class="badge b-violet" style="font-size:12px">Responsable commercial</span></h2>
+  <ol class="steps">
+    <li>Dans la colonne <strong>« À assigner »</strong>, ouvrez la liste « Choisir un commercial… » : l’équipe commerciale d’abord, avec le <strong>nombre de leads en cours</strong> de chacun.</li>
+    <li>Choisissez, puis cliquez sur <strong>« Assigner »</strong>. Le commercial est notifié et le lead passe « Assigné ».</li>
+  </ol>
+  <ul>
+    <li><strong>Réassigner</strong> : sur la fiche du lead, carte « Assignation » → choisissez un autre commercial → « Réassigner ». L’ancien et le nouveau commercial sont prévenus.</li>
+    <li><strong>Retirer le commercial</strong> n’est possible qu’au stade « Assigné » (le lead retourne « À assigner »). Un lead déjà « Contacté » ou « Devis envoyé » doit être confié à un autre commercial, pas laissé sans responsable.</li>
+    <li>Un lead « À qualifier » ne peut pas être assigné : qualifiez-le d’abord.</li>
+  </ul>
+  <figure>
+    <img src="img/pipeline-responsable.jpg" alt="Pipeline vu par le responsable">
+    <figcaption>Votre pipeline montre toute l’équipe ; filtrez par commercial avec la liste en haut.</figcaption>
+  </figure>
+</section>
+
+<section id="r-equipe">
+  <h2><span class="n">12</span> Suivre l’équipe <span class="badge b-violet" style="font-size:12px">Responsable commercial</span></h2>
+  <ul>
+    <li><strong>Pipeline</strong> : tous les leads, filtrables par commercial, par source ou par recherche ; vue Kanban ou Liste. Le bandeau bleu signale les leads qui attendent votre décision.</li>
+    <li><strong>Tableau commercial</strong> : entonnoir, leads ouverts par commercial, encaissements, devis en attente, factures à encaisser, actions en retard.</li>
+    <li><strong>Activité</strong> : le journal de toute l’équipe par jour et par commercial — votre reporting quotidien, sans rien demander à personne.</li>
+    <li><strong>Agenda</strong> : les rendez-vous de l’équipe.</li>
+    <li><strong>Automatisations</strong> : le bouton « Exécuter maintenant » du Tableau commercial lance immédiatement relances et alertes (elles tournent de toute façon chaque heure).</li>
+  </ul>
+  <div class="callout tip"><p>Un lead « À qualifier » depuis plus de quelques jours, c’est un client qui attend. Traitez la page « Leads à traiter » en premier, chaque matin.</p></div>
+</section>
+
+<section id="r-modeles">
+  <h2><span class="n">13</span> Modèles de devis <span class="badge b-violet" style="font-size:12px">Responsable commercial</span></h2>
+  <p>Un modèle pré-remplit les lignes, la validité et les notes d’un devis en un clic : c’est ce qui garantit des prix homogènes dans toute l’équipe. Seuls les comptes qui gèrent les leads peuvent créer, modifier ou supprimer un modèle ; tous les commerciaux peuvent l’utiliser.</p>
+  <p>Modèles déjà disponibles : création d’entreprise (Essentiel, Avancé, Complet), formation à la création d’entreprise, secrétariat NET. Pour en ajouter : page <strong>Devis</strong>, onglet des modèles.</p>
+</section>
+
+<!-- ======================= COMMUN ======================= -->
+
+<section id="bonnes-pratiques">
+  <h2><span class="n">14</span> Bonnes pratiques</h2>
+  <ul>
+    <li><strong>Premier contact rapide</strong> : appelez un lead assigné dans la journée, surtout s’il est « Chaud ».</li>
+    <li><strong>Tout journaliser</strong> : un appel non noté n’a pas eu lieu pour le reste de l’équipe.</li>
+    <li><strong>Toujours une prochaine action datée</strong> sur un lead ouvert.</li>
+    <li><strong>Motif de perte honnête</strong> : il nourrit les statistiques et améliore l’offre.</li>
+    <li><strong>Prix</strong> : partez des modèles et du catalogue ; ne promettez pas un tarif qui n’y figure pas sans accord du responsable.</li>
+    <li><strong>Données clients</strong> : n’exportez ni ne partagez de fiches clients en dehors de la plateforme.</li>
+  </ul>
+</section>
+
+<section id="faq">
+  <h2><span class="n">15</span> Questions fréquentes</h2>
+  <dl class="faq">
+    <dt>Je ne vois aucun lead dans mon pipeline.</dt>
+    <dd>Aucun ne vous est assigné pour le moment. Le responsable commercial vous les confie après qualification ; vous êtes notifié dans la cloche.</dd>
+    <dt>Je n’arrive pas à passer un lead à « Contacté » ou « Devis envoyé ».</dt>
+    <dd>S’il est encore « À qualifier », il attend la validation du responsable. Une fois assigné, journalisez un appel : il passe seul à « Contacté ».</dd>
+    <dt>Le bouton « Envoyer au client » ne fonctionne pas.</dt>
+    <dd>Vérifiez que le devis contient au moins une ligne, que <strong>toutes les lignes ont un prix</strong> et que la date de validité n’est pas dépassée. Vérifiez aussi l’adresse email du client sur sa fiche.</dd>
+    <dt>Je me suis trompé dans un devis déjà envoyé.</dt>
+    <dd>Si le devis est refusé ou expiré : « Rouvrir », corrigez puis renvoyez-le. S’il a déjà été facturé, annulez d’abord la facture, puis rouvrez-le. Sinon, demandez conseil au responsable commercial.</dd>
+    <dt>Je me suis trompé dans une facture émise.</dt>
+    <dd>Annulez-la avec un motif et créez-en une nouvelle : une facture émise n’est jamais modifiée.</dd>
+    <dt>Je ne vois pas « Factures » ou « Lancement des services ».</dt>
+    <dd>Ces blocs ne vous sont pas ouverts. Demandez-les à l’administrateur si votre poste le justifie.</dd>
+    <dt>(Responsable) Je ne vois pas « Leads à traiter ».</dt>
+    <dd>Votre compte doit avoir le droit « Qualifier, valider et assigner les leads » : demandez à l’administrateur de le vérifier.</dd>
+    <dt>(Responsable) Je ne peux pas retirer le commercial d’un lead.</dt>
+    <dd>Possible uniquement tant qu’il est « Assigné ». Au-delà, réassignez-le à un autre commercial.</dd>
+  </dl>
+</section>
+
+</main>
+</div>
+
+<footer class="doc-footer">IN NETWORK — La Maison IN Groupe · Guide de l’équipe commerciale · À imprimer ou à enregistrer en PDF depuis votre navigateur (Ctrl + P).</footer>
+</body>
+</html>

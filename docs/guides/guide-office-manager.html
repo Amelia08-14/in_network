@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide de l’Office Manager — IN NETWORK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Guide d’utilisation · IN NETWORK</div>
+    <h1>Guide de l’Office Manager</h1>
+    <p>Votre journée sur la plateforme : accueillir les nouveaux membres, vérifier les paiements, traiter les leads, gérer les réservations, les événements et les messages. Pas à pas, sans jargon.</p>
+    <div class="meta">
+      <span class="chip">Pour : Office Manager</span>
+      <span class="chip">Accès : <strong>/admin</strong></span>
+      <span class="chip">Lecture : ~15 min</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Sommaire">
+  <strong>Sommaire</strong>
+  <ol>
+    <li><a href="#role">1 · Votre rôle</a></li>
+    <li><a href="#premiers-pas">2 · Premiers pas</a></li>
+    <li><a href="#journee">3 · Votre journée type</a></li>
+    <li><a href="#membres">4 · Valider les nouveaux membres</a></li>
+    <li><a href="#paiements">5 · Vérifier les paiements</a></li>
+    <li><a href="#leads">6 · Traiter les leads</a></li>
+    <li><a href="#reservations">7 · Réservations et entreprises</a></li>
+    <li><a href="#contenu">8 · Événements, galerie, contenu</a></li>
+    <li><a href="#messages">9 · Messages de contact</a></li>
+    <li><a href="#faq">10 · Questions fréquentes</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="role">
+  <h2><span class="n">1</span> Votre rôle</h2>
+  <p class="lead">Vous faites tourner le lieu au quotidien : accueil des membres, suivi administratif, contenus du site.</p>
+  <div class="callout rule"><p><strong>Votre menu dépend des accès que l’administrateur vous a donnés.</strong> Ce guide décrit toutes les pages possibles ; si l’une d’elles n’apparaît pas chez vous, c’est que vous n’y avez pas droit — demandez-le à l’administrateur.</p></div>
+  <p>Pour chaque page, votre accès est l’un de ces trois niveaux :</p>
+  <ul>
+    <li><strong>Aucun</strong> : la page n’est pas dans votre menu.</li>
+    <li><strong>Lecture</strong> : vous consultez, sans pouvoir modifier.</li>
+    <li><strong>Modification</strong> : vous consultez et vous modifiez.</li>
+  </ul>
+  <p>Particularité de votre rôle : dès que vous avez accès au <strong>CRM</strong>, vous voyez <strong>tous les leads</strong> de l’équipe (pas seulement les vôtres) et vous pouvez les <strong>qualifier et les assigner</strong>, comme le responsable commercial. En revanche, vous n’avez pas accès à la gestion des utilisateurs système.</p>
+</section>
+
+<section id="premiers-pas">
+  <h2><span class="n">2</span> Premiers pas</h2>
+  <ol class="steps">
+    <li><strong>Connectez-vous</strong> sur <code>votre-site/admin</code> avec l’email et le mot de passe reçus par message.</li>
+    <li><strong>Changez votre mot de passe</strong> : menu <em>Système → Mon compte</em> (8 caractères minimum). Faites-le dès la première connexion.</li>
+    <li><strong>Regardez la cloche</strong> 🔔 en haut à gauche : elle vous prévient d’un nouveau lead à qualifier ou d’un message. Cliquez sur une alerte pour ouvrir la page concernée ; « Tout marquer comme lu » vide la liste.</li>
+    <li><strong>Utilisez la recherche</strong> <kbd>Ctrl</kbd> + <kbd>K</kbd> pour retrouver un lead, un devis ou une facture en tapant un nom ou un numéro.</li>
+  </ol>
+  <figure>
+    <img src="img/cloche.jpg" alt="Cloche de notifications ouverte">
+    <figcaption>La cloche regroupe les alertes : un clic ouvre directement la bonne page.</figcaption>
+  </figure>
+</section>
+
+<section id="journee">
+  <h2><span class="n">3</span> Votre journée type</h2>
+  <p class="lead">Une routine de dix minutes le matin évite les oublis.</p>
+  <table>
+    <thead><tr><th>Quand</th><th>Où aller</th><th>Quoi faire</th></tr></thead>
+    <tbody>
+      <tr><td>Dès l’arrivée</td><td>🔔 Cloche</td><td>Lire les alertes de la nuit, ouvrir les nouveaux leads.</td></tr>
+      <tr><td>Matin</td><td><strong>Validations</strong></td><td>Nouveaux membres, justificatifs de paiement reçus, événements ou demandes en attente.</td></tr>
+      <tr><td>Matin</td><td><strong>Leads à traiter</strong></td><td>Qualifier les leads entrants, puis assigner ceux qui sont validés.</td></tr>
+      <tr><td>Dans la journée</td><td><strong>Réservations</strong></td><td>Confirmer ou annuler les demandes de salles et d’espaces.</td></tr>
+      <tr><td>Dans la journée</td><td><strong>Messages de contact</strong></td><td>Répondre aux visiteurs.</td></tr>
+      <tr><td>Fin de journée</td><td><strong>Paiements</strong></td><td>Confirmer les virements bancaires reçus.</td></tr>
+      <tr><td>Chaque semaine</td><td><strong>Événements / Galerie</strong></td><td>Publier les événements à venir, ajouter les photos récentes.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="membres">
+  <h2><span class="n">4</span> Valider les nouveaux membres</h2>
+  <p class="lead">Tant que son compte n’est pas validé, un nouveau membre ne voit que « Situation du compte ». Valider son compte déverrouille tout son espace.</p>
+  <h3>Pourquoi un compte est-il en attente ?</h3>
+  <p>Quand une personne s’inscrit (« Devenir membre »), la plateforme crée à la fois son compte <em>et</em> un lead « À qualifier ». <strong>Vous n’avez qu’un geste à faire</strong>, de deux façons équivalentes :</p>
+  <div class="grid2">
+    <div class="mini">
+      <h4>Depuis « Leads à traiter »</h4>
+      <p>Cliquez sur « Qualifier » sur le lead d’inscription. La case <strong>« Valider aussi le compte membre »</strong> est cochée par défaut : validez, et le compte est ouvert, le membre prévenu, le lead prêt à être assigné.</p>
+    </div>
+    <div class="mini">
+      <h4>Depuis « Validations »</h4>
+      <p>Section « Nouveaux membres » : cliquez sur « Valider le compte ». Le lead d’inscription passe automatiquement à « À assigner ».</p>
+    </div>
+  </div>
+  <div class="callout tip"><p>Avant de valider, jetez un œil au profil : nom, entreprise, email vérifié (la liste signale « email non vérifié »). En cas de doute (profil fantaisiste, doublon), écartez le lead avec un motif plutôt que de valider.</p></div>
+  <h3>Gérer un compte existant</h3>
+  <p>Page <strong>Membres</strong> : vous voyez tous les comptes avec leur statut. Vous pouvez <strong>désactiver</strong> (la personne ne peut plus se connecter, son historique est conservé) ou <strong>réactiver</strong> un compte. La suppression définitive est à éviter : préférez désactiver.</p>
+  <p>Page <strong>Entreprises</strong> (comptes d’entreprise) : vous ajustez le nombre de <em>postes</em> accordés (impossible de descendre sous le nombre de collaborateurs déjà rattachés) et vous activez ou désactivez l’entreprise.</p>
+</section>
+
+<section id="paiements">
+  <h2><span class="n">5</span> Vérifier les paiements</h2>
+  <p class="lead">Deux situations : le reçu envoyé par un membre, et le virement bancaire à confirmer.</p>
+  <h3>Un membre a envoyé un justificatif de paiement</h3>
+  <p>Il apparaît dans <strong>Validations → Justificatifs de paiement à vérifier</strong>.</p>
+  <ol class="steps">
+    <li><strong>Ouvrez le justificatif</strong> (image ou PDF) et comparez le montant et la référence avec le devis ou la facture.</li>
+    <li><strong>Cliquez sur « Accepter »</strong>. Deux cases vous sont proposées : « Enregistrer le paiement de la facture » (qui lance aussi les services associés) et « Valider le compte » si ce n’est pas déjà fait.</li>
+    <li><strong>Ou cliquez sur « Refuser »</strong> en indiquant un motif clair : le membre le lit et peut renvoyer un autre justificatif.</li>
+  </ol>
+  <h3>Un virement bancaire est arrivé</h3>
+  <p>Page <strong>Paiements</strong> (ou la section « Virements bancaires en attente » de Validations) : repérez la ligne du membre, vérifiez le montant sur le relevé de la banque, puis cliquez sur <strong>« Confirmer »</strong>.</p>
+  <div class="callout warn"><p>Ne confirmez un paiement qu’après l’avoir <strong>vu sur le compte bancaire</strong>. La confirmation lance la suite : abonnement ou prestation.</p></div>
+</section>
+
+<section id="leads">
+  <h2><span class="n">6</span> Traiter les leads</h2>
+  <p class="lead">Un lead est une personne ou une entreprise qui s’intéresse à IN NETWORK. Ils arrivent tout seuls dans <strong>Leads à traiter</strong>.</p>
+  <div class="flow">
+    <span class="stage badge b-blue">À qualifier</span><span class="arrow">→</span>
+    <span class="stage badge b-amber">À assigner</span><span class="arrow">→</span>
+    <span class="stage badge b-violet">Assigné</span><span class="arrow">→</span>
+    <span class="stage badge b-ink">Contacté</span><span class="arrow">→</span>
+    <span class="stage badge b-orange">Devis envoyé</span><span class="arrow">→</span>
+    <span class="stage badge b-green">Gagné</span>
+  </div>
+  <p>Vous intervenez sur les <strong>deux premières colonnes</strong> ; ensuite le commercial prend le relais.</p>
+  <figure>
+    <img src="img/leads-a-traiter.jpg" alt="Page Leads à traiter avec les colonnes À qualifier et À assigner">
+    <figcaption>« Leads à traiter » : à gauche les leads à qualifier, à droite ceux qui attendent un commercial.</figcaption>
+  </figure>
+  <h3>Qualifier un lead</h3>
+  <ol class="steps">
+    <li><strong>Cliquez sur « Qualifier »</strong> sur la carte (toute la carte ouvre la fiche si vous préférez voir le détail d’abord).</li>
+    <li><strong>Choisissez la température</strong> : Froid (curiosité), Tiède (intéressé), Chaud (prêt à acheter).</li>
+    <li><strong>Notez l’essentiel</strong> : besoin, budget, qui décide, délai. Quelques mots suffisent, le commercial s’en servira.</li>
+    <li><strong>Assignez tout de suite</strong> si vous savez à qui le confier (« Valider et assigner »), sinon « Valider sans assigner ».</li>
+    <li><strong>Ou cliquez sur « Écarter… »</strong> avec un motif (doublon, hors périmètre, injoignable) : le lead est clos.</li>
+  </ol>
+  <figure>
+    <img src="img/qualifier.jpg" alt="Fenêtre de qualification d’un lead">
+    <figcaption>La fenêtre de qualification. Pour une inscription, la case verte valide aussi le compte du membre.</figcaption>
+  </figure>
+  <h3>Assigner à un commercial</h3>
+  <p>Dans la colonne « À assigner », choisissez un commercial dans la liste (le nombre de leads en cours de chacun est indiqué, pour répartir équitablement) puis « Assigner ». Il reçoit une notification.</p>
+  <div class="callout rule"><ul>
+    <li>Un lead « À qualifier » ne peut pas être assigné avant d’avoir été qualifié.</li>
+    <li>Un lead déjà en cours de traitement (Contacté, Devis envoyé) peut être <strong>réassigné</strong> à un autre commercial, mais pas laissé sans responsable.</li>
+  </ul></div>
+  <h3>Autres pages du CRM (selon vos droits)</h3>
+  <ul>
+    <li><strong>Pipeline</strong> : vue d’ensemble du travail commercial en colonnes, filtrable par commercial.</li>
+    <li><strong>Agenda</strong> : rendez-vous de l’équipe.</li>
+    <li><strong>Devis, Factures, Lancement des services</strong> : si ces blocs vous sont ouverts, voir le « Guide de l’équipe commerciale » pour le détail.</li>
+  </ul>
+  <figure>
+    <img src="img/pipeline-responsable.jpg" alt="Pipeline commercial avec bandeau leads à qualifier">
+    <figcaption>Le pipeline : un bandeau bleu rappelle combien de leads attendent une décision.</figcaption>
+  </figure>
+</section>
+
+<section id="reservations">
+  <h2><span class="n">7</span> Réservations et entreprises</h2>
+  <ul>
+    <li><strong>Réservations</strong> : la liste indique le membre, l’espace, le créneau, le prix et le statut. Cliquez sur <em>Confirmer</em> ou <em>Annuler</em>. Le membre est prévenu.</li>
+    <li><strong>Entreprises</strong> : un représentant invite ses collaborateurs dans la limite des postes. Si une entreprise demande plus de postes, modifiez le nombre sur sa ligne.</li>
+  </ul>
+  <div class="callout tip"><p>Un membre ne peut réserver que si son compte est validé et son profil complet. S’il se plaint d’un blocage, vérifiez ces deux points en premier.</p></div>
+</section>
+
+<section id="contenu">
+  <h2><span class="n">8</span> Événements, galerie et contenu du site</h2>
+  <p class="lead">Ce que vous publiez apparaît tout de suite sur le site.</p>
+  <h3>Publier un événement</h3>
+  <ol class="steps">
+    <li>Page <strong>Événements</strong> → créez l’événement : titre, description, type, date et heure, lieu, nombre de places, visuel de couverture. Précisez s’il est organisé par IN NETWORK, externe ou co-organisé.</li>
+    <li>Il est d’abord enregistré <strong>en brouillon</strong> : invisible du public.</li>
+    <li>Relisez, puis cliquez sur <strong>« Publier »</strong>. Après l’événement, utilisez <strong>« Archiver »</strong> et ajoutez les photos ou la vidéo récap.</li>
+  </ol>
+  <h3>Les autres contenus</h3>
+  <table>
+    <thead><tr><th>Page</th><th>Ce que vous y faites</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Galerie du lieu</strong></td><td>Ajouter des photos et vidéos <em>réelles</em> du lieu, par catégorie ; supprimer une image obsolète.</td></tr>
+      <tr><td><strong>Témoignages</strong></td><td>Ajouter un avis de membre (texte et/ou vidéo) et le publier.</td></tr>
+      <tr><td><strong>Partenaires</strong></td><td>Créer la fiche (logo, secteur, description) ; elle n’est visible qu’une fois publiée.</td></tr>
+      <tr><td><strong>Experts</strong></td><td>Tenir à jour l’annuaire d’experts affiché sur le site.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn"><p>Publiez uniquement des informations et des visuels <strong>réels et autorisés</strong> (accord du membre pour un témoignage, du partenaire pour son logo).</p></div>
+</section>
+
+<section id="messages">
+  <h2><span class="n">9</span> Messages de contact</h2>
+  <p class="lead">Les messages envoyés depuis le formulaire « Contact » du site arrivent ici et créent en même temps un lead.</p>
+  <ol class="steps">
+    <li>Ouvrez <strong>Messages de contact</strong> (section « Sources des leads »). Les non lus sont signalés.</li>
+    <li>Cliquez sur <strong>« Répondre »</strong>, rédigez, puis <strong>« Envoyer par email »</strong> : la réponse part à l’adresse du visiteur et le message est marqué « Répondu ».</li>
+    <li>Le lien <strong>« Lead LD-… »</strong> à côté du nom ouvre la fiche du lead correspondant, que le responsable commercial qualifiera.</li>
+  </ol>
+</section>
+
+<section id="faq">
+  <h2><span class="n">10</span> Questions fréquentes</h2>
+  <dl class="faq">
+    <dt>Une page de ce guide n’est pas dans mon menu.</dt>
+    <dd>Vous n’y avez pas accès. Demandez à l’administrateur de vous accorder « Lecture » ou « Modification » sur ce bloc.</dd>
+    <dt>J’ai validé un compte par erreur.</dt>
+    <dd>Prévenez l’administrateur. Vous pouvez en attendant désactiver le compte depuis la page Membres.</dd>
+    <dt>Je vois « Introuvable » en ouvrant un lead.</dt>
+    <dd>Il a peut-être été supprimé ou n’existe plus. Utilisez la recherche <kbd>Ctrl</kbd> + <kbd>K</kbd> pour le retrouver par nom ou référence.</dd>
+    <dt>Le membre dit qu’il n’a rien reçu par email.</dt>
+    <dd>Demandez-lui de vérifier ses courriers indésirables. Sinon, signalez-le à l’administrateur : la configuration d’envoi du serveur est à contrôler.</dd>
+    <dt>Je me suis trompé de commercial en assignant.</dt>
+    <dd>Rouvrez le lead (fiche ou « Pipeline »), carte « Assignation », choisissez le bon commercial et cliquez sur « Réassigner » : les deux sont prévenus.</dd>
+  </dl>
+</section>
+
+</main>
+</div>
+
+<footer class="doc-footer">IN NETWORK — La Maison IN Groupe · Guide de l’Office Manager · À imprimer ou à enregistrer en PDF depuis votre navigateur (Ctrl + P).</footer>
+</body>
+</html>

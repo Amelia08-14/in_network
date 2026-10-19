@@ -26,6 +26,7 @@ import {
   Receipt,
   Rocket,
   Inbox,
+  CircleUserRound,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,8 @@ type NavEntry = AdminNavItem & {
   superOnly?: boolean;
   /** Visible seulement pour les comptes qui qualifient / assignent les leads. */
   manageLeadsOnly?: boolean;
+  /** Visible pour tous les comptes du back-office (ex. « Mon compte »). */
+  alwaysVisible?: boolean;
 };
 
 const NAV_ITEMS: NavEntry[] = [
@@ -82,6 +85,7 @@ const NAV_ITEMS: NavEntry[] = [
   { href: '/admin/services', alsoMatch: ['/admin/tarifs'], label: 'Services & tarifs', icon: Briefcase, resources: ['services', 'plans', 'spaces'], fallbackHref: '/admin/tarifs', section: 'Catalogue & site' },
   { href: '/admin/galerie', label: 'Galerie du lieu', icon: Images, resource: 'galerie', section: 'Catalogue & site' },
   // Système
+  { href: '/admin/mon-compte', label: 'Mon compte', icon: CircleUserRound, alwaysVisible: true, section: 'Système' },
   { href: '/admin/compte', label: 'Utilisateurs système', icon: UserCog, superOnly: true, section: 'Système' },
 ];
 
@@ -92,12 +96,13 @@ function visibleNavItems(
 ): AdminNavItem[] {
   const isFullAccess = role === 'ADMIN' || role === 'SUPER_ADMIN';
   return NAV_ITEMS.filter((item) => {
+    if (item.alwaysVisible) return true;
     if (item.superOnly) return isFullAccess;
     if (item.manageLeadsOnly && !crmAccess?.manageLeads) return false;
     if (isFullAccess) return true;
     const keys = item.resources ?? (item.resource ? [item.resource] : []);
     return keys.some((key) => Boolean(permissions?.[key]));
-  }).map(({ resource, resources, fallbackHref, superOnly, manageLeadsOnly, ...navItem }) => ({
+  }).map(({ resource, resources, fallbackHref, superOnly, manageLeadsOnly, alwaysVisible, ...navItem }) => ({
     ...navItem,
     // Compte restreint sans droit sur le premier volet : on entre par l'autre.
     href: !isFullAccess && fallbackHref && resources && !permissions?.[resources[0]] ? fallbackHref : navItem.href,

@@ -128,7 +128,7 @@ export function AdminShell({ children, navItems }: { children: React.ReactNode; 
   return (
     <div className="flex min-h-screen bg-brand-paper">
       {/* Sidebar desktop */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-ink-900/8 bg-white md:flex">
+      <aside className="sticky top-0 z-40 hidden h-screen w-64 shrink-0 flex-col border-r border-ink-900/8 bg-white md:flex">
         <div className="flex h-16 items-center justify-between border-b border-ink-900/8 pl-6 pr-3">
           <Logo />
           <NotificationBell client={adminApi} scope="admin" align="left" />

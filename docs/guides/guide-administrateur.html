@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide de l’administrateur — IN NETWORK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Guide d’utilisation · IN NETWORK</div>
+    <h1>Guide de l’administrateur</h1>
+    <p>Tout ce qu’il faut pour piloter la plateforme : créer l’équipe et régler ses accès, comprendre le parcours d’un client du premier contact jusqu’à la facture, gérer le catalogue et le contenu du site.</p>
+    <div class="meta">
+      <span class="chip">Pour : Super administrateur et Administrateur</span>
+      <span class="chip">Accès : <strong>/admin</strong></span>
+      <span class="chip">Lecture : ~25 min</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Sommaire">
+  <strong>Sommaire</strong>
+  <ol>
+    <li><a href="#role">1 · Votre rôle</a></li>
+    <li><a href="#premiers-pas">2 · Premiers pas</a></li>
+    <li><a href="#equipe">3 · Créer l’équipe et ses accès</a></li>
+    <li><a href="#qui-voit-quoi">4 · Qui voit quoi ?</a></li>
+    <li><a href="#parcours">5 · Le parcours d’un client</a></li>
+    <li><a href="#pilotage">6 · Piloter l’activité</a></li>
+    <li><a href="#contenu">7 · Catalogue, tarifs et contenu</a></li>
+    <li><a href="#communaute">8 · Membres, entreprises, réservations</a></li>
+    <li><a href="#technique">9 · Réglages techniques</a></li>
+    <li><a href="#securite">10 · Sécurité et bonnes pratiques</a></li>
+    <li><a href="#faq">11 · Problèmes fréquents</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="role">
+  <h2><span class="n">1</span> Votre rôle</h2>
+  <p class="lead">Vous avez accès à tout le back-office. C’est vous qui décidez ce que chaque membre de l’équipe voit et peut modifier.</p>
+  <table>
+    <thead><tr><th>Rôle</th><th>Ce qu’il peut faire</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Super administrateur</strong></td><td>Tout, y compris <strong>créer des administrateurs</strong>. Son compte ne peut être ni modifié ni supprimé depuis l’interface.</td></tr>
+      <tr><td><strong>Administrateur</strong></td><td>Tous les blocs du back-office, et la gestion des utilisateurs système (rôles Responsable commercial, Commercial, Office Manager). Il ne peut pas créer d’autre administrateur.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout rule"><p>Les autres rôles (Office Manager, Responsable commercial, Commercial) n’ont <strong>aucun accès par défaut</strong> à ce que vous ne leur avez pas accordé. Seuls les administrateurs voient « Utilisateurs système ».</p></div>
+</section>
+
+<section id="premiers-pas">
+  <h2><span class="n">2</span> Premiers pas</h2>
+  <p class="lead">Connexion, mot de passe, notifications et recherche rapide.</p>
+  <ol class="steps">
+    <li><strong>Connectez-vous</strong> sur <code>votre-site/admin</code> avec votre email et votre mot de passe. La session du back-office est <em>indépendante</em> de celle du site : vous pouvez être connecté aux deux en même temps.</li>
+    <li><strong>Changez votre mot de passe</strong> si c’est une première connexion : menu <em>Système → Mon compte</em> (au moins 8 caractères). Cette page existe pour tous les comptes du back-office.</li>
+    <li><strong>Repérez la cloche</strong> 🔔 en haut de la barre latérale : elle signale les nouveaux leads, les messages et les alertes. Un clic sur une notification ouvre directement la bonne page.</li>
+    <li><strong>Essayez la recherche rapide</strong> : <kbd>Ctrl</kbd> + <kbd>K</kbd> (ou <kbd>⌘</kbd> + <kbd>K</kbd>) cherche un lead, un devis ou une facture par nom, société ou numéro.</li>
+  </ol>
+  <figure>
+    <img src="img/cloche.jpg" alt="Cloche de notifications ouverte dans la barre latérale">
+    <figcaption>La cloche : chaque nouveau lead ou lead assigné apparaît ici, avec un lien direct.</figcaption>
+  </figure>
+  <h3>Le menu, section par section</h3>
+  <table>
+    <thead><tr><th>Section</th><th>Contenu</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Pilotage</strong></td><td>Vue d’ensemble, Validations (tout ce qui attend une décision), Statistiques.</td></tr>
+      <tr><td><strong>Commercial</strong></td><td>Tableau commercial, Leads à traiter, Pipeline, Agenda, Activité, Devis, Factures, Lancement des services, Paiements.</td></tr>
+      <tr><td><strong>Sources des leads</strong></td><td>Demandes de devis du site et Messages de contact : les « boîtes de réception » d’où naissent des leads.</td></tr>
+      <tr><td><strong>Communauté</strong></td><td>Membres, Entreprises, Réservations, Événements, Experts, Partenaires, Témoignages.</td></tr>
+      <tr><td><strong>Catalogue &amp; site</strong></td><td>Services &amp; tarifs, Galerie du lieu.</td></tr>
+      <tr><td><strong>Système</strong></td><td>Mon compte (pour tous : mot de passe) et Utilisateurs système (administrateurs uniquement).</td></tr>
+    </tbody>
+  </table>
+  <div class="callout tip"><p>Un menu n’apparaît que si le compte y a droit. Si un collègue dit « je ne vois pas telle page », c’est presque toujours une question de droits : voir la section suivante.</p></div>
+</section>
+
+<section id="equipe">
+  <h2><span class="n">3</span> Créer l’équipe et régler ses accès</h2>
+  <p class="lead">Menu <strong>Système → Utilisateurs système</strong>. La création se fait en trois étapes : qui, quel rôle, quels accès.</p>
+
+  <h3>Créer un utilisateur</h3>
+  <ol class="steps">
+    <li><strong>Cliquez sur « Ajouter un utilisateur »</strong>, puis renseignez le nom affiché, l’email professionnel (c’est l’identifiant de connexion) et, si vous le souhaitez, le téléphone.</li>
+    <li><strong>Choisissez le rôle</strong> en cliquant sur l’une des quatre cartes : chacune résume ce que la personne verra et pourra faire.</li>
+    <li><strong>Ajustez les accès</strong> bloc par bloc. Les droits du rôle sont préremplis ; le bouton « Revenir aux droits par défaut » les rétablit.</li>
+    <li><strong>Cliquez sur « Créer et envoyer les accès »</strong> : un mot de passe est généré et envoyé par email à la personne. Vous ne le voyez jamais.</li>
+  </ol>
+  <figure>
+    <img src="img/creation-utilisateur.jpg" alt="Formulaire de création d’un utilisateur système, étapes 1 et 2">
+    <figcaption>Étapes 1 et 2 : l’identité, puis le rôle sous forme de cartes explicites.</figcaption>
+  </figure>
+
+  <h3>Les quatre rôles</h3>
+  <table>
+    <thead><tr><th>Rôle</th><th>Pour qui ?</th><th>Ce qu’il fait</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge b-violet">Responsable commercial</span></td><td>Le chef de l’équipe commerciale</td><td>Qualifie et valide les leads entrants, les assigne à ses commerciaux, voit tous les leads, devis et rendez-vous.</td></tr>
+      <tr><td><span class="badge b-blue">Commercial</span></td><td>Les vendeurs</td><td>Ne voit <strong>que les leads qui lui sont assignés</strong> (et leurs devis, factures, rendez-vous, journal). Ne valide ni n’assigne.</td></tr>
+      <tr><td><span class="badge b-amber">Office Manager</span></td><td>La gestion administrative du lieu</td><td>Accède aux blocs que vous cochez. Voit tous les leads du CRM et peut les qualifier et les assigner dès qu’il a accès au CRM. Pas d’accès aux utilisateurs système.</td></tr>
+      <tr><td><span class="badge b-orange">Administrateur</span></td><td>Direction, responsable technique</td><td>Accès total. Ne peut être créé que par un super administrateur.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Régler les accès : Aucun, Lecture ou Modification</h3>
+  <p>Pour chaque bloc (Membres, Devis, Événements…), choisissez :</p>
+  <ul>
+    <li><strong>Aucun</strong> : le menu n’apparaît pas et l’API refuse l’accès.</li>
+    <li><strong>Lecture</strong> : la personne consulte, sans rien modifier.</li>
+    <li><strong>Modification</strong> : elle consulte et modifie.</li>
+  </ul>
+  <p>Les blocs sont regroupés par thème (Pilotage, Commercial, Communauté, Catalogue &amp; site) ; les boutons « Tout en lecture » et « Tout retirer » de chaque groupe font gagner du temps.</p>
+  <figure>
+    <img src="img/creation-utilisateur-acces.jpg" alt="Étape 3 : matrice d’accès par bloc avec contrôles Aucun, Lecture, Modification">
+    <figcaption>Étape 3 : les accès. Le récapitulatif en bas rappelle le rôle choisi et le nombre de blocs accordés.</figcaption>
+  </figure>
+
+  <h4>Deux droits particuliers du CRM</h4>
+  <p>Ce ne sont pas des blocs mais des cases à cocher :</p>
+  <ul>
+    <li><strong>« Voir les leads de toute l’équipe »</strong> : sans elle, un compte ne voit que ses leads assignés.</li>
+    <li><strong>« Qualifier, valider et assigner les leads »</strong> : réservé en principe au responsable commercial.</li>
+  </ul>
+  <p>Le Responsable commercial et l’Office Manager ont ces deux droits d’office dès qu’ils ont accès au CRM. Pour qu’un <em>commercial</em> exceptionnel voie toute l’équipe, cochez simplement la première case.</p>
+
+  <h3>Modifier un compte existant</h3>
+  <ul>
+    <li><strong>Gérer les accès</strong> : ouvre les cartes de rôle et la matrice. Changer de rôle remplace les droits par ceux du rôle (une confirmation est demandée), puis vous pouvez les ajuster.</li>
+    <li><strong>Mot de passe</strong> : envoie un nouveau mot de passe par email et déconnecte les sessions ouvertes.</li>
+    <li><strong>Désactiver / Réactiver</strong> : la personne ne peut plus se connecter, sans perdre son historique. À privilégier au départ d’un collaborateur.</li>
+    <li><strong>Corbeille</strong> : suppression définitive (à réserver aux comptes créés par erreur).</li>
+  </ul>
+  <div class="callout rule"><p>Vous ne pouvez pas modifier ni supprimer <strong>votre propre compte</strong>, ni celui d’un super administrateur, depuis cet écran. Seul un super administrateur peut créer ou promouvoir un administrateur.</p></div>
+</section>
+
+<section id="qui-voit-quoi">
+  <h2><span class="n">4</span> Qui voit quoi ?</h2>
+  <p class="lead">Résumé du comportement par défaut. Vous pouvez toujours ajuster compte par compte.</p>
+  <table>
+    <thead><tr><th>Fonction</th><th>Admin</th><th>Office Manager</th><th>Resp. commercial</th><th>Commercial</th></tr></thead>
+    <tbody>
+      <tr><td>Voir tous les leads</td><td class="yes">Oui</td><td class="yes">Oui</td><td class="yes">Oui</td><td class="no">Ses leads seulement</td></tr>
+      <tr><td>Qualifier, valider, assigner</td><td class="yes">Oui</td><td class="yes">Oui (si accès CRM)</td><td class="yes">Oui</td><td class="no">Non</td></tr>
+      <tr><td>Créer devis et rendez-vous</td><td class="yes">Oui</td><td>Selon droits « Devis »</td><td class="yes">Oui</td><td class="yes">Sur ses leads</td></tr>
+      <tr><td>Factures, lancement des services</td><td class="yes">Oui</td><td>Selon droits</td><td>Lecture par défaut</td><td class="no">Non par défaut</td></tr>
+      <tr><td>Modèles de devis, automatisations</td><td class="yes">Oui</td><td class="yes">Oui</td><td class="yes">Oui</td><td class="no">Non</td></tr>
+      <tr><td>Membres, événements, galerie…</td><td class="yes">Oui</td><td>Selon droits</td><td class="no">Non par défaut</td><td class="no">Non</td></tr>
+      <tr><td>Utilisateurs système</td><td class="yes">Oui</td><td class="no">Non</td><td class="no">Non</td><td class="no">Non</td></tr>
+    </tbody>
+  </table>
+  <p>Le cloisonnement est appliqué par le serveur, pas seulement par l’interface : un commercial qui tente d’ouvrir le lead d’un collègue obtient « introuvable ».</p>
+</section>
+
+<section id="parcours">
+  <h2><span class="n">5</span> Le parcours d’un client, de bout en bout</h2>
+  <p class="lead">Un seul flux, du premier contact à la facture. Comprendre ce schéma, c’est comprendre toute la plateforme.</p>
+
+  <div class="flow">
+    <span class="stage badge b-blue">À qualifier</span><span class="arrow">→</span>
+    <span class="stage badge b-amber">À assigner</span><span class="arrow">→</span>
+    <span class="stage badge b-violet">Assigné</span><span class="arrow">→</span>
+    <span class="stage badge b-ink">Contacté</span><span class="arrow">→</span>
+    <span class="stage badge b-orange">Devis envoyé</span><span class="arrow">→</span>
+    <span class="stage badge b-green">Gagné</span><span class="arrow">/</span>
+    <span class="stage badge b-gray">Perdu</span>
+  </div>
+
+  <h3>1. D’où viennent les leads ?</h3>
+  <p>Trois sources alimentent automatiquement le CRM. Chacune crée un lead « À qualifier » et <strong>prévient le responsable commercial</strong> par une notification :</p>
+  <ul>
+    <li><strong>Inscription</strong> d’un membre sur le site (« Devenir membre »).</li>
+    <li><strong>Demande de devis</strong> envoyée depuis le site ou depuis l’espace membre (le panier « Ma demande »).</li>
+    <li><strong>Formulaire de contact</strong>.</li>
+  </ul>
+  <p>On peut aussi créer un lead à la main (appel, visite, recommandation) avec « Nouveau lead ».</p>
+
+  <h3>2. Qualification et validation</h3>
+  <p>Le responsable commercial ouvre <strong>Leads à traiter</strong>, clique sur « Qualifier » : il note la température (froid / tiède / chaud), le besoin, le budget, le décideur et le délai, puis valide ou écarte (avec un motif).</p>
+  <div class="callout ok"><p><strong>Pour une inscription, qualifier = valider le compte du membre.</strong> Une case « Valider aussi le compte membre » (cochée par défaut) déverrouille son espace et le prévient. À l’inverse, valider un compte depuis la page <em>Validations</em> fait passer son lead d’inscription à « À assigner ». C’est un seul geste, pas deux.</p></div>
+
+  <h3>3. Assignation et suivi</h3>
+  <p>Le lead validé est assigné à un commercial (avec la charge de chacun affichée pour répartir équitablement). Le commercial le travaille : appels, rendez-vous, notes. Dès son premier appel, email, réunion ou visite, le lead passe automatiquement à « Contacté ».</p>
+
+  <h3>4. Devis, facture, paiement, lancement</h3>
+  <ol class="steps">
+    <li><strong>Devis</strong> créé depuis la fiche du lead (vierge, pré-rempli avec la demande du site, ou depuis un modèle). À l’envoi, le client reçoit le PDF par email et le lead passe « Devis envoyé ». Sans réponse, il est relancé automatiquement.</li>
+    <li><strong>Facture</strong> créée depuis un devis accepté. Le numéro (FA-AAAA-0001…) n’est attribué qu’à l’<em>émission</em>, ce qui garantit une suite sans trou. Une facture émise n’est plus modifiable, seulement annulable avec un motif.</li>
+    <li><strong>Paiement</strong> enregistré (virement, espèces, chèque, carte). Le lead passe « Gagné ».</li>
+    <li><strong>Lancement du service</strong> : le paiement crée une commande de service par ligne de facture, avec sa checklist. Une ligne « formule d’abonnement » active en plus l’abonnement du membre.</li>
+  </ol>
+  <p>Côté membre, tant que son compte n’est pas validé, il ne voit que « Situation du compte » (devis, envoi du reçu de paiement). Quand il envoie un reçu, il apparaît dans <strong>Validations → Justificatifs de paiement</strong> : on l’accepte (en option : enregistrer le paiement et valider le compte) ou on le refuse avec un motif.</p>
+  <div class="callout warn"><p>Les identifiants légaux (NIF, RC, AI, NIS, RIB) figurent sur les devis et factures uniquement s’ils sont renseignés dans la configuration (section 9). Tant qu’ils sont vides, ils n’apparaissent pas : ne jamais les inventer.</p></div>
+</section>
+
+<section id="pilotage">
+  <h2><span class="n">6</span> Piloter l’activité</h2>
+  <p class="lead">Où regarder pour savoir si tout avance.</p>
+  <figure>
+    <img src="img/tableau-commercial.jpg" alt="Tableau commercial avec indicateurs et entonnoir">
+    <figcaption>Tableau commercial : leads à qualifier / à assigner, encaissements, devis en attente, rendez-vous, actions en retard.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Vue d’ensemble</strong> : membres, abonnements, réservations, revenu, et résumé de la chaîne commerciale.</li>
+    <li><strong>Tableau commercial</strong> : indicateurs clés, entonnoir par étape, leads par commercial, encaissements sur 6 mois. Un commercial n’y voit que ses propres chiffres.</li>
+    <li><strong>Activité</strong> : le journal de l’équipe (appels, visites, emails, notes) par jour : c’est le reporting quotidien.</li>
+    <li><strong>Statistiques</strong> : inscriptions et réservations dans le temps.</li>
+  </ul>
+  <h3>Les automatisations (chaque heure)</h3>
+  <table>
+    <thead><tr><th>Règle</th><th>Comportement</th></tr></thead>
+    <tbody>
+      <tr><td>Devis sans réponse</td><td>Relance par email au client tous les 3 jours, 2 fois maximum. Un devis dont la validité est dépassée passe « Expiré ».</td></tr>
+      <tr><td>Factures échues</td><td>Rappel de paiement au client chaque semaine, 3 fois maximum.</td></tr>
+      <tr><td>Action à mener</td><td>Alerte au commercial quand la « prochaine action » d’un lead arrive à échéance.</td></tr>
+      <tr><td>Lead dormant</td><td>Alerte après 7 jours sans activité.</td></tr>
+      <tr><td>Rendez-vous</td><td>Rappel dans les 24 heures.</td></tr>
+    </tbody>
+  </table>
+  <p>Le bouton « Exécuter maintenant » du Tableau commercial les lance à la demande (réservé aux comptes qui gèrent les leads).</p>
+</section>
+
+<section id="contenu">
+  <h2><span class="n">7</span> Catalogue, tarifs et contenu du site</h2>
+  <p class="lead">Ce que vous modifiez ici se voit tout de suite sur le site public.</p>
+  <h3>Services &amp; tarifs</h3>
+  <p>Menu <strong>Catalogue &amp; site → Services &amp; tarifs</strong>, avec deux vues :</p>
+  <ul>
+    <li><strong>Catalogue de services</strong> : créer ou modifier un service (titre, catégorie, description, prix). Un service peut avoir plusieurs <em>paliers</em> de prix (ex. WORK / NET / NETWORK) ou être « sur devis » (sans prix).</li>
+    <li><strong>Formules et salles</strong> : formules d’abonnement (mensuelles, annuelles), bureaux, salles de réunion avec leurs tarifs membre et externe.</li>
+  </ul>
+  <figure>
+    <img src="img/services-tarifs.jpg" alt="Page Services & tarifs du back-office">
+    <figcaption>Le catalogue : chaque service peut être activé, masqué ou modifié.</figcaption>
+  </figure>
+  <div class="callout tip"><p>Pour retirer une offre du site sans perdre l’historique des devis qui la citent, <strong>masquez-la</strong> au lieu de la supprimer.</p></div>
+  <h3>Autres contenus</h3>
+  <table>
+    <thead><tr><th>Menu</th><th>À quoi ça sert</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Événements</strong></td><td>Créer en brouillon, puis <em>Publier</em> (visible sur le site) ; <em>Archiver</em> pour les passés. Types : IN EVENT (interne), externe, co-organisé. Visuel de couverture et vidéo récap possibles.</td></tr>
+      <tr><td><strong>Experts</strong></td><td>Fiches de l’annuaire d’experts publié sur le site.</td></tr>
+      <tr><td><strong>Partenaires</strong></td><td>Fiches publiées sur la page Partenaires (logo, secteur, description). Une fiche non publiée reste masquée.</td></tr>
+      <tr><td><strong>Témoignages</strong></td><td>Avis de membres, texte et/ou vidéo, publiés sur le site.</td></tr>
+      <tr><td><strong>Galerie du lieu</strong></td><td>Photos et vidéos réelles du lieu, par catégorie.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="communaute">
+  <h2><span class="n">8</span> Membres, entreprises, réservations, paiements</h2>
+  <ul>
+    <li><strong>Validations</strong> : nouveaux membres à valider, justificatifs de paiement, événements en attente, demandes de service, virements bancaires.</li>
+    <li><strong>Membres</strong> : liste de tous les comptes ; activer / désactiver ou supprimer un compte.</li>
+    <li><strong>Entreprises</strong> : comptes B2B multi-postes. Vous ajustez le nombre de postes accordés et activez ou désactivez l’entreprise ; le représentant invite ses collaborateurs depuis son espace, dans la limite des postes.</li>
+    <li><strong>Réservations</strong> : confirmer ou annuler les réservations d’espaces et de salles.</li>
+    <li><strong>Paiements</strong> : suivi des paiements, confirmation des virements bancaires.</li>
+    <li><strong>Messages de contact</strong> : lire, répondre par email depuis la page, supprimer. Chaque message a déjà créé un lead (lien affiché).</li>
+  </ul>
+  <div class="callout tip"><p>Le <strong>profil membre</strong> doit être complet (téléphone, poste, entreprise, présentation, un domaine d’activité) pour qu’il puisse commander, réserver ou demander une mise en relation. Si un membre se plaint d’être bloqué, vérifiez d’abord ce point.</p></div>
+</section>
+
+<section id="technique">
+  <h2><span class="n">9</span> Réglages techniques <small style="font-weight:400;color:var(--muted)">(équipe technique)</small></h2>
+  <p class="lead">À confier au responsable technique ; à garder sous la main.</p>
+  <h3>Mise en ligne d’une nouvelle version</h3>
+  <ol class="steps">
+    <li>Sauvegarder la base de données.</li>
+    <li>Côté <code>backend</code> : <code>npm run deploy</code> (applique les migrations, régénère le client de base de données et compile), puis redémarrer le service (PM2).</li>
+    <li>Si le catalogue ou les compétences ont évolué : <code>npm run catalogue:sync</code> (option <code>-- --dry-run</code> pour simuler) et <code>npm run taxonomy:sync</code>. Ces commandes ne suppriment rien.</li>
+    <li>Côté <code>frontend</code> : <code>npm run build</code> puis redémarrer.</li>
+  </ol>
+  <h3>Variables d’environnement utiles (<code>backend/.env</code>)</h3>
+  <table>
+    <thead><tr><th>Variable</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><code>SMTP_*</code>, <code>EMAIL_FROM</code></td><td>Envoi des emails : accès au back-office, devis, factures, relances, validation de compte.</td></tr>
+      <tr><td><code>COMPANY_NAME, COMPANY_ADDRESS, COMPANY_PHONE, COMPANY_EMAIL</code></td><td>Coordonnées imprimées sur les devis et factures.</td></tr>
+      <tr><td><code>COMPANY_NIF, COMPANY_RC, COMPANY_AI, COMPANY_NIS, COMPANY_RIB</code></td><td>Identifiants légaux et bancaires imprimés s’ils sont renseignés. Vides tant que le client ne les a pas fournis.</td></tr>
+      <tr><td><code>CORS_ORIGIN</code>, <code>APP_URL</code></td><td>Adresse du site (autorisation d’appel de l’API, liens dans les emails).</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn"><p>Au premier démarrage, le compte super administrateur créé par le seed porte un mot de passe provisoire : <strong>changez-le immédiatement</strong>.</p></div>
+</section>
+
+<section id="securite">
+  <h2><span class="n">10</span> Sécurité et bonnes pratiques</h2>
+  <ul>
+    <li><strong>Un compte par personne</strong>, jamais de compte partagé : l’historique (« qui a fait quoi ») en dépend.</li>
+    <li><strong>Moindre privilège</strong> : n’accordez « Modification » que là où c’est nécessaire ; la « Lecture » suffit souvent.</li>
+    <li><strong>Départ d’un collaborateur</strong> : désactivez son compte le jour même, puis demandez au responsable commercial de réassigner ses leads ouverts.</li>
+    <li><strong>Mot de passe oublié</strong> : utilisez « Mot de passe » sur sa ligne ; ne communiquez jamais un mot de passe par message.</li>
+    <li><strong>Contenu</strong> : n’affichez que des informations réelles (tarifs, photos, noms). Ne publiez pas de contenu fictif.</li>
+  </ul>
+</section>
+
+<section id="faq">
+  <h2><span class="n">11</span> Problèmes fréquents</h2>
+  <dl class="faq">
+    <dt>Un commercial dit qu’il ne voit aucun lead.</dt>
+    <dd>Normal tant que rien ne lui est assigné : il ne voit que ses leads. Demandez au responsable commercial de lui en assigner (Leads à traiter → À assigner).</dd>
+    <dt>« Leads à traiter » n’apparaît pas dans le menu d’un collaborateur.</dt>
+    <dd>Cette page est réservée aux comptes qui peuvent qualifier et assigner : Responsable commercial, Office Manager avec accès CRM, ou un compte auquel vous avez coché « Qualifier, valider et assigner les leads ».</dd>
+    <dt>Un nouvel utilisateur n’a pas reçu ses accès.</dt>
+    <dd>Vérifiez l’adresse email saisie et le dossier spam ; sinon utilisez « Mot de passe » pour renvoyer un nouveau mot de passe. Si rien ne part, la configuration SMTP du serveur est à contrôler.</dd>
+    <dt>Un membre ne peut pas commander ni réserver.</dt>
+    <dd>Son compte n’est pas encore validé, ou son profil est incomplet (téléphone, poste, entreprise, présentation, domaine d’activité).</dd>
+    <dt>Une facture contient une erreur.</dt>
+    <dd>Une facture émise n’est plus modifiable : annulez-la avec un motif et recréez-en une. Le numéro annulé reste dans la suite.</dd>
+    <dt>Je ne reçois pas les notifications.</dt>
+    <dd>La cloche se met à jour toute seule toutes les 20 secondes. Les alertes de nouveaux leads sont envoyées aux comptes qui peuvent qualifier les leads : vérifiez leurs droits.</dd>
+  </dl>
+</section>
+
+</main>
+</div>
+
+<footer class="doc-footer">IN NETWORK — La Maison IN Groupe · Guide de l’administrateur · À imprimer ou à enregistrer en PDF depuis votre navigateur (Ctrl + P).</footer>
+</body>
+</html>
