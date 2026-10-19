@@ -12,6 +12,14 @@ declare global {
       // Express 4) lève désormais une TypeError à l'exécution. La version
       // validée/coercée par Zod est donc posée ici plutôt que sur req.query.
       validatedQuery?: Record<string, unknown>;
+      // Portée commerciale du compte staff connecté (leads visibles, droit de
+      // qualifier/assigner) — posée par modules/crm/scope.ts (attachScope).
+      scope?: {
+        userId: string;
+        role: Role;
+        allLeads: boolean;
+        manageLeads: boolean;
+      };
     }
   }
 }

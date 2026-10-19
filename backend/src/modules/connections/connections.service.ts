@@ -109,7 +109,7 @@ export async function respondToConnectionRequest(
         userId: request.fromUserId,
         type: 'connection_accepted',
         title: 'Demande de mise en relation acceptée',
-        body: 'Vous pouvez désormais échanger vos coordonnées.',
+        body: 'Vous pouvez désormais discuter dans la messagerie et échanger vos coordonnées.',
       },
     });
   }

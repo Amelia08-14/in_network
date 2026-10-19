@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import PDFDocument from 'pdfkit';
 import { env } from '../../config/env';
 import { amountInWords, formatAmount } from './money';
@@ -40,10 +42,12 @@ export interface PdfDocumentInput {
   paymentInfo?: string | null;
 }
 
-const INK = '#0F1B2E';
-const MUTED = '#5B6577';
+// Couleurs de la charte (Brand Guideline) : violet profond #47295C, orange #D44835.
+const INK = '#47295C';
+const MUTED = '#6B6079';
 const ACCENT = '#D44835';
-const LINE = '#D9DDE3';
+const LINE = '#E2DCE8';
+const LOGO_PATH = path.resolve(__dirname, '../../../assets/logo-in-network.png');
 const MARGIN = 48;
 
 const formatDate = (date: Date) =>
@@ -63,7 +67,13 @@ export function renderDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
     const title = isInvoice ? 'FACTURE' : 'DEVIS';
 
     // --- En-tête : émetteur (gauche) / titre + numéro (droite)
-    doc.fillColor(INK).font('Helvetica-Bold').fontSize(15).text(env.company.name, MARGIN, MARGIN, { width: contentWidth * 0.6 });
+    // Logo officiel (assets/logo-in-network.png, 1400×759) ; repli sur le nom seul s'il manque.
+    let textTop = MARGIN;
+    if (fs.existsSync(LOGO_PATH)) {
+      doc.image(LOGO_PATH, MARGIN, MARGIN, { width: 112 });
+      textTop = MARGIN + 66;
+    }
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(11).text(env.company.name, MARGIN, textTop, { width: contentWidth * 0.6 });
     doc.font('Helvetica').fontSize(9).fillColor(MUTED);
     doc.text(env.company.address, { width: contentWidth * 0.6 });
     doc.text(`${env.company.phone}  ·  ${env.company.email}`, { width: contentWidth * 0.6 });
@@ -74,6 +84,8 @@ export function renderDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
       env.company.nis && `NIS : ${env.company.nis}`,
     ].filter(Boolean);
     if (legal.length) doc.text(legal.join('  ·  '), { width: contentWidth * 0.6 });
+    // Bas du bloc émetteur (le logo l'allonge) : le client commence sous la colonne la plus haute.
+    const issuerBottom = doc.y;
 
     doc.font('Helvetica-Bold').fontSize(22).fillColor(ACCENT).text(title, MARGIN, MARGIN, { width: contentWidth, align: 'right' });
     doc.font('Helvetica-Bold').fontSize(11).fillColor(INK).text(`N° ${input.number}`, { width: contentWidth, align: 'right' });
@@ -84,7 +96,7 @@ export function renderDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
     }
 
     // --- Client
-    let y = Math.max(doc.y, MARGIN + 80) + 24;
+    let y = Math.max(doc.y, issuerBottom, MARGIN + 80) + 24;
     doc.moveTo(MARGIN, y - 10).lineTo(pageWidth - MARGIN, y - 10).strokeColor(LINE).lineWidth(0.8).stroke();
     doc.font('Helvetica-Bold').fontSize(8).fillColor(MUTED).text(isInvoice ? 'FACTURÉ À' : 'DESTINATAIRE', MARGIN, y);
     doc.font('Helvetica-Bold').fontSize(11).fillColor(INK).text(input.customer.company || input.customer.name, MARGIN, y + 13, { width: contentWidth * 0.6 });
@@ -125,7 +137,7 @@ export function renderDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
         y = drawHeader(MARGIN);
         doc.font('Helvetica').fontSize(9.5);
       }
-      if (index % 2 === 1) doc.rect(MARGIN, y, contentWidth, rowHeight).fill('#F5F6F8');
+      if (index % 2 === 1) doc.rect(MARGIN, y, contentWidth, rowHeight).fill('#F6F2F9');
       doc.fillColor(INK);
       doc.text(line.description, cols.desc + 8, y + 7, { width: widths.desc - 8 });
       doc.text(String(line.quantity).replace('.', ','), cols.qty, y + 7, { width: widths.qty, align: 'right' });

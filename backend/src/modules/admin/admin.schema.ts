@@ -79,13 +79,13 @@ export const createSystemUserSchema = z.object({
   email: z.string().trim().toLowerCase().email('Email invalide'),
   displayName: z.string().trim().min(1, 'Le nom est obligatoire').max(120),
   phone: z.string().trim().max(30).optional(),
-  role: z.enum(['ADMIN', 'OFFICE_MANAGER']),
+  role: z.enum(['ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT']),
   permissions: dashboardPermissionsSchema.optional(),
 });
 
 export const updateSystemUserSchema = z.object({
   displayName: z.string().trim().min(1).max(120).optional(),
-  role: z.enum(['ADMIN', 'OFFICE_MANAGER']).optional(),
+  role: z.enum(['ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT']).optional(),
   permissions: dashboardPermissionsSchema.optional(),
   isActive: z.boolean().optional(),
 });

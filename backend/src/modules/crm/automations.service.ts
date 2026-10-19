@@ -21,7 +21,7 @@ export const AUTOMATION_RULES = {
 } as const;
 
 const DAY = 24 * 3600 * 1000;
-const OPEN = ['NEW', 'CONTACTED', 'QUALIFIED', 'QUOTE_SENT'] as const;
+const OPEN = ['NEW', 'QUALIFIED', 'ASSIGNED', 'CONTACTED', 'QUOTE_SENT'] as const;
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char] ?? char);
@@ -44,7 +44,9 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
     dormantAlerts: 0,
     appointmentReminders: 0,
   };
-  const crmStaff = (await listStaffWith('crm')).map((u) => u.id);
+  // Sans commercial assigné (lead à qualifier / à assigner), l'alerte va aux comptes qui
+  // gèrent les leads (responsable commercial…), pas à toute l'équipe.
+  const crmStaff = (await listStaffWith('crm_manage')).map((u) => u.id);
   const audience = (assigneeId: string | null | undefined) => (assigneeId ? [assigneeId] : crmStaff);
 
   // 1. Devis dont la validité est dépassée → expirés.
@@ -142,7 +144,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
   for (const lead of due) {
     if (lead.nextActionAlertedAt && lead.nextActionAlertedAt >= lead.nextActionAt!) continue;
     await prisma.lead.update({ where: { id: lead.id }, data: { nextActionAlertedAt: now } });
-    await notifyUsers(audience(lead.assignedToId), 'lead_followup_due', 'Action à mener', `${lead.reference} — ${lead.title} : l'action prévue est arrivée à échéance.`);
+    await notifyUsers(audience(lead.assignedToId), 'lead_followup_due', 'Action à mener', `${lead.reference} — ${lead.title} : l'action prévue est arrivée à échéance.`, `/admin/crm/leads/${lead.id}`);
     result.followUpAlerts += 1;
   }
 
@@ -157,7 +159,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
   });
   for (const lead of dormant) {
     await prisma.lead.update({ where: { id: lead.id }, data: { dormantAlertedAt: now } });
-    await notifyUsers(audience(lead.assignedToId), 'lead_dormant', 'Lead sans activité', `${lead.reference} — ${lead.title} n'a pas bougé depuis ${AUTOMATION_RULES.dormantLeadAfterDays} jours.`);
+    await notifyUsers(audience(lead.assignedToId), 'lead_dormant', 'Lead sans activité', `${lead.reference} — ${lead.title} n'a pas bougé depuis ${AUTOMATION_RULES.dormantLeadAfterDays} jours.`, `/admin/crm/leads/${lead.id}`);
     result.dormantAlerts += 1;
   }
 

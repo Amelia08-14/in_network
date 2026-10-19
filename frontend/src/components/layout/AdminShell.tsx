@@ -131,7 +131,7 @@ export function AdminShell({ children, navItems }: { children: React.ReactNode; 
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-ink-900/8 bg-white md:flex">
         <div className="flex h-16 items-center justify-between border-b border-ink-900/8 pl-6 pr-3">
           <Logo />
-          <NotificationBell client={adminApi} scope="admin" />
+          <NotificationBell client={adminApi} scope="admin" align="left" />
         </div>
         {canSearch && <SearchButton onClick={() => setSearchOpen(true)} />}
         <AdminNavList navItems={navItems} pathname={pathname} />

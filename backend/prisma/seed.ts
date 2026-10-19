@@ -12,6 +12,7 @@ const heicConvert = require('heic-convert') as (opts: {
 }) => Promise<Buffer>;
 import { env } from '../src/config/env';
 import { syncCatalogue } from './catalogue';
+import { syncTaxonomy } from './taxonomy';
 
 // Migration Prisma 7 : driver adapter obligatoire, même logique que src/lib/prisma.ts.
 const adapter = new PrismaMariaDb(env.databaseUrl);
@@ -133,14 +134,9 @@ async function main() {
   // prisma/catalogue.ts (source unique, partagée avec `npm run catalogue:sync`).
   await syncCatalogue(prisma, { siteId: site.id });
 
-  const skillTags = ['Développement Web', 'Design UI/UX', 'Marketing Digital', 'Comptabilité', 'Droit des affaires', 'Growth Hacking', 'Data Science'];
-  const sectorTags = ['Tech', 'E-commerce', 'Agroalimentaire', 'Santé', 'Éducation', 'Finance'];
-  for (const label of skillTags) {
-    await prisma.tag.upsert({ where: { label }, update: {}, create: { label, category: 'SKILL' } });
-  }
-  for (const label of sectorTags) {
-    await prisma.tag.upsert({ where: { label }, update: {}, create: { label, category: 'SECTOR' } });
-  }
+  // Compétences et domaines d'activité (référentiel long, groupé par famille) :
+  // voir prisma/taxonomy.ts (partagé avec `npm run taxonomy:sync`).
+  await syncTaxonomy(prisma);
 
   // --- Experts réels ("Texte présentation Experts IN Network") ---
   const yacinePhoto = await saveWebp(path.join(REAL_MEDIA_DIR, 'experts/yacine-sameur.jpg'), 'experts', 'yacine-sameur');

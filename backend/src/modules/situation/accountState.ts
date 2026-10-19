@@ -3,7 +3,7 @@ import { prisma } from '../../lib/prisma';
 // « Compte validé » = l'équipe a approuvé le membre (MemberProfile.isPublic,
 // cf. PATCH /api/admin/members/:id/approve et /admin/validations). Tant qu'il ne
 // l'est pas, l'espace membre est verrouillé hors « Situation » et « Mon profil ».
-// - Les comptes staff (ADMIN, OFFICE_MANAGER…) ne sont jamais concernés.
+// - Les comptes staff (ADMIN, OFFICE_MANAGER, rôles commerciaux…) ne sont jamais concernés.
 // - Un collaborateur invité dans une entreprise dont le représentant est
 //   validé est considéré validé : la validation porte sur l'entreprise.
 export async function isAccountValidated(userId: string): Promise<boolean> {

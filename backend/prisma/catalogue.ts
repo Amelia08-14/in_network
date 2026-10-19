@@ -6,6 +6,11 @@ import { Prisma } from '../src/generated/prisma/client';
 // aligne un environnement existant (ex. le VPS) sans rejouer le reste du seed
 // (experts, événements, médias…).
 //
+// Sources : « N°02 - service et tarifs », « Catalogue des services & solutions
+// professionnelles » et « Offre de service commerciale » (dossier features/,
+// 19/10/2026). Les montants sont ceux des documents du client : jamais arrondis
+// ni déduits.
+//
 // Tout est en upsert — rien n'est supprimé, seulement désactivé — donc la
 // fonction est rejouable sans risque sur une base contenant déjà des
 // réservations, abonnements, devis ou demandes.
@@ -76,8 +81,16 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
       price: 10900,
       includedMeetingHours: 0,
       features: [
-        'Boîte aux lettres professionnelle',
+        'Adresse professionnelle à Hydra, Alger',
+        'Boîte aux lettres professionnelle : réception et gestion du courrier',
+        'Attestation de domiciliation',
         'Contrat notarié + bail de location',
+        'Positionnement géographique et communautaire à Hydra',
+        "Accès au réseau et à l'annuaire des membres",
+        "Accès à l'espace 24h/24, 7j/7 sur tous les sites",
+        'Accès aux espaces sur rendez-vous',
+        'Activable en 48 h',
+        "Contrat annuel : 155 652 DA TTC par an",
       ],
     },
     {
@@ -132,6 +145,66 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
       includedMeetingHours: 0,
       features: ['Espace individuel fermé à clés'],
     },
+    // Abonnement annuel (offre 6) : une carte de membre qui donne accès à
+    // l'ensemble de l'écosystème. includedMeetingHours = heures de salle de
+    // réunion PAR MOIS (les formules mensuelles ci-dessus : par semaine).
+    {
+      name: 'Abonnement annuel ACCESS',
+      billingCycle: 'ANNUAL' as const,
+      price: 90000,
+      includedMeetingHours: 2,
+      features: [
+        '60 heures de coworking par mois',
+        '2 heures de salle de réunion par mois',
+        'Accès aux événements et workshops mensuels',
+        'Accès WiFi haut débit',
+        'Accès au réseau de membres IN NETWORK',
+        'Domiciliation disponible en option payante séparée',
+        'Soit 7 500 DA / mois',
+      ],
+    },
+    {
+      name: 'Abonnement annuel PREMIUM',
+      billingCycle: 'ANNUAL' as const,
+      price: 120000,
+      includedMeetingHours: 4,
+      features: [
+        '100 heures de coworking par mois',
+        '4 heures de salle de réunion par mois',
+        'Accès prioritaire aux événements et masterclasses',
+        'Accès WiFi haut débit',
+        'Accès au réseau de membres IN NETWORK',
+        "Profil membre dans l'annuaire communautaire IN NETWORK",
+        'Domiciliation disponible en option payante séparée',
+        'Soit 10 000 DA / mois',
+      ],
+    },
+    {
+      name: 'Abonnement annuel ELITE',
+      billingCycle: 'ANNUAL' as const,
+      price: 189000,
+      includedMeetingHours: 8,
+      features: [
+        'Accès coworking illimité',
+        '8 heures de salle de réunion par mois',
+        'Accès prioritaire à tous les événements avec placement réservé',
+        "Profil membre mis en avant dans l'annuaire communautaire",
+        "Accompagnement trimestriel avec l'équipe IN NETWORK (synergies réseau)",
+        'Domiciliation disponible en option payante séparée',
+        'Soit 15 700 DA / mois',
+      ],
+    },
+    {
+      name: 'Option domiciliation (add-on annuel)',
+      billingCycle: 'ANNUAL' as const,
+      price: 100000,
+      includedMeetingHours: 0,
+      features: [
+        'Domiciliation juridique & fiscale, en complément d’un abonnement annuel',
+        'Tarif mensuel classique : environ 8 000 DA / mois',
+        'Tarif add-on annuel : 100 000 DA / an, soit 55 000 DA économisés',
+      ],
+    },
   ];
   for (const plan of plans) {
     const existingPlan = await prisma.membershipPlan.findFirst({ where: { name: plan.name } });
@@ -161,7 +234,7 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
   interface CatalogSeed {
     slug: string;
     title: string;
-    category: 'SECRETARIAT' | 'ADMINISTRATION' | 'JURIDIQUE' | 'CREATION_ENTREPRISE' | 'COMPTABILITE' | 'MARKETING';
+    category: 'SECRETARIAT' | 'ADMINISTRATION' | 'JURIDIQUE' | 'CREATION_ENTREPRISE' | 'COMPTABILITE' | 'MARKETING' | 'OFFRE' | 'DIASPORA' | 'INCUBATION';
     description: string;
     // Absent = sur devis.
     tiers?: Array<{ label: string; price: number }>;
@@ -219,18 +292,22 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
       slug: 'creation-entreprise',
       title: "Création juridique d'entreprise",
       category: 'CREATION_ENTREPRISE',
-      description: bullets("Une prise en charge complète de la création de votre entreprise, en 9 étapes :", [
-        'Réservation du nom commercial au CNRC',
-        'Signature du bail de location notarié',
-        'Enregistrement des statuts chez le notaire',
-        'Obtention du registre de commerce',
-        "Déclaration d'existence aux impôts",
-        'Immatriculation fiscale (NIF)',
-        'Immatriculation statistique (NIS)',
-        'Affiliation à la CASNOS',
-        "Ouverture d'un compte bancaire",
+      description: bullets("Je délègue : IN NETWORK prend en charge la création de votre entreprise, en 9 étapes. Trois formules selon les étapes confiées :", [
+        '1. Réservation du nom commercial au CNRC',
+        '2. Enregistrement des statuts chez le notaire',
+        '3. Signature du bail de location notarié',
+        "4. Déclaration d'existence aux impôts",
+        "5. Ouverture d'un compte bancaire",
+        '6. Immatriculation fiscale (NIF)',
+        '7. Obtention du registre de commerce',
+        '8. Affiliation à la CASNOS',
+        '9. Immatriculation statistique (NIS)',
       ]),
-      tiers: [{ label: 'Prise en charge complète', price: 100000 }],
+      tiers: [
+        { label: 'Essentiel — étapes 1 à 4', price: 50000 },
+        { label: 'Avancé — étapes 1 à 7', price: 75000 },
+        { label: 'Complet — étapes 1 à 9', price: 100000 },
+      ],
     },
     {
       slug: 'comptabilite',
@@ -293,6 +370,9 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
       category: 'MARKETING',
       description: bullets('Organisation d’événements clés en main.', [
         'Événements corporatifs, culturels et promotionnels',
+        'Location d’espace : terrasse IN NETWORK (jusqu’à 50 personnes)',
+        'Salle de conférence + petite terrasse LMIG (jusqu’à 20 personnes)',
+        'Rooftop IN ART (jusqu’à 50 personnes)',
       ]),
     },
     {
@@ -314,6 +394,133 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
         'Applications mobiles',
         'Intégration de paiements locaux',
       ]),
+    },
+    {
+      slug: 'in-cubator',
+      title: 'IN-CUBATOR — Incubation et accélération',
+      category: 'INCUBATION',
+      description: bullets(
+        'Nos experts vous accompagnent avec un suivi personnalisé, des conseils ciblés et des ateliers concrets pour accélérer votre croissance. Une attention particulière est portée aux PME digitales et aux startups deeptech. Le processus, en 6 étapes :',
+        [
+          '1. Diagnostic et structuration du projet : faire le point sur votre idée et poser des bases solides',
+          '2. Accompagnement personnalisé et accélération : un suivi sur mesure et des conseils ciblés',
+          '3. Phase de test et validation terrain : confronter votre offre à la réalité du marché',
+          '4. Mise en réseau et visibilité : vous connecter aux experts, partenaires et investisseurs',
+          '5. Formations et ateliers pratiques : monter en compétences par la pratique',
+          '6. Lancement et mise en marché : passer de l’idée au premier client',
+        ],
+      ),
+    },
+
+    // --- Offres regroupées par besoin (« Offre de service commerciale ») ---
+    {
+      slug: 'offre-starter',
+      title: 'Offre STARTER — Coworking flexible',
+      category: 'OFFRE',
+      description: bullets('Un espace professionnel, une adresse crédible, une connexion et une communauté — sans engagement long.', [
+        'Pour : freelances, télétravailleurs, indépendants débutants',
+        'Offre valable 2 mois',
+        '« Travaillez comme un professionnel dès demain, sans les contraintes d’un bureau fixe. »',
+      ]),
+      tiers: [
+        { label: 'À la semaine', price: 5000 },
+        { label: 'Au mois', price: 10000 },
+      ],
+    },
+    {
+      slug: 'offre-builder',
+      title: 'Offre BUILDER — Entrepreneur en structuration',
+      category: 'OFFRE',
+      description: bullets('Un guichet unique : espace de travail + adresse juridique.', [
+        'Pour : porteurs de projet, créateurs d’entreprise, consultants',
+        'Une année de domiciliation',
+        '3 mois de coworking inclus, puis -15 % sur les mois suivants',
+        '1 h de conseil avec un expert pour votre projet',
+        '« Lancez votre activité sans perdre de temps sur l’administratif — on s’occupe de tout. »',
+      ]),
+      tiers: [{ label: 'Offre complète', price: 200000 }],
+    },
+    {
+      slug: 'offre-accelerator',
+      title: 'Offre ACCELERATOR — Startup en développement',
+      category: 'OFFRE',
+      description: bullets(
+        'Un environnement complet : espace dédié, accompagnement stratégique, accès aux experts du groupe et au réseau partenaires.',
+        [
+          'Pour : startups early stage, PME digitales — accessible sous label uniquement',
+          'Bureau en open space, accès à l’espace pour 2 personnes 24h/24, 7j/7',
+          '1 h de consulting IN-CUBATOR incluse, puis -20 % sur l’accompagnement',
+          'Accès au réseau et à l’annuaire',
+          '« Votre première vraie structure. »',
+        ],
+      ),
+      tiers: [{ label: 'Par mois', price: 25000 }],
+    },
+    {
+      slug: 'offre-domiciliation-pro',
+      title: 'Offre DOMICILIATION PRO — Adresse juridique et fiscale',
+      category: 'OFFRE',
+      description: bullets('Une adresse professionnelle à Hydra, réception du courrier, attestation de domiciliation — activable en 48 h.', [
+        'Pour : indépendants, e-commerçants, consultants à distance, diaspora',
+        'Formation à la création d’entreprise incluse',
+        '2 jours de bureau en open space inclus, dont 1 h de salle de réunion',
+        'Accès à l’espace 24h/24, 7j/7',
+        '« Une adresse à Hydra pour moins de 400 DA par jour — votre crédibilité à moindre coût. »',
+      ]),
+      tiers: [{ label: 'Par an', price: 160000 }],
+    },
+    {
+      slug: 'offre-evenement-com',
+      title: 'Offre ÉVÉNEMENT & COM — Lancement d’entreprise avec domiciliation',
+      category: 'OFFRE',
+      description: bullets('Une salle d’événement clé en main dans un cadre entrepreneurial premium — avec matériel, accueil et support.', [
+        'Pour : entreprises, e-commerçants, consultants à distance, diaspora',
+        'Domiciliation pendant 1 an incluse',
+        'Demi-journée d’espace événementiel pour le lancement de votre entreprise (terrasse IN NETWORK), collation non incluse',
+        'Couverture digitale de l’événement (pack COM 1) incluse',
+        '-30 % sur les services événementiels',
+      ]),
+      tiers: [{ label: 'Offre complète', price: 250000 }],
+    },
+
+    // --- Entreprendre depuis l'étranger (packs diaspora) ---
+    {
+      slug: 'pack-diaspora-01',
+      title: 'Pack 01 — Domiciliation + atelier de création',
+      category: 'DIASPORA',
+      description: bullets('Pour entreprendre en Algérie depuis l’étranger : une présence légale à Hydra et la maîtrise des étapes de création.', [
+        'Domiciliation annuelle (contrat de location d’une année)',
+        'Workshop création juridique d’entreprise : atelier pratique pour comprendre les étapes de création',
+      ]),
+      tiers: [{ label: 'Pack 01', price: 185652 }],
+    },
+    {
+      slug: 'pack-diaspora-02',
+      title: 'Pack 02 — Domiciliation + création complète',
+      category: 'DIASPORA',
+      description: bullets('Pour entreprendre en Algérie depuis l’étranger : IN NETWORK crée votre entreprise pour vous, sous procuration consulaire.', [
+        'Domiciliation annuelle',
+        'Création juridique d’entreprise (prise en charge complète)',
+      ]),
+      tiers: [{ label: 'Pack 02', price: 255652 }],
+    },
+    {
+      slug: 'pack-diaspora-03',
+      title: 'Pack 03 — Pack 02 + comptabilité + secrétariat',
+      category: 'DIASPORA',
+      description: bullets('Le Pack 02, auquel s’ajoutent :', ['Comptabilité', 'Secrétariat']),
+    },
+    {
+      slug: 'pack-diaspora-04',
+      title: 'Pack 04 — Pack 03 + marketing',
+      category: 'DIASPORA',
+      description: bullets('Le Pack 03, auquel s’ajoute :', ['Marketing']),
+    },
+    {
+      slug: 'pack-diaspora-05',
+      title: 'Pack 05 — Pack 04 + RH et formation',
+      category: 'DIASPORA',
+      description: bullets('Le Pack 04, auquel s’ajoutent :', ['Ressources humaines', 'Formation']),
     },
   ];
 
@@ -349,7 +556,17 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
     {
       name: "Création juridique d'entreprise",
       description: 'Prise en charge complète, 9 étapes',
-      lines: [{ description: "Création juridique d'entreprise — prise en charge complète", unitPrice: 100000, serviceSlug: 'creation-entreprise', tierLabel: 'Prise en charge complète' }],
+      lines: [{ description: "Création juridique d'entreprise — formule Complet (étapes 1 à 9)", unitPrice: 100000, serviceSlug: 'creation-entreprise', tierLabel: 'Complet — étapes 1 à 9' }],
+    },
+    {
+      name: "Création juridique d'entreprise — Essentiel",
+      description: 'Étapes 1 à 4',
+      lines: [{ description: "Création juridique d'entreprise — formule Essentiel (étapes 1 à 4)", unitPrice: 50000, serviceSlug: 'creation-entreprise', tierLabel: 'Essentiel — étapes 1 à 4' }],
+    },
+    {
+      name: "Création juridique d'entreprise — Avancé",
+      description: 'Étapes 1 à 7',
+      lines: [{ description: "Création juridique d'entreprise — formule Avancé (étapes 1 à 7)", unitPrice: 75000, serviceSlug: 'creation-entreprise', tierLabel: 'Avancé — étapes 1 à 7' }],
     },
     {
       name: "Formation à la création d'entreprise",

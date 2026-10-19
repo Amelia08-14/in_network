@@ -52,7 +52,7 @@ const timeAgo = (iso: string) => {
  * Cloche de notifications : nouveaux leads à qualifier, leads assignés, messages,
  * mises en relation… Actualisée toutes les 20 s. Un clic ouvre la page concernée.
  */
-export function NotificationBell({ client, scope, className }: { client: Client; scope: 'admin' | 'member'; className?: string }) {
+export function NotificationBell({ client, scope, align = 'right', className }: { client: Client; scope: 'admin' | 'member'; /** Côté d'où s'ouvre le panneau : `left` dans la barre latérale, `right` dans l'en-tête mobile. */ align?: 'left' | 'right'; className?: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -116,7 +116,7 @@ export function NotificationBell({ client, scope, className }: { client: Client;
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-ink-900/10 bg-white shadow-soft-lg md:left-auto md:right-0 md:max-lg:left-0">
+        <div className={cn('absolute top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-ink-900/10 bg-white shadow-soft-lg', align === 'left' ? 'left-0' : 'right-0')}>
           <div className="flex items-center justify-between border-b border-ink-900/8 px-4 py-3">
             <p className="font-heading text-sm font-bold text-ink-900">Notifications</p>
             {unread > 0 && (

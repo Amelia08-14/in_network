@@ -6,6 +6,7 @@ import { renderDocumentPdf, type PdfDocumentInput } from './documentPdf';
 import { advanceStageTo, logActivity } from './leads.service';
 import { DEFAULT_VAT_RATE, computeTotals, formatAmount } from './money';
 import { nextNumber } from './numbering';
+import { assertLeadAccess, leadScopeWhere, type StaffScope } from './scope';
 import { STAFF_SELECT } from './staff';
 
 // Devis : brouillon → envoyé (PDF par email) → accepté / refusé / expiré.
@@ -43,12 +44,14 @@ function lineData(lines: DocLineInput[]) {
   }));
 }
 
-export async function listQuotes(filter: { status?: string; leadId?: string; search?: string }) {
+export async function listQuotes(filter: { status?: string; leadId?: string; search?: string }, scope?: StaffScope) {
   const search = filter.search?.trim();
+  const scoped = leadScopeWhere(scope);
   return prisma.quote.findMany({
     where: {
       status: filter.status as never,
       leadId: filter.leadId,
+      ...(scoped ? { lead: scoped } : {}),
       ...(search ? { OR: [{ number: { contains: search } }, { lead: { contactName: { contains: search } } }, { lead: { companyName: { contains: search } } }, { lead: { title: { contains: search } } }] } : {}),
     },
     include: { lead: { select: { id: true, reference: true, title: true, contactName: true, companyName: true } } },
@@ -71,7 +74,8 @@ interface TemplateLine {
   tierLabel?: string;
 }
 
-export async function createQuote(input: { leadId: string; templateId?: string }, actorId: string) {
+export async function createQuote(input: { leadId: string; templateId?: string }, actorId: string, scope?: StaffScope) {
+  await assertLeadAccess(scope, input.leadId);
   const lead = await prisma.lead.findUnique({
     where: { id: input.leadId },
     include: { serviceRequest: { include: { items: { orderBy: { createdAt: 'asc' } } } } },

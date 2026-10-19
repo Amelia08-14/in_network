@@ -30,7 +30,9 @@ export const listProfilesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
   search: z.string().optional(),
   memberType: z.nativeEnum(MemberType).optional(),
+  // Secteur d'activité (tag) et compétence proposée : cumulables (ET).
   tag: z.string().optional(),
+  skill: z.string().optional(),
 });
 export type ListProfilesQuery = z.infer<typeof listProfilesQuerySchema>;
 
@@ -40,6 +42,9 @@ export const updateProfileSchema = z.object({
   memberType: z.nativeEnum(MemberType).optional(),
   companyName: optionalText(200),
   jobTitle: optionalText(200),
+  city: optionalText(120),
+  // Téléphone du compte (User.phone) : exigé par la complétion du profil.
+  phone: optionalText(30),
   bio: optionalText(2000),
   avatarUrl: optionalUrl,
   companyLogoUrl: optionalUrl,

@@ -71,10 +71,15 @@ import { adminUpdateCompanySchema } from '../companies/companies.schema';
 
 export const adminRouter = Router();
 
-// Backoffice : ADMIN / SUPER_ADMIN ont un accès total ; OFFICE_MANAGER est
-// admis mais chaque route est filtrée par adminPermission selon
-// User.permissions (demande client 07/09/2026).
-adminRouter.use(requireAuth, requireRole('ADMIN', 'SUPER_ADMIN', 'OFFICE_MANAGER'), adminPermission);
+// Backoffice : ADMIN / SUPER_ADMIN ont un accès total ; OFFICE_MANAGER,
+// SALES_MANAGER (responsable commercial) et SALES_AGENT (commercial) sont admis
+// mais chaque route est filtrée par adminPermission selon User.permissions
+// (demandes client 07/09/2026 et 19/10/2026).
+adminRouter.use(
+  requireAuth,
+  requireRole('ADMIN', 'SUPER_ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT'),
+  adminPermission,
+);
 
 // CRM commercial : leads → devis → factures → lancement des services
 // (demande client 20/09/2026). Filtrés par adminPermission ci-dessus.
@@ -87,7 +92,7 @@ adminRouter.use('/payment-proofs', paymentProofsAdminRouter);
 
 // --- Utilisateurs système (équipe backoffice) — ADMIN / SUPER_ADMIN only,
 // garanti par adminPermission qui refuse la ressource system_users aux
-// OFFICE_MANAGER. Création d'un ADMIN réservée au SUPER_ADMIN (cf. service).
+// comptes à droits bornés (office manager, rôles commerciaux). Création d'un ADMIN réservée au SUPER_ADMIN (cf. service).
 adminRouter.get(
   '/system-users',
   asyncHandler(async (_req, res) => {
@@ -599,7 +604,8 @@ adminRouter.get(
     const [total, requests] = await Promise.all([
       prisma.serviceRequest.count(),
       prisma.serviceRequest.findMany({
-        include: { user: { select: SAFE_USER_SELECT }, items: { orderBy: { createdAt: 'asc' } } },
+        // `lead` : chaque demande alimente le CRM, on renvoie vers sa fiche.
+        include: { user: { select: SAFE_USER_SELECT }, items: { orderBy: { createdAt: 'asc' } }, lead: { select: { id: true, reference: true, stage: true } } },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -793,6 +799,7 @@ adminRouter.get(
     const [total, messages] = await Promise.all([
       prisma.contactMessage.count(),
       prisma.contactMessage.findMany({
+        include: { lead: { select: { id: true, reference: true, stage: true } } },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,

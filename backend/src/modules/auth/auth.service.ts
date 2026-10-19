@@ -1,3 +1,4 @@
+import { hasResourceAccess, isStaffRole, parsePermissions } from '../admin/permissions';
 import { prisma } from '../../lib/prisma';
 import { hashPassword, comparePassword } from '../../lib/password';
 import {
@@ -43,6 +44,15 @@ export async function companyForUser(userId: string) {
   return { ...row.company, isOwner: Boolean(row.ownedCompany) };
 }
 
+function crmAccessFor(role: string, permissions: unknown) {
+  if (!isStaffRole(role)) return null;
+  const perms = parsePermissions(permissions);
+  return {
+    allLeads: hasResourceAccess(role, perms, 'crm_all'),
+    manageLeads: hasResourceAccess(role, perms, 'crm_manage'),
+  };
+}
+
 async function publicUser(user: {
   id: string;
   email: string;
@@ -58,6 +68,9 @@ async function publicUser(user: {
     emailVerified: Boolean(user.emailVerified),
     permissions: user.permissions ?? null,
     displayName: user.displayName ?? null,
+    // Portée commerciale (voir toute l'équipe / qualifier et assigner) : l'interface
+    // du back-office s'en sert pour adapter les écrans, le serveur l'applique de toute façon.
+    crmAccess: crmAccessFor(user.role, user.permissions),
     company: await companyForUser(user.id),
     // Compte validé par l'équipe ? Sinon l'espace membre est verrouillé (Situation).
     validated: user.role === 'MEMBER' ? await isAccountValidated(user.id) : true,
@@ -169,7 +182,7 @@ export async function adminLogin(input: LoginInput) {
   const validPassword = await comparePassword(input.password, user.passwordHash);
   if (!validPassword) throw ApiError.unauthorized('Email ou mot de passe incorrect');
 
-  if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN' && user.role !== 'OFFICE_MANAGER') {
+  if (!isStaffRole(user.role)) {
     throw ApiError.forbidden('Ce compte ne dispose pas des droits administrateur');
   }
 
@@ -354,6 +367,7 @@ export async function getMe(userId: string) {
   const { passwordHash, emailVerifyToken, passwordResetToken, ...safe } = user;
   return {
     ...safe,
+    crmAccess: crmAccessFor(user.role, user.permissions),
     company: await companyForUser(userId),
     validated: user.role === 'MEMBER' ? await isAccountValidated(userId) : true,
   };

@@ -33,7 +33,7 @@ moteur de matching, plan de phases) suit fidèlement le CDC :
 | Auth | NextAuth v5 | JWT maison (access + refresh) | NextAuth suppose un monolithe Next.js |
 | Hébergement | Vercel + Neon/Supabase | VPS (Nginx + PM2) | Déploiement VPS demandé |
 
-Le schéma de données, le RBAC (SUPER_ADMIN/ADMIN/MEMBER), le moteur de matching par règles (§8 du
+Le schéma de données, le RBAC (SUPER_ADMIN/ADMIN/OFFICE_MANAGER/SALES_MANAGER/SALES_AGENT/MEMBER — les rôles back-office autres qu'ADMIN sont bornés par des permissions par bloc ; un SALES_AGENT ne voit que ses leads assignés), le moteur de matching par règles (§8 du
 CDC) et le découpage des modules restent identiques à la spécification.
 
 ## Ce qui est livré dans ce scaffold
@@ -41,7 +41,7 @@ CDC) et le découpage des modules restent identiques à la spécification.
 Fondations complètes et fonctionnelles (Phase 0 + Phase 1 du plan de développement §13 du CDC), plus
 une bonne partie des phases suivantes déjà câblées :
 
-- Design system Tailwind (palette "Corporate épuré" navy+orange, typographie Montserrat + Plus Jakarta Sans, tokens) — remplace la proposition initiale Roboto Slab + Helvetica du CDC §3
+- Design system Tailwind aligné sur la **Brand Guideline** du client (`features/Brand Guideline IN NEt.pdf`) : violet profond #47295C (ancre : texte et surfaces sombres), violet #964594, bleu #235BA8, orange #D44835 (CTA) + secondaires sauge / jaune / vert / gris ; typographie Roboto Slab (titres, via next/font) + pile Helvetica (corps) ; vrai logo détouré (`public/logo-in-network*.png`, variante blanche pour fonds sombres) — tokens dans `frontend/src/app/globals.css`
 - Schéma Prisma complet (tous les modèles du CDC §4, adaptés MySQL)
 - Auth JWT (inscription, connexion, vérification email, mot de passe oublié, RBAC)
 - Annuaire des membres avec visibilité public/membre différenciée (CDC §6.2)

@@ -9,23 +9,26 @@ import { validate } from '../../middleware/validate';
 const querySchema = z.object({
   category: z.nativeEnum(TagCategory).optional(),
   search: z.string().optional(),
+  // all=1 : tout le référentiel (sélecteur groupé du profil), sans plafond de 50.
+  all: z.enum(['1', 'true']).optional(),
 });
 
 export const tagsRouter = Router();
 
-// Autocomplete pour les champs de compétences/secteurs (wizard, filtres annuaire)
+// Compétences / secteurs : autocomplete, filtres de l'annuaire et référentiel
+// complet groupé par famille pour le sélecteur du profil (cf. prisma/taxonomy.ts).
 tagsRouter.get(
   '/',
   validate({ query: querySchema }),
   asyncHandler(async (req, res) => {
-    const { category, search } = req.validatedQuery as z.infer<typeof querySchema>;
+    const { category, search, all } = req.validatedQuery as z.infer<typeof querySchema>;
     const tags = await prisma.tag.findMany({
       where: {
         ...(category ? { category } : {}),
         ...(search ? { label: { contains: search } } : {}),
       },
-      orderBy: { label: 'asc' },
-      take: 50,
+      orderBy: [{ group: 'asc' }, { label: 'asc' }],
+      take: all ? 1500 : 50,
     });
     ok(res, tags);
   }),

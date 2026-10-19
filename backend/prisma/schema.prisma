@@ -29,6 +29,12 @@ enum Role {
   // backoffice borné par User.permissions (lecture/écriture par bloc). Créé
   // depuis /admin/compte (« Utilisateurs système ») par un SUPER_ADMIN.
   OFFICE_MANAGER
+  // Équipe commerciale (demande client 19/10/2026). Comme OFFICE_MANAGER, leurs
+  // accès au backoffice sont bornés par User.permissions. Le responsable
+  // commercial qualifie/valide les leads et les assigne ; un commercial ne voit
+  // que les leads qui lui sont assignés (cf. crm/scope.ts).
+  SALES_MANAGER
+  SALES_AGENT
   MEMBER
 }
 
@@ -90,6 +96,11 @@ enum ServiceCategory {
   JURIDIQUE
   MARKETING
   SECRETARIAT
+  // Offres regroupées par besoin (Starter, Builder…), packs diaspora et
+  // incubateur — catalogue « Offre de service commerciale » (19/10/2026).
+  OFFRE
+  DIASPORA
+  INCUBATION
   AUTRE
 }
 
@@ -213,10 +224,12 @@ model User {
   refreshTokens              RefreshToken[]
   sentConnectionRequests     ConnectionRequest[]       @relation("SentRequests")
   receivedConnectionRequests ConnectionRequest[]       @relation("ReceivedRequests")
+  sentMessages               Message[]                 @relation("MessageSender")
   suggestionsFor             ConnectionSuggestion[]    @relation("SuggestionOwner")
   suggestionsAs              ConnectionSuggestion[]    @relation("SuggestedMember")
   expertConnectionRequests   ExpertConnectionRequest[]
   assignedLeads              Lead[]                    @relation("LeadAssignee")
+  qualifiedLeads             Lead[]                    @relation("LeadQualifier")
   memberLeads                Lead[]                    @relation("LeadMember")
   leadActivities             LeadActivity[]            @relation("ActivityAuthor")
   appointments               Appointment[]             @relation("AppointmentAssignee")
@@ -293,6 +306,8 @@ model MemberProfile {
   // dans l'annuaire et le panneau admin. Toujours parler de « logo », pas de
   // « photo » (demande client 07/09/2026).
   companyLogoUrl String?
+  // Ville / wilaya — localisation affichée dans l'annuaire (brief §4.3).
+  city           String?
   website        String?
   linkedinUrl    String?
   // Faux par défaut : un profil n'apparaît dans l'annuaire qu'après
@@ -571,9 +586,14 @@ model Tag {
   id       String      @id @default(cuid())
   label    String      @unique
   category TagCategory
+  // Famille d'appartenance (« Informatique & digital », « Commerce »…) : sert à
+  // grouper la liste dans le sélecteur de compétences / secteurs. Null pour une
+  // étiquette saisie librement par un membre.
+  group    String?
 
   profileTags ProfileTag[]
 
+  @@index([category, group])
   @@map("tags")
 }
 
@@ -615,11 +635,32 @@ model ConnectionRequest {
   status     ConnectionRequestStatus @default(PENDING)
   createdAt  DateTime                @default(now())
 
-  fromUser User @relation("SentRequests", fields: [fromUserId], references: [id])
-  toUser   User @relation("ReceivedRequests", fields: [toUserId], references: [id])
+  fromUser User      @relation("SentRequests", fields: [fromUserId], references: [id])
+  toUser   User      @relation("ReceivedRequests", fields: [toUserId], references: [id])
+  messages Message[]
 
   @@index([toUserId, status])
   @@map("connection_requests")
+}
+
+// Messagerie entre membres (demande client 19/10/2026) : une mise en relation
+// acceptée ouvre une conversation privée. Le fil de discussion EST la demande
+// acceptée (connectionId) — pas de table « conversation » à synchroniser. Un
+// message est lu quand son destinataire ouvre le fil (readAt).
+model Message {
+  id           String    @id @default(cuid())
+  connectionId String
+  senderId     String
+  body         String    @db.Text
+  readAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  connection ConnectionRequest @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  sender     User              @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId, createdAt])
+  @@index([senderId])
+  @@map("messages")
 }
 
 // ============================================
@@ -718,6 +759,8 @@ model Notification {
   type      String // "booking_confirmed", "new_suggestion", "connection_request", ...
   title     String
   body      String   @db.Text
+  // Page à ouvrir au clic (ex. /admin/crm/leads/<id>) ; null = déduite du type côté interface.
+  href      String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -752,13 +795,30 @@ model ContactMessage {
 // `crm`, `quotes`, `invoices`, `fulfilment` (comptes OFFICE_MANAGER).
 // ============================================
 
+// Parcours d'un lead (demande client 19/10/2026) — un seul flux, sans doublon :
+//   NEW        À qualifier  : lead entrant, en attente de qualification
+//   QUALIFIED  À assigner   : qualifié et validé par le responsable commercial
+//   ASSIGNED   Assigné      : confié à un commercial, à contacter
+//   CONTACTED  Contacté     : premier échange passé
+//   QUOTE_SENT Devis envoyé
+//   WON / LOST
+// L'assignation fait passer QUALIFIED → ASSIGNED (et l'inverse si on retire le
+// commercial) ; un lead NEW ne peut pas être assigné avant d'être qualifié.
 enum LeadStage {
   NEW
-  CONTACTED
   QUALIFIED
+  ASSIGNED
+  CONTACTED
   QUOTE_SENT
   WON
   LOST
+}
+
+// Température du lead, posée à la qualification.
+enum LeadPriority {
+  COLD
+  WARM
+  HOT
 }
 
 enum LeadSource {
@@ -847,6 +907,13 @@ model Lead {
   expectedAmount      Decimal?   @db.Decimal(12, 2)
   notes               String?    @db.Text
   lostReason          String?
+  // Qualification (responsable commercial) : besoin, budget, décideur, délai,
+  // température. validatedAt/validatedById = validation du lead.
+  priority            LeadPriority?
+  qualification       Json?
+  qualifiedAt         DateTime?
+  qualifiedById       String?
+  assignedAt          DateTime?
   nextActionAt        DateTime?
   // Automatisations : horodatage de la dernière alerte envoyée, pour ne pas
   // notifier en boucle (cf. crm/automations.service.ts).
@@ -862,6 +929,7 @@ model Lead {
   updatedAt           DateTime   @updatedAt
 
   assignedTo     User?           @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  qualifiedBy    User?           @relation("LeadQualifier", fields: [qualifiedById], references: [id], onDelete: SetNull)
   user           User?           @relation("LeadMember", fields: [userId], references: [id], onDelete: SetNull)
   serviceRequest ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: SetNull)
   contactMessage ContactMessage? @relation(fields: [contactMessageId], references: [id], onDelete: SetNull)

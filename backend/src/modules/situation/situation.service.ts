@@ -221,8 +221,15 @@ export async function approveAccount(userId: string, actorId: string) {
   await prisma.memberProfile.update({ where: { userId }, data: { isPublic: true } });
   await notifyUsers([userId], 'account_validated', 'Votre compte est validé', 'Bienvenue ! Toutes les fonctionnalités de votre espace membre sont maintenant disponibles.');
 
-  const leads = await prisma.lead.findMany({ where: { userId }, select: { id: true } });
-  for (const lead of leads) await logActivity(lead.id, { content: 'Compte membre validé : l’espace du client est déverrouillé.', authorId: actorId });
+  const leads = await prisma.lead.findMany({ where: { userId }, select: { id: true, stage: true, source: true } });
+  for (const lead of leads) {
+    await logActivity(lead.id, { content: 'Compte membre validé : l’espace du client est déverrouillé.', authorId: actorId });
+    // Valider le compte = qualifier l'inscription : le lead passe « À assigner » (prêt pour un commercial).
+    if (lead.source === 'REGISTRATION' && lead.stage === 'NEW') {
+      await prisma.lead.update({ where: { id: lead.id }, data: { stage: 'QUALIFIED', qualifiedAt: new Date(), qualifiedById: actorId } });
+      await logActivity(lead.id, { content: 'Inscription validée avec le compte : le lead passe « À assigner ».', authorId: actorId });
+    }
+  }
 
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
   if (user) {

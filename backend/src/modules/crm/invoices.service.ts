@@ -7,6 +7,7 @@ import { launchServicesForInvoice } from './fulfilment.service';
 import { advanceStageTo, logActivity } from './leads.service';
 import { DEFAULT_VAT_RATE, computeTotals, formatAmount, round2 } from './money';
 import { nextNumber } from './numbering';
+import { leadScopeWhere, type StaffScope } from './scope';
 import { STAFF_SELECT } from './staff';
 import type { DocLineInput } from './quotes.service';
 
@@ -39,12 +40,14 @@ function lineData(lines: DocLineInput[]) {
   }));
 }
 
-export async function listInvoices(filter: { status?: string; leadId?: string; search?: string }) {
+export async function listInvoices(filter: { status?: string; leadId?: string; search?: string }, scope?: StaffScope) {
   const search = filter.search?.trim();
+  const scoped = leadScopeWhere(scope);
   return prisma.invoice.findMany({
     where: {
       status: filter.status as never,
       leadId: filter.leadId,
+      ...(scoped ? { lead: scoped } : {}),
       ...(search ? { OR: [{ number: { contains: search } }, { customerName: { contains: search } }, { customerCompany: { contains: search } }] } : {}),
     },
     include: { lead: { select: { id: true, reference: true } } },

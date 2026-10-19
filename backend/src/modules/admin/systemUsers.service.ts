@@ -3,14 +3,24 @@ import { prisma } from '../../lib/prisma';
 import { hashPassword } from '../../lib/password';
 import { generatePassword, sendCredentialsEmail } from '../../lib/account-provisioning';
 import { ApiError } from '../../utils/apiResponse';
-import { parsePermissions, type DashboardPermissions } from './permissions';
+import {
+  isPermissionBoundRole,
+  parsePermissions,
+  ROLE_PRESETS,
+  STAFF_ROLES as ALL_STAFF_ROLES,
+  type DashboardPermissions,
+  type StaffRole,
+} from './permissions';
 
 // Comptes « Utilisateurs système » (demande client 07/09/2026) : équipe
 // backoffice avec rôles + permissions. Le mot de passe est généré ici et
 // envoyé par email — il n'est jamais choisi par le créateur ni renvoyé en clair
 // dans la réponse API (seulement dans l'email au destinataire).
 
-const STAFF_ROLES: Role[] = ['SUPER_ADMIN', 'ADMIN', 'OFFICE_MANAGER'];
+const STAFF_ROLES: Role[] = [...ALL_STAFF_ROLES];
+
+/** Rôles que l'on peut attribuer depuis /admin/compte (le super admin n'est pas créable ici). */
+export type AssignableRole = Exclude<StaffRole, 'SUPER_ADMIN'>;
 
 const SAFE_SELECT = {
   id: true,
@@ -51,7 +61,7 @@ interface CreateInput {
   email: string;
   displayName: string;
   phone?: string;
-  role: 'ADMIN' | 'OFFICE_MANAGER';
+  role: AssignableRole;
   permissions?: DashboardPermissions;
   actorRole: Role;
 }
@@ -75,7 +85,8 @@ export async function createSystemUser(input: CreateInput) {
       displayName: input.displayName,
       phone: input.phone,
       emailVerified: new Date(),
-      permissions: input.role === 'OFFICE_MANAGER' ? (input.permissions ?? {}) : undefined,
+      // Droits fournis par l'administrateur, à défaut ceux proposés pour le rôle.
+      permissions: isPermissionBoundRole(input.role) ? (input.permissions ?? ROLE_PRESETS[input.role]) : undefined,
     },
     select: SAFE_SELECT,
   });
@@ -111,7 +122,7 @@ interface UpdateInput {
   targetId: string;
   actorId: string;
   actorRole: Role;
-  role?: 'ADMIN' | 'OFFICE_MANAGER';
+  role?: AssignableRole;
   permissions?: DashboardPermissions;
   isActive?: boolean;
   displayName?: string;
@@ -142,7 +153,7 @@ export async function updateSystemUser(input: UpdateInput) {
       ...(input.displayName === undefined ? {} : { displayName: input.displayName }),
       ...(input.isActive === undefined ? {} : { isActive: input.isActive }),
       ...(input.permissions !== undefined || input.role
-        ? { permissions: nextRole === 'OFFICE_MANAGER' ? parsePermissions(input.permissions ?? {}) : Prisma.JsonNull }
+        ? { permissions: isPermissionBoundRole(nextRole) ? parsePermissions(input.permissions ?? ROLE_PRESETS[nextRole as StaffRole]) : Prisma.JsonNull }
         : {}),
     },
     select: SAFE_SELECT,

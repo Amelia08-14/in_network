@@ -16,6 +16,7 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
     "catalogue:sync": "tsx prisma/sync-catalogue.ts",
+    "taxonomy:sync": "tsx prisma/sync-taxonomy.ts",
     "lint": "eslint src --ext .ts"
   },
   "prisma": {

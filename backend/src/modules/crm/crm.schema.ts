@@ -4,6 +4,7 @@ import {
   AppointmentStatus,
   AppointmentType,
   InvoicePaymentMethod,
+  LeadPriority,
   LeadSource,
   LeadStage,
   ServiceOrderStatus,
@@ -38,6 +39,19 @@ export const leadListQuerySchema = z.object({
   assignee: z.string().optional(), // 'me' | 'none' | id
   search: z.string().optional(),
 });
+
+export const qualifyBodySchema = z.object({
+  priority: z.nativeEnum(LeadPriority),
+  need: text(1000).optional(),
+  budget: text(300).optional(),
+  decisionMaker: text(300).optional(),
+  timeline: text(300).optional(),
+  notes: text(2000).optional(),
+  // « Valider et assigner » : le commercial choisi reçoit le lead dans la foulée.
+  assignedToId: z.string().min(1).nullable().optional(),
+});
+export const assignBodySchema = z.object({ assignedToId: z.string().min(1).nullable() });
+export const rejectBodySchema = z.object({ reason: z.string().trim().min(2, 'Indiquez le motif').max(500) });
 
 export const stageBodySchema = z.object({
   stage: z.nativeEnum(LeadStage),

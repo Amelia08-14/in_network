@@ -2,6 +2,7 @@ import type { PlanBillingCycle, Prisma, ServiceOrderStatus } from '../../generat
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
 import { advanceStageTo, logActivity } from './leads.service';
+import { leadScopeWhere, type StaffScope } from './scope';
 import { STAFF_SELECT, notifyUsers } from './staff';
 
 // Lancement du service : dès qu'une facture est payée, chaque ligne devient une
@@ -11,17 +12,6 @@ import { STAFF_SELECT, notifyUsers } from './staff';
 // Checklists par service du catalogue (slug) ; à défaut, la checklist générique.
 // Ce sont des points de contrôle internes, modifiables commande par commande.
 const CHECKLISTS: Record<string, string[]> = {
-  'creation-entreprise': [
-    'Réserver le nom commercial au CNRC',
-    'Signer le bail de location notarié',
-    'Enregistrer les statuts chez le notaire',
-    'Obtenir le registre de commerce',
-    "Déclarer l'existence aux impôts",
-    'Obtenir l’immatriculation fiscale (NIF)',
-    'Obtenir l’immatriculation statistique (NIS)',
-    'Affilier le client à la CASNOS',
-    "Ouvrir le compte bancaire",
-  ],
   'formation-creation-entreprise': [
     "Fixer la date de l'atelier avec le client",
     'Envoyer la convocation',
@@ -29,6 +19,28 @@ const CHECKLISTS: Record<string, string[]> = {
     'Remettre le support et clôturer',
   ],
 };
+// Les 9 étapes de la création juridique d'entreprise, dans l'ordre de la frise
+// de l'offre commerciale. La formule choisie en couvre les premières :
+// Essentiel = étapes 1 à 4, Avancé = 1 à 7, Complet = 1 à 9.
+const CREATION_STEPS = [
+  'Réserver le nom commercial au CNRC',
+  'Enregistrer les statuts chez le notaire',
+  'Signer le bail de location notarié',
+  "Déclarer l'existence aux impôts",
+  'Ouvrir le compte bancaire',
+  'Obtenir l’immatriculation fiscale (NIF)',
+  'Obtenir le registre de commerce',
+  'Affilier le client à la CASNOS',
+  'Obtenir l’immatriculation statistique (NIS)',
+];
+const CREATION_TIER_STEPS: Record<string, number> = { essentiel: 4, avancé: 7, avance: 7, complet: 9 };
+
+function creationChecklist(tierLabel: string | null | undefined): string[] {
+  const key = (tierLabel ?? '').toLowerCase();
+  const tier = Object.keys(CREATION_TIER_STEPS).find((name) => key.includes(name));
+  return CREATION_STEPS.slice(0, tier ? CREATION_TIER_STEPS[tier] : CREATION_STEPS.length);
+}
+
 const GENERIC_CHECKLIST = ['Prendre contact avec le client', 'Réaliser la prestation', 'Faire valider par le client'];
 const PLAN_CHECKLIST = ['Faire signer le contrat', 'Remettre les accès au client', 'Accueillir le client dans l’espace'];
 
@@ -75,7 +87,11 @@ export async function launchServicesForInvoice(invoiceId: string, actorId: strin
   for (const line of lines) {
     const plan = line.planId ? plans.find((p) => p.id === line.planId) : undefined;
     const slug = line.serviceId ? services.find((s) => s.id === line.serviceId)?.slug : undefined;
-    let taskTitles = plan ? [...PLAN_CHECKLIST] : (slug && CHECKLISTS[slug]) || GENERIC_CHECKLIST;
+    let taskTitles = plan
+      ? [...PLAN_CHECKLIST]
+      : slug === 'creation-entreprise'
+        ? creationChecklist(line.tierLabel)
+        : (slug && CHECKLISTS[slug]) || GENERIC_CHECKLIST;
     let subscriptionId: string | undefined;
     let activated = false;
 
@@ -129,9 +145,15 @@ export async function launchServicesForInvoice(invoiceId: string, actorId: strin
   return prisma.serviceOrder.findMany({ where: { id: { in: created } }, include: ORDER_INCLUDE });
 }
 
-export async function listOrders(filter: { status?: ServiceOrderStatus; assignedToId?: string }) {
+export async function listOrders(filter: { status?: ServiceOrderStatus; assignedToId?: string }, scope?: StaffScope) {
+  const scoped = leadScopeWhere(scope);
   return prisma.serviceOrder.findMany({
-    where: { status: filter.status, assignedToId: filter.assignedToId },
+    where: {
+      status: filter.status,
+      assignedToId: filter.assignedToId,
+      // Un commercial voit les commandes qui lui sont confiées ou issues de ses leads.
+      ...(scoped && scope ? { OR: [{ assignedToId: scope.userId }, { lead: scoped }] } : {}),
+    },
     include: {
       tasks: { select: { isDone: true } },
       invoice: { select: { number: true, customerName: true, customerCompany: true } },

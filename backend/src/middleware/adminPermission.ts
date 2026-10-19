@@ -9,7 +9,7 @@ import {
 
 // Contrôle d'accès du backoffice (demande client 07/09/2026).
 // - SUPER_ADMIN / ADMIN : accès total, aucun contrôle supplémentaire.
-// - OFFICE_MANAGER : chaque route /api/admin/* est associée à une ressource ;
+// - OFFICE_MANAGER, SALES_MANAGER, SALES_AGENT : chaque route /api/admin/* est associée à une ressource ;
 //   l'accès exige User.permissions["<ressource>"] au niveau requis
 //   (GET => read, write sinon). La gestion des comptes staff (system-users)
 //   reste réservée à SUPER_ADMIN / ADMIN.
@@ -21,7 +21,8 @@ export async function adminPermission(req: Request, _res: Response, next: NextFu
     return;
   }
 
-  // Seul OFFICE_MANAGER passe requireRole en plus des deux ci-dessus.
+  // Les rôles à droits bornés (office manager, responsable commercial, commercial)
+  // passent requireRole en plus des deux ci-dessus.
   const subPath = req.path.replace(/^\/api\/admin/, '');
   const { resource, level } = resolveRequiredPermission(req.method, subPath);
 

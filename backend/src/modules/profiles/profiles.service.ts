@@ -39,6 +39,7 @@ function serializeProfile(
     memberType: profile.memberType,
     avatarUrl: profile.avatarUrl,
     companyLogoUrl: profile.companyLogoUrl,
+    city: profile.city,
     jobTitle: profile.jobTitle,
     companyName: profile.companyName,
     siteId: profile.siteId,
@@ -59,13 +60,14 @@ function serializeProfile(
     // Email masqué tant qu'aucune demande de mise en relation n'a été acceptée
     // entre le visiteur et ce membre (CDC §6.2), sauf pour le propriétaire du profil.
     email: isOwner || contactUnlocked ? profile.user.email : undefined,
+    phone: isOwner || contactUnlocked ? profile.user.phone : undefined,
     isPublic: isOwner ? profile.isPublic : undefined,
     updatedAt: isOwner ? profile.updatedAt : undefined,
   };
 }
 
 export async function listProfiles(query: ListProfilesQuery, viewerId: string | undefined) {
-  const { page, limit, search, memberType, tag } = query;
+  const { page, limit, search, memberType, tag, skill } = query;
 
   const where: Prisma.MemberProfileWhereInput = {
     isPublic: true,
@@ -80,9 +82,11 @@ export async function listProfiles(query: ListProfilesQuery, viewerId: string | 
           ],
         }
       : {}),
-    ...(tag
-      ? { tags: { some: { tag: { label: { equals: tag } } } } }
-      : {}),
+    // Chaque critère (secteur, compétence proposée) doit être satisfait.
+    AND: [
+      ...(tag ? [{ tags: { some: { tag: { label: { equals: tag } } } } }] : []),
+      ...(skill ? [{ tags: { some: { relation: 'OFFER' as const, tag: { label: { equals: skill } } } } }] : []),
+    ],
   };
 
   const [total, profiles] = await Promise.all([
@@ -201,10 +205,11 @@ export async function updateProfile(userId: string, input: UpdateProfileInput) {
   const profile = await prisma.memberProfile.findUnique({ where: { userId } });
   if (!profile) throw ApiError.notFound('Profil introuvable');
 
-  const { skillsOffered, skillsWanted, sectors, ...rest } = input;
+  const { skillsOffered, skillsWanted, sectors, phone, ...rest } = input;
 
   await prisma.$transaction(async (tx) => {
     await tx.memberProfile.update({ where: { userId }, data: rest });
+    if (phone !== undefined) await tx.user.update({ where: { id: userId }, data: { phone } });
 
     if (skillsOffered) await replaceProfileTags(tx, profile.id, 'SKILL', 'OFFER', skillsOffered);
     if (skillsWanted) await replaceProfileTags(tx, profile.id, 'SKILL', 'NEED', skillsWanted);
