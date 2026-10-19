@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { api, ApiRequestError } from '@/lib/api';
-import { itemLabel, requestSummary, type QuoteItem } from '@/lib/quote';
 
 interface SpaceResource {
   id: string;
@@ -30,41 +29,12 @@ interface Booking {
   status: string;
   space: { name: string };
 }
-interface ServiceRequestItem {
-  id: string;
-  createdAt: string;
-  status: string;
-  notes: string | null;
-  adminDetails: string | null;
-  quotedAmount: string | null;
-  quotedCurrency: string;
-  confirmedAt: string | null;
-  items: QuoteItem[];
-}
-
 const STATUS_VARIANT: Record<string, 'success' | 'neutral' | 'startup'> = {
   CONFIRMED: 'success',
   PENDING: 'neutral',
   CANCELLED: 'startup',
   COMPLETED: 'neutral',
 };
-
-const REQUEST_STATUS_VARIANT: Record<string, 'success' | 'neutral' | 'startup'> = {
-  NEW: 'neutral',
-  IN_PROGRESS: 'success',
-  DONE: 'success',
-  CANCELLED: 'startup',
-};
-const REQUEST_STATUS_LABEL: Record<string, string> = {
-  NEW: 'Nouvelle',
-  IN_PROGRESS: 'En cours',
-  DONE: 'Traitée',
-  CANCELLED: 'Annulée',
-};
-
-function requestTargetLabel(r: ServiceRequestItem) {
-  return requestSummary(r.items);
-}
 
 export default function ReservationsPage() {
   const queryClient = useQueryClient();
@@ -85,10 +55,6 @@ export default function ReservationsPage() {
     queryKey: ['availability', spaceId, date],
     queryFn: () => api.get<{ data: { slots: Slot[] } }>(`/api/spaces/${spaceId}/availability?date=${date}`).then((r) => r.data),
     enabled: Boolean(spaceId && date),
-  });
-  const { data: serviceRequests } = useQuery({
-    queryKey: ['my-service-requests'],
-    queryFn: () => api.get<{ data: ServiceRequestItem[] }>('/api/services/requests/mine').then((r) => r.data),
   });
 
   const bookMutation = useMutation({
@@ -224,49 +190,6 @@ export default function ReservationsPage() {
                       </button>
                     )}
                   </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <div className="p-5">
-          <CardTitle>Mes demandes de service</CardTitle>
-        </div>
-        <CardContent className="pt-0">
-          {!serviceRequests || serviceRequests.length === 0 ? (
-            <EmptyState icon={CalendarCheck} title="Aucune demande de service" />
-          ) : (
-            <ul className="divide-y divide-ink-900/8">
-              {serviceRequests.map((r) => (
-                <li key={r.id} className="flex items-center justify-between py-3 text-sm">
-                  <div>
-                    <p className="font-medium text-ink-700">{requestTargetLabel(r)}</p>
-                    {r.items.length > 1 && (
-                      <ul className="mt-1 list-inside list-disc text-xs text-ink-500">
-                        {r.items.map((item) => (
-                          <li key={item.id}>{itemLabel(item)}</li>
-                        ))}
-                      </ul>
-                    )}
-                    <p className="text-xs text-ink-500">
-                      {new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
-                    </p>
-                    {r.notes && <p className="mt-1 text-xs text-ink-500">{r.notes}</p>}
-                    {r.quotedAmount != null && (
-                      <p className="mt-1 text-xs font-semibold text-ink-900">
-                        Devis : {Number(r.quotedAmount).toLocaleString('fr-FR')} {r.quotedCurrency}
-                      </p>
-                    )}
-                    {r.confirmedAt && r.adminDetails && (
-                      <p className="mt-1 whitespace-pre-line text-xs text-ink-500">{r.adminDetails}</p>
-                    )}
-                  </div>
-                  <Badge variant={REQUEST_STATUS_VARIANT[r.status] ?? 'neutral'}>
-                    {REQUEST_STATUS_LABEL[r.status] ?? r.status}
-                  </Badge>
                 </li>
               ))}
             </ul>

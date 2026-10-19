@@ -7,6 +7,8 @@ import type { LucideIcon } from 'lucide-react';
 import { LogOut, Menu, Search, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { CommandPalette } from '@/components/admin/CommandPalette';
+import { NotificationBell } from './NotificationBell';
+import { adminApi } from '@/lib/admin-api';
 import { cn } from '@/lib/utils';
 import { HUE, type Hue } from '@/lib/palette';
 import { useAdminAuthStore } from '@/store/admin-auth';
@@ -25,6 +27,7 @@ export interface AdminNavItem {
 const SECTION_HUE: Record<string, Hue> = {
   Pilotage: 'blue',
   Commercial: 'orange',
+  'Sources des leads': 'violet',
   Communauté: 'green',
   'Catalogue & site': 'amber',
   Système: 'gray',
@@ -126,8 +129,9 @@ export function AdminShell({ children, navItems }: { children: React.ReactNode; 
     <div className="flex min-h-screen bg-brand-paper">
       {/* Sidebar desktop */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-ink-900/8 bg-white md:flex">
-        <div className="flex h-16 items-center border-b border-ink-900/8 px-6">
+        <div className="flex h-16 items-center justify-between border-b border-ink-900/8 pl-6 pr-3">
           <Logo />
+          <NotificationBell client={adminApi} scope="admin" />
         </div>
         {canSearch && <SearchButton onClick={() => setSearchOpen(true)} />}
         <AdminNavList navItems={navItems} pathname={pathname} />
@@ -146,6 +150,7 @@ export function AdminShell({ children, navItems }: { children: React.ReactNode; 
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-ink-900/8 bg-white/90 px-4 backdrop-blur-sm md:hidden">
           <Logo />
           <div className="flex items-center gap-1">
+            <NotificationBell client={adminApi} scope="admin" />
             {canSearch && (
               <button
                 onClick={() => setSearchOpen(true)}

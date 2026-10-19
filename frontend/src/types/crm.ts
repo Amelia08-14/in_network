@@ -2,7 +2,9 @@ import type { AdminProof } from '@/components/admin/PaymentProofs';
 // Types du CRM commercial (miroir des réponses de /api/admin/crm, /quotes,
 // /invoices, /service-orders). Les montants Prisma Decimal arrivent en string.
 
-export type LeadStage = 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'QUOTE_SENT' | 'WON' | 'LOST';
+// Parcours d'un lead : À qualifier → À assigner (validé) → Assigné → Contacté → Devis envoyé → Gagné / Perdu.
+export type LeadStage = 'NEW' | 'QUALIFIED' | 'ASSIGNED' | 'CONTACTED' | 'QUOTE_SENT' | 'WON' | 'LOST';
+export type LeadPriority = 'COLD' | 'WARM' | 'HOT';
 export type LeadSource = 'REGISTRATION' | 'WEBSITE_QUOTE' | 'CONTACT_FORM' | 'PHONE' | 'VISIT' | 'REFERRAL' | 'EVENT' | 'OTHER';
 export type ActivityType = 'NOTE' | 'CALL' | 'EMAIL' | 'MEETING' | 'VISIT' | 'SYSTEM';
 export type AppointmentType = 'CALL' | 'VISIT' | 'MEETING';
@@ -29,10 +31,13 @@ export interface LeadListItem {
   companyName: string | null;
   source: LeadSource;
   stage: LeadStage;
+  priority: LeadPriority | null;
   expectedAmount: string | null;
   nextActionAt: string | null;
   assignedToId: string | null;
   assignedTo: StaffUser | null;
+  /** Compte membre rattaché ; profile.isPublic = compte validé. */
+  user?: { id: string; profile: { isPublic: boolean } | null } | null;
   updatedAt: string;
   createdAt: string;
   _count: { activities: number; quotes: number; invoices: number };
@@ -58,8 +63,20 @@ export interface Appointment {
   lead?: { id: string; reference: string; title: string; contactName: string; companyName: string | null };
 }
 
+export interface LeadQualification {
+  need?: string | null;
+  budget?: string | null;
+  decisionMaker?: string | null;
+  timeline?: string | null;
+  notes?: string | null;
+}
+
 export interface LeadDetail extends Omit<LeadListItem, '_count'> {
   notes: string | null;
+  qualification: LeadQualification | null;
+  qualifiedAt: string | null;
+  qualifiedBy: StaffUser | null;
+  assignedAt: string | null;
   lostReason: string | null;
   wonAt: string | null;
   user: { id: string; email: string; profile: { isPublic: boolean } | null } | null;
@@ -182,7 +199,12 @@ export interface OrderDetail {
 }
 
 export interface CrmDashboard {
+  /** team = toute l'équipe ; mine = les leads du compte connecté. */
+  scope: 'team' | 'mine';
+  canManage: boolean;
   kpis: {
+    toQualify: number;
+    toAssign: number;
     openLeads: number;
     pipelineAmount: number;
     wonThisMonth: number;

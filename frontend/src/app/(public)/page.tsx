@@ -4,7 +4,9 @@ import {
   Building2,
   CalendarCheck,
   Compass,
+  FileCheck2,
   Handshake,
+  LifeBuoy,
   PartyPopper,
   Quote,
   Rocket,
@@ -36,24 +38,32 @@ interface Testimonial {
   videoUrl: string | null;
 }
 
+// Les cinq leviers de l'écosystème (« Offre de service commerciale » et présentation du projet).
 const PILLARS = [
   {
     icon: Building2,
-    title: 'Coworking pensé pour avancer',
-    description:
-      'Bureaux privés, postes en open-space et salles de réunion équipées — un lieu conçu pour la productivité autant que la rencontre.',
+    title: 'Travailler',
+    description: 'Espaces flexibles, bureaux privatifs et salles de réunion : un lieu conçu pour la productivité autant que pour la rencontre.',
   },
   {
-    icon: Handshake,
-    title: 'Un réseau qui vous met en relation',
-    description:
-      'Un annuaire ciblé et un moteur de suggestions fondé sur vos compétences et vos besoins réels, pas sur un carnet d’adresses figé.',
+    icon: FileCheck2,
+    title: 'Structurer',
+    description: "Création d'entreprise, domiciliation, secrétariat, administration : les fondations de chaque projet.",
+  },
+  {
+    icon: LifeBuoy,
+    title: 'Accompagner',
+    description: 'Un accès direct à des expertises en fiscalité, comptabilité, droit, communication et stratégie.',
   },
   {
     icon: Rocket,
-    title: 'Des services pour accélérer',
-    description:
-      "Domiciliation, création d'entreprise, comptabilité, juridique, marketing — un catalogue entrepreneurial au même endroit.",
+    title: 'Accélérer',
+    description: "Un environnement dédié à l'incubation et à l'accélération de projets innovants, startups et PME digitales.",
+  },
+  {
+    icon: Handshake,
+    title: 'Connecter',
+    description: 'Une communauté vivante : événements, mises en relation ciblées, réseau national et diaspora.',
   },
 ];
 
@@ -94,17 +104,17 @@ export default async function HomePage() {
                 pas un annuaire de plus.
               </>
             }
-            lead="IN NETWORK relie un lieu physique à Hydra, un annuaire qualifié et des services entrepreneuriaux — pour que les bonnes rencontres se transforment vraiment en opportunités."
+            lead="IN NETWORK réunit en un seul lieu des espaces de travail modernes, des services pour créer et structurer votre activité, des experts qui vous accompagnent et une communauté d'entrepreneurs. Notre ambition : faire de chaque connexion une opportunité d'évolution."
           />
           <ScrollReveal stagger={110} className="grid gap-3 sm:grid-cols-3">
             {[
-              ['Un lieu', 'Coworking & salles de réunion à Hydra, Alger'],
-              ['Un réseau', 'Annuaire qualifié, mise en relation ciblée'],
-              ['Des services', 'Domiciliation, juridique, compta, marketing'],
+              ['+250', 'entreprises nous ont déjà fait confiance'],
+              ['+20', 'startups accompagnées'],
+              ['Hydra', 'au cœur d’Alger, à deux pas de tout ce qui compte'],
             ].map(([k, v]) => (
-              <div key={k} className="h-full rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-                <p className="font-heading text-lg font-bold text-white">{k}</p>
-                <p className="mt-2 text-sm leading-relaxed text-white/55">{v}</p>
+              <div key={k} className="h-full rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+                <p className="font-heading text-3xl font-bold text-accent-yellow">{k}</p>
+                <p className="mt-2 text-sm leading-relaxed text-white/70">{v}</p>
               </div>
             ))}
           </ScrollReveal>
@@ -116,14 +126,15 @@ export default async function HomePage() {
           eyebrow="Ce que vous y trouvez"
           title={
             <>
-              Trois leviers, <span className="text-brand-orange">un seul endroit</span>
+              Cinq leviers, <span className="text-brand-orange">un seul endroit</span>
             </>
           }
+          lead="Les services sont les portes d'entrée. La communauté est la force."
         />
-        <ScrollReveal stagger={90} className="mt-14 grid gap-5 md:grid-cols-3">
+        <ScrollReveal stagger={90} className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
           {PILLARS.map((pillar) => (
             <Card key={pillar.title} className="h-full">
-              <CardContent className="flex h-full flex-col gap-4 p-7">
+              <CardContent className="flex h-full flex-col gap-4 p-6">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-orange/10 text-brand-orange">
                   <pillar.icon className="h-5 w-5" strokeWidth={1.75} />
                 </div>
@@ -170,7 +181,7 @@ export default async function HomePage() {
             eyebrow="Le réseau"
             title={
               <>
-                Ils font partie du <span className="text-brand-orange">réseau</span>
+                Ils font partie du <span className="text-accent-yellow">réseau</span>
               </>
             }
             lead="Un aperçu de l'annuaire des membres IN NETWORK."
@@ -252,13 +263,13 @@ export default async function HomePage() {
             <div className="mt-10 grid gap-8 rounded-3xl border border-white/10 bg-white/[0.04] p-8 backdrop-blur-sm md:grid-cols-[auto_1fr] md:items-center md:gap-12 md:p-10">
               {events.length > 0 && (
                 <div className="flex shrink-0 flex-col items-start gap-1 md:border-r md:border-white/10 md:pr-12">
-                  <span className="font-heading text-5xl font-bold text-brand-orange md:text-6xl">{events.length}</span>
+                  <span className="font-heading text-5xl font-bold text-accent-yellow md:text-6xl">{events.length}</span>
                   <span className="max-w-40 text-sm text-white/60">événements organisés au sein du réseau</span>
                 </div>
               )}
               {featuredTestimonial && (
                 <div>
-                  <Quote className="h-6 w-6 text-brand-orange" strokeWidth={2} />
+                  <Quote className="h-6 w-6 text-accent-yellow" strokeWidth={2} />
                   <blockquote className="mt-3 text-lg leading-relaxed text-white/90">
                     {featuredTestimonial.content}
                   </blockquote>
@@ -287,7 +298,7 @@ export default async function HomePage() {
             className="pointer-events-none absolute -right-16 -top-16 h-[320px] w-[420px] opacity-20"
           />
           <div className="relative flex flex-col items-center gap-5">
-            <h2 className="max-w-2xl font-heading text-[clamp(1.8rem,3.5vw,2.75rem)] font-extrabold leading-tight tracking-[-0.03em] text-white">
+            <h2 className="max-w-2xl font-heading text-[clamp(1.8rem,3.5vw,2.75rem)] font-extrabold leading-tight tracking-[-0.015em] text-white">
               Prêt à rejoindre le réseau ?
             </h2>
             <p className="max-w-xl text-white/85">

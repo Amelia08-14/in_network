@@ -29,6 +29,15 @@ export default function MemberDetailPage() {
     queryFn: () => api.get<{ data: MemberProfileSummary }>(`/api/profiles/${params.id}`).then((response) => response.data),
   });
 
+  // Mise en relation déjà acceptée : on propose d'écrire plutôt que de redemander.
+  const { data: conversations } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: () => api.get<{ data: { id: string; peer: { userId: string } }[] }>('/api/messages/conversations').then((r) => r.data),
+    enabled: status === 'authenticated',
+    retry: false,
+  });
+  const conversation = conversations?.find((c) => c.peer.userId === profile?.userId);
+
   const requestMutation = useMutation({
     mutationFn: () => api.post('/api/connections/requests', { toUserId: profile?.userId, message }),
     onSuccess: () => {
@@ -117,7 +126,11 @@ export default function MemberDetailPage() {
           <Link href={`/login?redirect=/annuaire/${profile.id}`} className={cn(buttonVariants({ variant: 'primary', size: 'lg' }))}>
             Se connecter pour demander une mise en relation
           </Link>
-        ) : user && profile.userId === user.id ? null : !isRequestOpen ? (
+        ) : user && profile.userId === user.id ? null : conversation ? (
+          <Link href={`/dashboard/messages?c=${conversation.id}`} className={cn(buttonVariants({ variant: 'primary', size: 'lg' }))}>
+            <MessageCircle className="h-5 w-5" /> Envoyer un message
+          </Link>
+        ) : !isRequestOpen ? (
           <Button variant="primary" size="lg" onClick={() => setIsRequestOpen(true)}>
             <MessageCircle className="h-5 w-5" /> Demander une mise en relation
           </Button>

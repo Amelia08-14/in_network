@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, MessageCircle, RefreshCw, Sparkles, Trash2, Users2, X } from 'lucide-react';
+import Link from 'next/link';
+import { Check, MessageCircle, MessagesSquare, RefreshCw, Sparkles, Trash2, Users2, X } from 'lucide-react';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { api, ApiRequestError } from '@/lib/api';
 
@@ -24,6 +25,7 @@ interface ConnectionRequest {
   id: string;
   message: string;
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  createdAt?: string;
   fromUser?: { profile: { firstName: string; lastName: string } | null };
   toUser?: { profile: { firstName: string; lastName: string } | null };
 }
@@ -235,6 +237,11 @@ export default function ConnexionsPage() {
                       </Button>
                     </div>
                   )}
+                  {request.status === 'ACCEPTED' && (
+                    <Link href={`/dashboard/messages?c=${request.id}`} className={buttonVariants({ variant: 'primary', size: 'sm', className: 'mt-4' })}>
+                      <MessagesSquare className="h-4 w-4" /> Discuter
+                    </Link>
+                  )}
                   {request.status === 'DECLINED' && (
                     <Button className="mt-3" size="sm" variant="ghost" onClick={() => confirmDelete(request.id)}>
                       <Trash2 className="h-4 w-4" /> Supprimer
@@ -269,6 +276,11 @@ export default function ConnexionsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={request.status} />
+                    {request.status === 'ACCEPTED' && (
+                      <Link href={`/dashboard/messages?c=${request.id}`} className={buttonVariants({ variant: 'primary', size: 'sm' })}>
+                        <MessagesSquare className="h-4 w-4" /> Discuter
+                      </Link>
+                    )}
                     {request.status !== 'ACCEPTED' && (
                       <Button size="sm" variant="ghost" onClick={() => confirmDelete(request.id)} aria-label="Supprimer la demande">
                         <Trash2 className="h-4 w-4" />

@@ -3,30 +3,51 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Palette de la charte — navy (ink) + accent orange unique + fond paper.
-     Les anciens tokens brand-violet* / accent-gray ont été remplacés
-     site-wide par l'échelle ink-* (une seule source de vérité). */
+  /* Palette de la charte graphique IN NETWORK (Brand Guideline, p.6 et p.12).
+     Couleurs principales : violet profond #47295C (Pantone 669 C — aussi la
+     couleur du « IN » du logo), violet #964594 (258 C), bleu #235BA8 (293 C),
+     orange #D44835 (7597 C). Secondaires : sauge #C0D5A9, jaune #FFC25A,
+     vert #73B866, gris #7A7A7A. Le violet profond est l'ancre (texte, surfaces
+     sombres) : l'échelle `ink-*` en dérive — une seule source de vérité. */
   --color-brand-orange: #d44835;
-  --color-brand-blue: #1d4ed8;
-  --color-brand-paper: #f5f0eb;
-  --color-brand-paper-deep: #ece3d6;
+  --color-brand-blue: #235ba8;
+  --color-brand-violet: #964594;
+  --color-brand-plum: #47295c;
+  --color-brand-paper: #f7f4fa;
+  --color-brand-paper-deep: #eee8f3;
 
-  --color-ink-400: #94a3b8;
-  --color-ink-500: #64748b;
-  --color-ink-600: #475569;
-  --color-ink-700: #2b3b54;
-  --color-ink-800: #1b2a41;
-  --color-ink-900: #0f1b2e;
-  --color-ink: #0f1b2e;
+  --color-ink-400: #a399b3;
+  --color-ink-500: #74688a;
+  --color-ink-600: #5f5273;
+  --color-ink-700: #51406a;
+  --color-ink-800: #3b2250;
+  --color-ink-900: #47295c;
+  --color-ink: #47295c;
 
   --color-accent-green-light: #c0d5a9;
   --color-accent-green: #73b866;
-
   --color-accent-yellow: #ffc25a;
+  --color-accent-grey: #7a7a7a;
 
-  --font-heading: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
+  /* Teinte « violet » des pastilles et graphiques (remplace l'ancien teal). */
+  --color-violet-50: #f8f0f8;
+  --color-violet-100: #f0e1ef;
+  --color-violet-200: #e2c3e0;
+  --color-violet-300: #cd9bca;
+  --color-violet-400: #b46eb1;
+  --color-violet-500: #a65aa3;
+  --color-violet-600: #964594;
+  --color-violet-700: #7a3779;
+  --color-violet-800: #5f2c5e;
+  --color-violet-900: #3d1f3d;
+
+  /* Charte : Roboto Slab (typographie principale), Helvetica (secondaire).
+     Helvetica n'est pas une police web : on s'appuie sur la pile système
+     (Helvetica sur Apple, Arial/Liberation Sans ailleurs, métriques proches). */
+  --font-heading: var(--font-heading), 'Roboto Slab', ui-serif, Georgia, serif;
   --font-body:
-    var(--font-body), ui-sans-serif, system-ui, -apple-system, sans-serif;
+    'Helvetica Neue', Helvetica, Arial, 'Liberation Sans', ui-sans-serif,
+    system-ui, sans-serif;
 
   --radius-card: 1rem;
   --radius-pill: 9999px;
@@ -35,9 +56,9 @@
   --spacing-section-mobile: 2.5rem;
 
   --shadow-soft:
-    0 1px 2px rgba(15, 27, 46, 0.04), 0 6px 20px -6px rgba(15, 27, 46, 0.1);
+    0 1px 2px rgba(71, 41, 92, 0.05), 0 6px 20px -6px rgba(71, 41, 92, 0.14);
   --shadow-soft-lg:
-    0 4px 10px rgba(15, 27, 46, 0.04), 0 16px 40px -12px rgba(15, 27, 46, 0.16);
+    0 4px 10px rgba(71, 41, 92, 0.05), 0 16px 40px -12px rgba(71, 41, 92, 0.2);
 
   --animate-fade-in: fade-in 0.3s ease-out;
   --animate-fade-in-up: fade-in-up 0.5s ease-out both;
@@ -163,7 +184,7 @@
   h3,
   h4 {
     @apply font-heading text-ink-900;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     text-wrap: balance;
   }
 

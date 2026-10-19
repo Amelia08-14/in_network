@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { Mail, Reply, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,8 @@ interface AdminContactMessage {
   replyText: string | null;
   repliedAt: string | null;
   createdAt: string;
+  /** Lead CRM créé automatiquement depuis ce message. */
+  lead?: { id: string; reference: string; stage: string } | null;
 }
 
 export default function AdminContactPage() {
@@ -67,7 +70,7 @@ export default function AdminContactPage() {
       <div>
         <h1 className="font-heading text-2xl font-bold text-ink-900">Messages de contact</h1>
         <p className="mt-1 text-sm text-ink-500">
-          {data?.meta.total ?? 0} message{(data?.meta.total ?? 0) > 1 ? 's' : ''} · {unreadCount} non lu{unreadCount > 1 ? 's' : ''}
+          {data?.meta.total ?? 0} message{(data?.meta.total ?? 0) > 1 ? 's' : ''} · {unreadCount} non lu{unreadCount > 1 ? 's' : ''}. Chaque message crée un lead dans le CRM, à qualifier par le responsable commercial.
         </p>
       </div>
 
@@ -90,6 +93,11 @@ export default function AdminContactPage() {
                         <a href={`mailto:${message.email}`} className="text-xs text-brand-blue hover:underline">{message.email}</a>
                         {!message.isRead && <Badge variant="startup">Non lu</Badge>}
                         {message.repliedAt && <Badge variant="success">Répondu</Badge>}
+                        {message.lead && (
+                          <Link href={`/admin/crm/leads/${message.lead.id}`} className="text-xs font-semibold text-brand-blue hover:underline">
+                            Lead {message.lead.reference}
+                          </Link>
+                        )}
                       </div>
                       <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-600">{message.message}</p>
                       <p className="mt-2 text-xs text-ink-500">{new Date(message.createdAt).toLocaleString('fr-FR')}</p>

@@ -29,6 +29,8 @@ export interface AdminServiceRequest {
   guestEmail: string | null;
   guestPhone: string | null;
   guestCompany: string | null;
+  /** Lead CRM créé automatiquement depuis cette demande. */
+  lead?: { id: string; reference: string; stage: string } | null;
 }
 
 const STATUS_LABEL: Record<ServiceRequestStatus, string> = {

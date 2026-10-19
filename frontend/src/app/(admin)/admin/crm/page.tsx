@@ -3,21 +3,21 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { AlertTriangle, Banknote, CalendarClock, FileText, Percent, Plus, Receipt, RefreshCw, Rocket, Target } from 'lucide-react';
+import { AlertTriangle, Banknote, CalendarClock, ClipboardCheck, FileText, Percent, Plus, Receipt, RefreshCw, Rocket, Target, UserCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LeadFormModal } from '@/components/admin/LeadFormModal';
-import { errorMessage, Kpi, PageTitle } from '@/components/admin/crm-ui';
+import { errorMessage, Kpi, PageTitle, useCrmAccess } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
 import { money, SOURCE_LABEL } from '@/lib/crm';
 import { HUE } from '@/lib/palette';
 import type { CrmDashboard } from '@/types/crm';
 
-// Palette recharts alignée sur la charte (navy + orange), pas de violet.
+// Palette recharts alignée sur la charte graphique (violet profond, orange, bleu…).
 const NAVY = HUE.blue.hex;
 const ORANGE = HUE.orange.hex;
-const STAGE_COLORS: Record<string, string> = { NEW: HUE.blue.hex, CONTACTED: HUE.teal.hex, QUALIFIED: HUE.amber.hex, QUOTE_SENT: HUE.orange.hex, WON: HUE.green.hex, LOST: HUE.gray.hex };
+const STAGE_COLORS: Record<string, string> = { NEW: HUE.blue.hex, QUALIFIED: HUE.amber.hex, ASSIGNED: HUE.violet.hex, CONTACTED: HUE.ink.hex, QUOTE_SENT: HUE.orange.hex, WON: HUE.green.hex, LOST: HUE.gray.hex };
 
 interface AutomationResult {
   quotesExpired: number;
@@ -39,6 +39,7 @@ const AUTOMATIONS = [
 
 export default function CrmDashboardPage() {
   const queryClient = useQueryClient();
+  const access = useCrmAccess();
   const [creating, setCreating] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['crm-dashboard'],
@@ -62,7 +63,7 @@ export default function CrmDashboardPage() {
     <div className="space-y-8">
       <PageTitle
         title="Tableau commercial"
-        description="Du lead à la facture et au lancement du service : l’essentiel de l’activité de l’équipe."
+        description={data.scope === 'mine' ? 'Vos leads assignés, devis et rendez-vous : du lead à la facture et au lancement du service.' : 'Du lead à la facture et au lancement du service : l’essentiel de l’activité de l’équipe.'}
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4" /> Nouveau lead
@@ -70,10 +71,17 @@ export default function CrmDashboardPage() {
         }
       />
 
+      {access.manageLeads && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Kpi hue="blue" icon={ClipboardCheck} label="Leads à qualifier" value={String(kpis.toQualify)} hint="Entrants en attente de validation" href="/admin/crm/entrants" tone={kpis.toQualify ? 'alert' : undefined} />
+          <Kpi hue="amber" icon={UserCheck} label="Leads à assigner" value={String(kpis.toAssign)} hint="Validés, en attente d’un commercial" href="/admin/crm/entrants" />
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi hue="blue" icon={Target} label="Leads ouverts" value={String(kpis.openLeads)} hint={`Pipeline : ${money(kpis.pipelineAmount)}`} href="/admin/crm/pipeline" />
         <Kpi hue="green" icon={Banknote} label="Encaissé ce mois" value={money(kpis.revenueThisMonth)} hint={`${kpis.wonThisMonth} facture${kpis.wonThisMonth > 1 ? 's' : ''} payée${kpis.wonThisMonth > 1 ? 's' : ''}`} href="/admin/factures" />
-        <Kpi hue="teal" icon={Percent} label="Taux de conversion" value={kpis.conversionRate == null ? '—' : `${kpis.conversionRate} %`} hint="Gagnés / clôturés, 90 derniers jours" />
+        <Kpi hue="violet" icon={Percent} label="Taux de conversion" value={kpis.conversionRate == null ? '—' : `${kpis.conversionRate} %`} hint="Gagnés / clôturés, 90 derniers jours" />
         <Kpi hue="amber" icon={FileText} label="Devis en attente" value={String(kpis.pendingQuotes)} hint={money(kpis.pendingQuotesAmount)} href="/admin/devis" />
         <Kpi hue="orange" icon={Receipt} label="À encaisser" value={money(kpis.receivableAmount)} hint={kpis.overdueInvoices ? `${kpis.overdueInvoices} facture${kpis.overdueInvoices > 1 ? 's' : ''} échue${kpis.overdueInvoices > 1 ? 's' : ''}` : 'Aucun retard'} tone={kpis.overdueInvoices ? 'alert' : undefined} href="/admin/factures" />
         <Kpi hue="green" icon={Rocket} label="Services à lancer" value={String(kpis.servicesToLaunch)} hint="Factures payées, à démarrer" href="/admin/lancements" />
@@ -88,7 +96,7 @@ export default function CrmDashboardPage() {
             <div className="h-64" role="img" aria-label="Nombre de leads par étape du pipeline">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={funnel} layout="vertical" margin={{ left: 8, right: 16 }}>
-                  <CartesianGrid horizontal={false} stroke="#0F1B2E14" />
+                  <CartesianGrid horizontal={false} stroke="#47295C14" />
                   <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
                   <YAxis type="category" dataKey="name" width={96} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(value, _n, item) => [`${value} lead(s) · ${money((item.payload as { amount: number }).amount)}`, '']} />
@@ -109,7 +117,7 @@ export default function CrmDashboardPage() {
             <div className="h-64" role="img" aria-label="Chiffre d’affaires encaissé et nombre de leads créés par mois">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.series} margin={{ left: 8, right: 8 }}>
-                  <CartesianGrid vertical={false} stroke="#0F1B2E14" />
+                  <CartesianGrid vertical={false} stroke="#47295C14" />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                   <YAxis yAxisId="rev" tick={{ fontSize: 12 }} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)} k` : String(v))} />
                   <YAxis yAxisId="leads" orientation="right" allowDecimals={false} tick={{ fontSize: 12 }} />
@@ -122,7 +130,7 @@ export default function CrmDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card accent="teal">
+        <Card accent="violet">
           <CardContent className="space-y-3">
             <h2 className="font-heading text-base font-bold text-ink-900">Origine des leads</h2>
             {sources.length === 0 ? (
@@ -131,11 +139,11 @@ export default function CrmDashboardPage() {
               <div className="h-64" role="img" aria-label="Nombre de leads par source">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={sources} layout="vertical" margin={{ left: 8, right: 16 }}>
-                    <CartesianGrid horizontal={false} stroke="#0F1B2E14" />
+                    <CartesianGrid horizontal={false} stroke="#47295C14" />
                     <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
                     <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Bar dataKey="count" name="Leads" fill={HUE.teal.hex} radius={[0, 6, 6, 0]} />
+                    <Bar dataKey="count" name="Leads" fill={HUE.violet.hex} radius={[0, 6, 6, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -143,6 +151,7 @@ export default function CrmDashboardPage() {
           </CardContent>
         </Card>
 
+        {data.scope === 'team' && (
         <Card accent="green">
           <CardContent className="space-y-3">
             <h2 className="font-heading text-base font-bold text-ink-900">Leads ouverts par commercial</h2>
@@ -160,8 +169,10 @@ export default function CrmDashboardPage() {
             )}
           </CardContent>
         </Card>
+        )}
       </div>
 
+      {access.manageLeads && (
       <Card accent="orange">
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -186,6 +197,7 @@ export default function CrmDashboardPage() {
           )}
         </CardContent>
       </Card>
+      )}
 
       <LeadFormModal open={creating} onClose={() => setCreating(false)} />
     </div>

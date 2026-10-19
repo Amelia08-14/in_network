@@ -99,7 +99,7 @@ export function SectionHeading({
       )}
       <h2
         className={cn(
-          'mt-4 font-heading text-[clamp(1.9rem,4vw,3rem)] font-bold leading-[1.08] tracking-[-0.03em]',
+          'mt-4 font-heading text-[clamp(1.9rem,4vw,3rem)] font-bold leading-[1.08] tracking-[-0.015em]',
           dark ? 'text-white' : 'text-ink-900',
         )}
       >

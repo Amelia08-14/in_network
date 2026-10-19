@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { errorMessage, Field, useStaff } from '@/components/admin/crm-ui';
+import { AssigneeOptions, errorMessage, Field, useCrmAccess, useStaff } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
-import { SOURCE_LABEL, staffName } from '@/lib/crm';
+import { SOURCE_LABEL } from '@/lib/crm';
 import type { LeadSource } from '@/types/crm';
 
 const SOURCES = Object.keys(SOURCE_LABEL).filter((s) => s !== 'WEBSITE_QUOTE' && s !== 'CONTACT_FORM') as LeadSource[];
@@ -23,6 +23,7 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: staff } = useStaff();
+  const access = useCrmAccess();
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState<string | null>(null);
   const set = (patch: Partial<typeof EMPTY>) => setForm((f) => ({ ...f, ...patch }));
@@ -39,7 +40,8 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         expectedAmount: form.expectedAmount === '' ? null : Number(form.expectedAmount),
         notes: form.notes,
         nextActionAt: form.nextActionAt ? new Date(form.nextActionAt).toISOString() : null,
-        ...(form.assignee === 'none' ? { assignedToId: null } : form.assignee ? { assignedToId: form.assignee } : {}),
+        // Seul le responsable commercial choisit le commercial ; sinon le lead arrive « À qualifier ».
+        ...(access.manageLeads && form.assignee ? { assignedToId: form.assignee } : {}),
       }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
@@ -102,17 +104,19 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         <Field label="Montant estimé (DA)" htmlFor="lead-amount">
           <Input id="lead-amount" type="number" min="0" value={form.expectedAmount} onChange={(e) => set({ expectedAmount: e.target.value })} />
         </Field>
-        <Field label="Assigné à" htmlFor="lead-assignee">
-          <Select id="lead-assignee" value={form.assignee} onChange={(e) => set({ assignee: e.target.value })}>
-            <option value="">Moi</option>
-            <option value="none">Non assigné</option>
-            {staff?.map((u) => (
-              <option key={u.id} value={u.id}>
-                {staffName(u)}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        {access.manageLeads ? (
+          <Field label="Assigner à" htmlFor="lead-assignee">
+            <Select id="lead-assignee" value={form.assignee} onChange={(e) => set({ assignee: e.target.value })}>
+              <option value="">Aucun — à qualifier d’abord</option>
+              <AssigneeOptions staff={staff} />
+            </Select>
+            <p className="mt-1 text-xs text-ink-500">Un lead assigné dès sa création est considéré comme validé.</p>
+          </Field>
+        ) : (
+          <p className="self-end rounded-xl bg-ink-900/[0.04] px-3 py-2.5 text-xs text-ink-600">
+            Le lead vous sera attribué et le responsable commercial le validera (étape « À qualifier »).
+          </p>
+        )}
         <Field label="Prochaine action" htmlFor="lead-next">
           <Input id="lead-next" type="datetime-local" value={form.nextActionAt} onChange={(e) => set({ nextActionAt: e.target.value })} />
         </Field>

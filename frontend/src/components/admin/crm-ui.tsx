@@ -6,8 +6,9 @@ import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { HUE, type Hue } from '@/lib/palette';
 import { api } from '@/lib/admin-api';
-import { initials, INVOICE_STATUS, ORDER_STATUS, QUOTE_STATUS, staffName, STAGE_BY_VALUE, TONE_CLASS, type Tone } from '@/lib/crm';
-import type { InvoiceStatus, LeadStage, OrderStatus, QuoteStatus, StaffUser } from '@/types/crm';
+import { initials, INVOICE_STATUS, ORDER_STATUS, PRIORITY, QUOTE_STATUS, SALES_ROLES, staffName, STAGE_BY_VALUE, TONE_CLASS, type Tone } from '@/lib/crm';
+import { useAdminAuthStore } from '@/store/admin-auth';
+import type { InvoiceStatus, LeadPriority, LeadStage, OrderStatus, QuoteStatus, StaffUser } from '@/types/crm';
 
 export function Pill({ tone = 'gray', className, children }: { tone?: Tone; className?: string; children: React.ReactNode }) {
   return (
@@ -18,6 +19,8 @@ export function Pill({ tone = 'gray', className, children }: { tone?: Tone; clas
 }
 
 export const StageBadge = ({ stage }: { stage: LeadStage }) => <Pill tone={STAGE_BY_VALUE[stage].tone}>{STAGE_BY_VALUE[stage].label}</Pill>;
+export const PriorityBadge = ({ priority }: { priority: LeadPriority | null | undefined }) =>
+  priority ? <Pill tone={PRIORITY[priority].tone}>{PRIORITY[priority].label}</Pill> : null;
 export const QuoteBadge = ({ status }: { status: QuoteStatus }) => <Pill tone={QUOTE_STATUS[status].tone}>{QUOTE_STATUS[status].label}</Pill>;
 export const InvoiceBadge = ({ status }: { status: InvoiceStatus }) => <Pill tone={INVOICE_STATUS[status].tone}>{INVOICE_STATUS[status].label}</Pill>;
 export const OrderBadge = ({ status }: { status: OrderStatus }) => <Pill tone={ORDER_STATUS[status].tone}>{ORDER_STATUS[status].label}</Pill>;
@@ -98,4 +101,32 @@ export function useStaff(path = '/api/admin/crm/staff') {
 
 export function errorMessage(error: unknown, fallback = 'Une erreur est survenue.') {
   return error instanceof Error && error.message ? error.message : fallback;
+}
+
+/**
+ * Portée commerciale du compte connecté (calculée par l'API, appliquée aussi
+ * côté serveur) : voit-il toute l'équipe ? peut-il qualifier / assigner ?
+ */
+export function useCrmAccess() {
+  const access = useAdminAuthStore((s) => s.user?.crmAccess);
+  return { allLeads: Boolean(access?.allLeads), manageLeads: Boolean(access?.manageLeads) };
+}
+
+/** Options d'une liste d'assignation : l'équipe commerciale d'abord, puis les autres comptes. */
+export function AssigneeOptions({ staff }: { staff: StaffUser[] | undefined }) {
+  const team = (staff ?? []).filter((u) => SALES_ROLES.includes(u.role ?? ''));
+  const others = (staff ?? []).filter((u) => !SALES_ROLES.includes(u.role ?? ''));
+  const render = (list: StaffUser[]) =>
+    list.map((u) => (
+      <option key={u.id} value={u.id}>
+        {staffName(u)}
+        {u.role === 'SALES_MANAGER' ? ' (responsable)' : ''}
+      </option>
+    ));
+  return (
+    <>
+      {team.length > 0 && <optgroup label="Équipe commerciale">{render(team)}</optgroup>}
+      {others.length > 0 && <optgroup label="Autres comptes">{render(others)}</optgroup>}
+    </>
+  );
 }

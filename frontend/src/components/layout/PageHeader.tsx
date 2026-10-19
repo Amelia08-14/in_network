@@ -54,7 +54,7 @@ export function PageHeader({
         </p>
       )}
 
-      <h1 className="font-heading text-[clamp(2.5rem,6vw,4.5rem)] font-extrabold leading-[1.02] tracking-[-0.035em] text-ink-900">
+      <h1 className="font-heading text-[clamp(2.5rem,6vw,4.5rem)] font-extrabold leading-[1.02] tracking-[-0.02em] text-ink-900">
         {title}
       </h1>
 

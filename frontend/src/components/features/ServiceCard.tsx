@@ -5,8 +5,11 @@ import {
   Calculator,
   ClipboardCheck,
   Headset,
+  Globe2,
   MapPin,
   Megaphone,
+  Package,
+  Rocket,
   Scale,
   Sparkle,
   type LucideIcon,
@@ -26,6 +29,9 @@ export const CATEGORY_LABEL: Record<string, string> = {
   JURIDIQUE: 'Juridique',
   MARKETING: 'Communication',
   SECRETARIAT: 'Secrétariat',
+  OFFRE: 'Offres par besoin',
+  DIASPORA: 'Depuis l’étranger',
+  INCUBATION: 'Incubation',
   AUTRE: 'Autre',
 };
 
@@ -37,6 +43,9 @@ export const CATEGORY_ICON: Record<string, LucideIcon> = {
   JURIDIQUE: Scale,
   MARKETING: Megaphone,
   SECRETARIAT: Headset,
+  OFFRE: Package,
+  DIASPORA: Globe2,
+  INCUBATION: Rocket,
   AUTRE: Sparkle,
 };
 

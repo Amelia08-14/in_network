@@ -17,10 +17,12 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { MemberImageUploader } from '@/components/features/upload/MemberImageUploader';
+import { groupTagOptions, useTagOptions } from '@/components/features/TagPicker';
 import { api, ApiRequestError } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import type { CompanyDashboard } from '@/types';
@@ -176,6 +178,7 @@ function CompanyIdentityCard({ company }: { company: CompanyDashboard }) {
     logoUrl: company.logoUrl,
   });
   const [msg, setMsg] = useState<{ text: string; kind: 'ok' | 'err' } | null>(null);
+  const { data: sectors } = useTagOptions('SECTOR');
 
   const save = useMutation({
     mutationFn: () =>
@@ -213,8 +216,21 @@ function CompanyIdentityCard({ company }: { company: CompanyDashboard }) {
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
           <div>
-            <Label>Secteur</Label>
-            <Input value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} />
+            <Label>Domaine d&apos;activité</Label>
+            <Select value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })}>
+              <option value="">Non renseigné</option>
+              {/* Valeur déjà saisie à la main avant la liste : on la garde sélectionnable. */}
+              {form.sector && !sectors?.some((o) => o.label === form.sector) && <option value={form.sector}>{form.sector}</option>}
+              {groupTagOptions((sectors ?? []).filter((o) => o.group)).map(([group, items]) => (
+                <optgroup key={group} label={group}>
+                  {items.map((o) => (
+                    <option key={o.id} value={o.label}>
+                      {o.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </Select>
           </div>
           <div className="sm:col-span-2">
             <Label>Site web</Label>

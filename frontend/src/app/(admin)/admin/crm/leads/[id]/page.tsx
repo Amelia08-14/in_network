@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CalendarPlus, Check, FileText, Receipt, Rocket, ShieldCheck, X } from 'lucide-react';
+import { ArrowLeft, CalendarPlus, Check, ClipboardCheck, FileText, Hourglass, Receipt, Rocket, ShieldCheck, UserCheck, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,9 @@ import { Modal } from '@/components/ui/modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { AppointmentFormModal } from '@/components/admin/AppointmentFormModal';
 import { ApproveAccountButton, ProofList } from '@/components/admin/PaymentProofs';
-import { Avatar, errorMessage, Field, InvoiceBadge, OrderBadge, Pill, QuoteBadge, StageBadge, useStaff } from '@/components/admin/crm-ui';
+import { AssignControl } from '@/components/admin/AssignControl';
+import { QualifyModal } from '@/components/admin/QualifyModal';
+import { Avatar, errorMessage, Field, InvoiceBadge, OrderBadge, Pill, PriorityBadge, QuoteBadge, StageBadge, useCrmAccess, useStaff } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
 import {
   ACTIVITY_LABEL,
@@ -33,13 +35,17 @@ import { HUE_ACCENT } from '@/lib/palette';
 import { cn } from '@/lib/utils';
 import type { ActivityType, AppointmentStatus, LeadDetail, LeadStage, QuoteTemplate } from '@/types/crm';
 
-const FLOW: LeadStage[] = ['NEW', 'CONTACTED', 'QUALIFIED', 'QUOTE_SENT', 'WON'];
+// Parcours affiché : les deux premières étapes (qualification, assignation) sont des actes du
+// responsable commercial, menés depuis les cartes ci-dessous ; les suivantes se cliquent.
+const FLOW: LeadStage[] = ['NEW', 'QUALIFIED', 'ASSIGNED', 'CONTACTED', 'QUOTE_SENT', 'WON'];
 
 export default function LeadPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: staff } = useStaff();
+  const access = useCrmAccess();
+  const [qualifyOpen, setQualifyOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lostOpen, setLostOpen] = useState(false);
   const [lostReason, setLostReason] = useState('');
@@ -101,12 +107,15 @@ export default function LeadPage() {
   if (!lead) return <EmptyState title="Lead introuvable" />;
 
   const closed = lead.stage === 'WON' || lead.stage === 'LOST';
+  const awaitingValidation = lead.stage === 'NEW';
+  // Une étape se clique si elle suit la qualification / l'assignation (réservées au responsable).
+  const clickable = (step: LeadStage) => !closed && !['NEW', 'QUALIFIED'].includes(step) && !['NEW', 'QUALIFIED'].includes(lead.stage) && (step !== 'ASSIGNED' || access.manageLeads);
 
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/admin/crm/pipeline" className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-ink-900">
-          <ArrowLeft className="h-4 w-4" /> Pipeline
+        <Link href={access.manageLeads && ['NEW', 'QUALIFIED'].includes(lead.stage) ? '/admin/crm/entrants' : '/admin/crm/pipeline'} className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-ink-900">
+          <ArrowLeft className="h-4 w-4" /> {access.manageLeads && ['NEW', 'QUALIFIED'].includes(lead.stage) ? 'Leads à traiter' : 'Pipeline'}
         </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -117,7 +126,10 @@ export default function LeadPage() {
               {lead.companyName ? ` · ${lead.companyName}` : ''} · {SOURCE_LABEL[lead.source]} · créé le {dateFr(lead.createdAt)}
             </p>
           </div>
-          <StageBadge stage={lead.stage} />
+          <span className="flex items-center gap-2">
+            <PriorityBadge priority={lead.priority} />
+            <StageBadge stage={lead.stage} />
+          </span>
         </div>
       </div>
 
@@ -131,7 +143,7 @@ export default function LeadPage() {
             <button
               key={s}
               type="button"
-              disabled={stage.isPending || current}
+              disabled={stage.isPending || current || !clickable(s)}
               aria-current={current ? 'step' : undefined}
               onClick={() => stage.mutate({ stage: s })}
               className={cn(
@@ -143,9 +155,11 @@ export default function LeadPage() {
             </button>
           );
         })}
-        <Button variant={lead.stage === 'LOST' ? 'secondary' : 'outline'} size="sm" disabled={lead.stage === 'LOST' || stage.isPending} onClick={() => setLostOpen(true)}>
-          <X className="h-4 w-4" /> {lead.stage === 'LOST' ? 'Perdu' : 'Marquer perdu'}
-        </Button>
+        {!awaitingValidation && lead.stage !== 'QUALIFIED' && (
+          <Button variant={lead.stage === 'LOST' ? 'secondary' : 'outline'} size="sm" disabled={lead.stage === 'LOST' || stage.isPending} onClick={() => setLostOpen(true)}>
+            <X className="h-4 w-4" /> {lead.stage === 'LOST' ? 'Perdu' : 'Marquer perdu'}
+          </Button>
+        )}
       </nav>
       {lead.stage === 'LOST' && lead.lostReason && <p className="text-sm text-ink-600">Motif de perte : {lead.lostReason}</p>}
 
@@ -157,7 +171,53 @@ export default function LeadPage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          <InfoCard lead={lead} staffOptions={staff ?? []} saving={patch.isPending} onSave={(body) => patch.mutate(body)} />
+          {awaitingValidation && (
+            <Card accent="blue">
+              <CardContent className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <Hourglass className="mt-0.5 h-5 w-5 shrink-0 text-brand-blue" />
+                  <div>
+                    <h2 className="font-heading text-base font-bold text-ink-900">À qualifier</h2>
+                    <p className="mt-0.5 text-sm text-ink-600">
+                      {access.manageLeads
+                        ? 'Qualifiez ce lead (besoin, budget, décideur, délai) puis validez-le : il passera « À assigner », prêt à être confié à un commercial.'
+                        : 'Ce lead attend la validation du responsable commercial. Vous pourrez le traiter dès qu’il vous sera assigné.'}
+                    </p>
+                  </div>
+                </div>
+                {access.manageLeads && (
+                  <Button onClick={() => setQualifyOpen(true)}>
+                    <ClipboardCheck className="h-4 w-4" /> Qualifier et valider
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {access.manageLeads && !closed && !awaitingValidation && (
+            <Card accent="yellow">
+              <CardContent className="space-y-3">
+                <h2 className="flex items-center gap-2 font-heading text-base font-bold text-ink-900">
+                  <UserCheck className="h-4 w-4 text-ink-500" /> Assignation
+                </h2>
+                <p className="text-sm text-ink-600">
+                  {lead.assignedTo ? (
+                    <>
+                      Confié à <strong>{staffName(lead.assignedTo)}</strong>
+                      {lead.assignedAt ? ` le ${dateFr(lead.assignedAt)}` : ''}.
+                    </>
+                  ) : (
+                    'Validé, en attente d’un commercial.'
+                  )}
+                </p>
+                <AssignControl key={lead.assignedToId ?? 'none'} leadId={lead.id} current={lead.assignedToId} allowClear={lead.stage === 'ASSIGNED'} />
+              </CardContent>
+            </Card>
+          )}
+
+          {lead.qualification && lead.qualifiedAt && <QualificationCard lead={lead} />}
+
+          <InfoCard lead={lead} saving={patch.isPending} onSave={(body) => patch.mutate(body)} />
 
           {lead.serviceRequest && (
             <Card>
@@ -308,6 +368,7 @@ export default function LeadPage() {
         </Field>
       </Modal>
 
+      <QualifyModal key={lead.id} lead={qualifyOpen ? lead : null} onClose={() => setQualifyOpen(false)} />
       <AppointmentFormModal key={String(apptOpen)} open={apptOpen} onClose={() => setApptOpen(false)} leadId={id} />
     </div>
   );
@@ -338,7 +399,7 @@ function DocRow({ href, title, sub, badge, icon }: { href: string; title: string
   );
 }
 
-function InfoCard({ lead, staffOptions, saving, onSave }: { lead: LeadDetail; staffOptions: { id: string; displayName: string | null; email: string }[]; saving: boolean; onSave: (body: Record<string, unknown>) => void }) {
+function InfoCard({ lead, saving, onSave }: { lead: LeadDetail; saving: boolean; onSave: (body: Record<string, unknown>) => void }) {
   const initial = {
     title: lead.title,
     contactName: lead.contactName,
@@ -346,7 +407,6 @@ function InfoCard({ lead, staffOptions, saving, onSave }: { lead: LeadDetail; st
     email: lead.email ?? '',
     phone: lead.phone ?? '',
     expectedAmount: lead.expectedAmount ? String(Number(lead.expectedAmount)) : '',
-    assignedToId: lead.assignedToId ?? '',
     nextActionAt: toInputDateTime(lead.nextActionAt),
     notes: lead.notes ?? '',
   };
@@ -370,7 +430,6 @@ function InfoCard({ lead, staffOptions, saving, onSave }: { lead: LeadDetail; st
                 email: form.email,
                 phone: form.phone,
                 expectedAmount: form.expectedAmount === '' ? null : Number(form.expectedAmount),
-                assignedToId: form.assignedToId || null,
                 nextActionAt: form.nextActionAt ? new Date(form.nextActionAt).toISOString() : null,
                 notes: form.notes,
               })
@@ -398,16 +457,12 @@ function InfoCard({ lead, staffOptions, saving, onSave }: { lead: LeadDetail; st
           <Field label="Montant estimé (DA)" htmlFor="f-amount">
             <Input id="f-amount" type="number" min="0" value={form.expectedAmount} onChange={(e) => set({ expectedAmount: e.target.value })} />
           </Field>
-          <Field label="Commercial" htmlFor="f-assignee">
-            <Select id="f-assignee" value={form.assignedToId} onChange={(e) => set({ assignedToId: e.target.value })}>
-              <option value="">Non assigné</option>
-              {staffOptions.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {staffName(u)}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <div>
+            <span className="mb-1.5 block text-sm font-medium text-ink-800">Commercial</span>
+            <p className="flex h-10 items-center gap-2 text-sm text-ink-700">
+              <Avatar user={lead.assignedTo} /> {staffName(lead.assignedTo)}
+            </p>
+          </div>
           <Field label="Prochaine action" htmlFor="f-next" className="sm:col-span-2">
             <Input id="f-next" type="datetime-local" value={form.nextActionAt} onChange={(e) => set({ nextActionAt: e.target.value })} />
             <p className="mt-1 text-xs text-ink-500">Vous serez alerté automatiquement à cette échéance.</p>
@@ -487,6 +542,42 @@ function Journal({ lead, staff, onDone, onError }: { lead: LeadDetail; staff: { 
             </li>
           ))}
         </ol>
+      </CardContent>
+    </Card>
+  );
+}
+
+function QualificationCard({ lead }: { lead: LeadDetail }) {
+  const q = lead.qualification ?? {};
+  const rows: [string, string | null | undefined][] = [
+    ['Besoin', q.need],
+    ['Budget', q.budget],
+    ['Décideur', q.decisionMaker],
+    ['Délai', q.timeline],
+    ['Notes', q.notes],
+  ];
+  return (
+    <Card accent="green">
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 font-heading text-base font-bold text-ink-900">
+            <ClipboardCheck className="h-4 w-4 text-ink-500" /> Qualification
+          </h2>
+          <PriorityBadge priority={lead.priority} />
+        </div>
+        <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+          {rows
+            .filter(([, value]) => value)
+            .map(([label, value]) => (
+              <div key={label} className={label === 'Besoin' || label === 'Notes' ? 'sm:col-span-2' : undefined}>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-ink-500">{label}</dt>
+                <dd className="mt-0.5 whitespace-pre-line text-ink-800">{value}</dd>
+              </div>
+            ))}
+        </dl>
+        <p className="text-xs text-ink-500">
+          Validé{lead.qualifiedBy ? ` par ${staffName(lead.qualifiedBy)}` : ''} le {dateFr(lead.qualifiedAt)}.
+        </p>
       </CardContent>
     </Card>
   );

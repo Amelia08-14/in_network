@@ -16,11 +16,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { api } from '@/lib/admin-api';
 
-// Palette recharts alignée sur la charte (navy + orange, cf. tailwind.config.ts) —
-// pas de couleurs recharts par défaut, jamais de violet.
-const NAVY = '#0F1B2E';
+// Palette recharts alignée sur la charte graphique (violet profond, orange, bleu,
+// vert — cf. globals.css) : pas de couleurs recharts par défaut.
+const NAVY = '#47295C';
 const ORANGE = '#D44835';
-const BLUE = '#1D4ED8';
+const BLUE = '#235BA8';
 const GREEN = '#73B866';
 
 interface MonthPoint {

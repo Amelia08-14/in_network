@@ -39,7 +39,7 @@ export default async function ExpertsPage() {
             <div key={label} className="flex items-center gap-7">
               <span className="whitespace-nowrap text-sm font-semibold">{label}</span>
               {index < EXPERTISE_LABELS.length - 1 && (
-                <span aria-hidden className="text-lg font-light text-brand-orange">
+                <span aria-hidden className="text-lg font-light text-accent-yellow">
                   ✦
                 </span>
               )}

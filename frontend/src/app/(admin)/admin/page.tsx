@@ -93,7 +93,7 @@ export default function AdminOverviewPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatWidget hue="blue" icon={Users} label="Membres" value={stats?.totalMembers ?? '—'} hint={stats ? `+${stats.newMembersLast30Days} sur 30 jours` : undefined} />
         <StatWidget hue="green" icon={CreditCard} label="Abonnements actifs" value={stats?.activeSubscriptions ?? '—'} />
-        <StatWidget hue="teal" icon={CalendarCheck} label="Réservations à venir" value={stats?.upcomingBookings ?? '—'} />
+        <StatWidget hue="violet" icon={CalendarCheck} label="Réservations à venir" value={stats?.upcomingBookings ?? '—'} />
         <StatWidget hue="orange" icon={TrendingUp} label="Revenu total" value={stats ? money(stats.totalRevenue) : '—'} hint="Paiements et factures payées" />
       </div>
       {!statsLoading && !stats && <p className="text-sm text-brand-orange">Les statistiques du lieu sont indisponibles (droits insuffisants ou serveur injoignable).</p>}
@@ -149,7 +149,7 @@ export default function AdminOverviewPage() {
               <div className="h-52" role="img" aria-label="Montants encaissés par mois sur les 12 derniers mois">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={revenue} margin={{ left: 4, right: 8 }}>
-                    <CartesianGrid vertical={false} stroke="#0F1B2E14" />
+                    <CartesianGrid vertical={false} stroke="#47295C14" />
                     <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                     <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)} k` : String(v))} width={44} />
                     <Tooltip formatter={(value) => money(Number(value))} labelFormatter={(label) => String(label)} />
@@ -188,7 +188,7 @@ export default function AdminOverviewPage() {
             </CardContent>
           </Card>
 
-          <Card accent="teal">
+          <Card accent="violet">
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="font-heading text-base font-bold text-ink-900">Derniers leads</h2>

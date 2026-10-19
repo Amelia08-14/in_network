@@ -1,9 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { jwtDecode } from 'jwt-decode';
 
+// Rôles autorisés dans /admin (miroir de STAFF_ROLES côté API).
+const STAFF_ROLES = ['SUPER_ADMIN', 'ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT'];
+
 interface AccessTokenPayload {
   sub: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'OFFICE_MANAGER' | 'MEMBER';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'OFFICE_MANAGER' | 'SALES_MANAGER' | 'SALES_AGENT' | 'MEMBER';
   exp: number;
 }
 
@@ -81,12 +84,7 @@ export default function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL(isAdminRoute ? '/admin' : '/login', req.url));
   }
 
-  if (
-    isAdminRoute &&
-    payload.role !== 'ADMIN' &&
-    payload.role !== 'SUPER_ADMIN' &&
-    payload.role !== 'OFFICE_MANAGER'
-  ) {
+  if (isAdminRoute && !STAFF_ROLES.includes(payload.role)) {
     return NextResponse.redirect(new URL('/admin', req.url));
   }
 

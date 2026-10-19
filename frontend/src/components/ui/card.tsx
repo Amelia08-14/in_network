@@ -11,7 +11,7 @@ export const ACCENT_MAP = {
   ink: 'bg-ink-700',
   green: 'bg-accent-green',
   yellow: 'bg-accent-yellow',
-  teal: 'bg-teal-600',
+  violet: 'bg-violet-600',
   none: 'bg-transparent',
 } as const;
 
@@ -26,7 +26,7 @@ export const ACCENT_TEXT_MAP: Record<CardAccent, string> = {
   ink: 'text-ink-700',
   green: 'text-green-700',
   yellow: 'text-amber-700',
-  teal: 'text-teal-700',
+  violet: 'text-violet-700',
   none: 'text-ink-500',
 };
 

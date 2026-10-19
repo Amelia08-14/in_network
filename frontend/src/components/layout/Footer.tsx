@@ -10,9 +10,11 @@ const COLUMNS = [
   {
     title: 'Services & tarifs',
     links: [
+      { href: '/services#offres', label: 'Nos offres' },
       { href: '/services#espaces', label: 'Espaces & abonnements' },
       { href: '/services#salles', label: 'Salles de réunion' },
       { href: '/services#services', label: 'Services aux entreprises' },
+      { href: '/services#etranger', label: 'Depuis l’étranger' },
       { href: '/devis', label: 'Ma demande de devis' },
     ],
   },
@@ -52,14 +54,14 @@ export function Footer() {
           </p>
           <ul className="mt-5 space-y-2 text-sm text-white/70">
             <li className="flex items-center gap-2.5">
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-orange" /> Hydra, Alger, Algérie
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-accent-yellow" /> Hydra, Alger, Algérie
             </li>
             <li className="flex items-center gap-2.5">
-              <Phone className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
+              <Phone className="h-3.5 w-3.5 shrink-0 text-accent-yellow" />
               <a href="tel:+213560067486" className="hover:text-white">+213 5 60 06 74 86</a>
             </li>
             <li className="flex items-center gap-2.5">
-              <Mail className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
+              <Mail className="h-3.5 w-3.5 shrink-0 text-accent-yellow" />
               <a href="mailto:Contact@in-network.dz" className="hover:text-white">Contact@in-network.dz</a>
             </li>
           </ul>

@@ -2,11 +2,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-// CDC §3.1 — logo officiel IN NETWORK (public/logo-in-network.png — LOGO_IN_NETWORK.png sans ses marges transparentes).
-// Sur fond sombre (footer, panneau auth), pas d'asset blanc dédié fourni :
-// on rend le logo en blanc monochrome via `brightness-0 invert` — net et
-// corporate. Fournir une version blanche vectorielle donnerait un rendu
-// encore plus propre (l'icône dégradée deviendrait alors blanche unie).
+// Logo officiel IN NETWORK (Brand Guideline p.5-6, fichier « LOGO IN NETWORK »
+// fourni par le client), détouré en PNG transparent :
+//   - public/logo-in-network.png        : version couleur (fonds clairs)
+//   - public/logo-in-network-white.png  : « IN NETWORK » en blanc, symbole
+//     conservé en couleurs — version prévue par la charte pour les fonds
+//     violet / orange / bleu (p.8). Plus de filtre CSS monochrome.
 export function Logo({
   variant = 'dark',
   priority = false,
@@ -17,18 +18,14 @@ export function Logo({
   className?: string;
 }) {
   return (
-    <Link
-      href="/"
-      aria-label="IN NETWORK — accueil"
-      className="inline-flex items-center"
-    >
+    <Link href="/" aria-label="IN NETWORK — accueil" className="inline-flex items-center">
       <Image
-        src="/logo-in-network.png"
+        src={variant === 'light' ? '/logo-in-network-white.png' : '/logo-in-network.png'}
         alt="IN NETWORK"
-        width={1104}
-        height={595}
+        width={1400}
+        height={759}
         priority={priority}
-        className={cn('h-10 w-auto', variant === 'light' && 'brightness-0 invert', className)}
+        className={cn('h-10 w-auto', className)}
       />
     </Link>
   );

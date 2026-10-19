@@ -6,6 +6,7 @@ import type {
   ActivityType,
   AppointmentType,
   InvoiceStatus,
+  LeadPriority,
   LeadSource,
   LeadStage,
   OrderStatus,
@@ -19,7 +20,7 @@ import type {
 export type Tone = Hue;
 
 export const TONE_CLASS: Record<Tone, string> = {
-  teal: 'bg-teal-600/10 text-teal-700',
+  violet: 'bg-violet-600/10 text-violet-700',
   ink: 'bg-ink-900/10 text-ink-800',
   blue: 'bg-brand-blue/10 text-brand-blue',
   orange: 'bg-brand-orange/10 text-brand-orange',
@@ -29,15 +30,30 @@ export const TONE_CLASS: Record<Tone, string> = {
   gray: 'bg-ink-900/6 text-ink-600',
 };
 
+// Un seul parcours, sans doublon : le responsable commercial qualifie puis valide
+// les leads entrants (« À qualifier » → « À assigner »), les assigne à un commercial
+// (« Assigné »), qui les mène jusqu'au devis puis à la signature.
 export const STAGES: { value: LeadStage; label: string; tone: Tone }[] = [
-  { value: 'NEW', label: 'Nouveau', tone: 'blue' },
-  { value: 'CONTACTED', label: 'Contacté', tone: 'teal' },
-  { value: 'QUALIFIED', label: 'Qualifié', tone: 'amber' },
+  { value: 'NEW', label: 'À qualifier', tone: 'blue' },
+  { value: 'QUALIFIED', label: 'À assigner', tone: 'amber' },
+  { value: 'ASSIGNED', label: 'Assigné', tone: 'violet' },
+  { value: 'CONTACTED', label: 'Contacté', tone: 'ink' },
   { value: 'QUOTE_SENT', label: 'Devis envoyé', tone: 'orange' },
   { value: 'WON', label: 'Gagné', tone: 'green' },
   { value: 'LOST', label: 'Perdu', tone: 'gray' },
 ];
+/** Étapes du travail commercial (le pipeline) : après qualification et assignation. */
+export const PIPELINE_STAGES = STAGES.filter((s) => !['NEW', 'QUALIFIED'].includes(s.value));
+/** Étapes que seul le responsable commercial pose (qualification / assignation). */
+export const MANAGER_STAGES: LeadStage[] = ['NEW', 'QUALIFIED', 'ASSIGNED'];
+export const OPEN_STAGES: LeadStage[] = ['NEW', 'QUALIFIED', 'ASSIGNED', 'CONTACTED', 'QUOTE_SENT'];
 export const STAGE_BY_VALUE = Object.fromEntries(STAGES.map((s) => [s.value, s])) as Record<LeadStage, (typeof STAGES)[number]>;
+
+export const PRIORITY: Record<LeadPriority, { label: string; tone: Tone }> = {
+  COLD: { label: 'Froid', tone: 'blue' },
+  WARM: { label: 'Tiède', tone: 'amber' },
+  HOT: { label: 'Chaud', tone: 'orange' },
+};
 
 export const SOURCE_LABEL: Record<LeadSource, string> = {
   REGISTRATION: 'Inscription sur le site',
@@ -110,6 +126,8 @@ export function toInputDateTime(value: string | Date | null | undefined): string
   const d = new Date(value);
   return `${toInputDate(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+export const SALES_ROLES = ['SALES_MANAGER', 'SALES_AGENT'];
 
 export const staffName = (user: Pick<StaffUser, 'displayName' | 'email'> | null | undefined) =>
   user ? user.displayName || user.email : 'Non assigné';

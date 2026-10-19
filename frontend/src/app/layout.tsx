@@ -1,23 +1,15 @@
 import type { Metadata } from 'next';
-import { Montserrat, Plus_Jakarta_Sans } from 'next/font/google';
+import { Roboto_Slab } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
-// Direction "Corporate futuriste" : Montserrat (titres — géométrique,
-// moderne, demandée explicitement par la cliente) + Plus Jakarta Sans
-// (corps de texte, lisibilité). Chargées via next/font/google (auto-
-// hébergées, sans requête externe au runtime).
-const montserrat = Montserrat({
+// Charte graphique (Brand Guideline, p.14-15) : Roboto Slab pour les titres
+// (typographie principale, auto-hébergée via next/font — aucune requête externe
+// au runtime) ; le corps de texte suit la pile Helvetica définie dans
+// globals.css (--font-body).
+const robotoSlab = Roboto_Slab({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-heading',
-  display: 'swap',
-});
-
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-body',
   display: 'swap',
 });
 
@@ -29,13 +21,13 @@ export const metadata: Metadata = {
   description:
     "IN NETWORK : espace de coworking, mise en réseau et services entrepreneuriaux à Hydra, Alger.",
   icons: {
-    icon: '/in_icon.ico',
+    icon: [{ url: '/in_icon.ico' }, { url: '/icon-symbol.png', type: 'image/png' }],
   },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${montserrat.variable} ${plusJakarta.variable}`}>
+    <html lang="fr" className={robotoSlab.variable}>
       <body>
         <Providers>{children}</Providers>
       </body>

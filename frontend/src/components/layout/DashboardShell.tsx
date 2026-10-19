@@ -6,6 +6,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import { ArrowLeft, Lock, LogOut } from 'lucide-react';
 import { Logo } from './Logo';
+import { NotificationBell } from './NotificationBell';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth';
 
@@ -17,6 +19,8 @@ export interface NavItem {
   locked?: boolean;
   // Onglet mis en avant (ex. « Situation du compte » tant que le compte est en attente).
   highlight?: boolean;
+  // Pastille de notification (ex. messages non lus).
+  badge?: number;
 }
 
 export function DashboardShell({
@@ -45,14 +49,16 @@ export function DashboardShell({
     }
   }, [status, user, requireRole, router]);
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  // « Vue d'ensemble » (/dashboard) ne doit s'allumer que sur sa propre page, pas sur tous les sous-onglets.
+  const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`));
 
   return (
     <div className="flex min-h-screen bg-brand-paper">
       {/* Sidebar desktop */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-ink-900/8 bg-white md:flex">
-        <div className="flex h-16 items-center border-b border-ink-900/8 px-6">
+        <div className="flex h-16 items-center justify-between border-b border-ink-900/8 pl-6 pr-3">
           <Logo />
+          <NotificationBell client={api} scope="member" />
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
           <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-400">
@@ -88,6 +94,11 @@ export function DashboardShell({
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0" strokeWidth={2} /> {item.label}
+                {item.badge ? (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-orange px-1.5 text-[11px] font-bold text-white" aria-label={`${item.badge} non lu(s)`}>
+                    {item.badge}
+                  </span>
+                ) : null}
                 {item.highlight && !active && (
                   <span aria-hidden className="ml-auto h-2 w-2 rounded-full bg-brand-orange" />
                 )}
@@ -120,6 +131,7 @@ export function DashboardShell({
         {/* Header mobile */}
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-ink-900/8 bg-white/90 px-4 backdrop-blur-sm md:hidden">
           <Logo />
+          <NotificationBell client={api} scope="member" className="ml-auto mr-1" />
           <button
             onClick={() => logout().then(() => router.push('/'))}
             className="flex items-center gap-1.5 text-sm font-medium text-ink-600"
@@ -132,7 +144,7 @@ export function DashboardShell({
 
         {/* Barre de navigation basse — mobile uniquement */}
         <nav className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-ink-900/10 bg-white/95 backdrop-blur-md md:hidden">
-          {navItems.slice(0, 5).map((item) => {
+          {navItems.slice(0, 6).map((item) => {
             const active = isActive(item.href);
             if (item.locked) {
               return (
@@ -159,7 +171,10 @@ export function DashboardShell({
                   active ? 'text-brand-orange' : 'text-ink-500',
                 )}
               >
-                <item.icon className="h-5 w-5" strokeWidth={active ? 2.4 : 1.9} />
+                <span className="relative">
+                  <item.icon className="h-5 w-5" strokeWidth={active ? 2.4 : 1.9} />
+                  {item.badge ? <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-orange px-1 text-[9px] font-bold text-white">{item.badge}</span> : null}
+                </span>
                 <span className="max-w-full truncate px-1">{item.label}</span>
               </Link>
             );

@@ -2,80 +2,271 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Trash2, UserPlus } from 'lucide-react';
+import { Check, ChevronDown, Crown, KeyRound, ShieldCheck, Target, Trash2, UserCog, UserPlus, UserRound, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ChangePasswordCard } from '@/components/features/ChangePasswordCard';
 import { api, ApiRequestError } from '@/lib/admin-api';
 import { useAdminAuthStore } from '@/store/admin-auth';
-import { DASHBOARD_RESOURCES, type DashboardPermissions, type SystemUser } from '@/types';
+import { cn } from '@/lib/utils';
+import {
+  DASHBOARD_RESOURCES,
+  FLAG_RESOURCES,
+  RESOURCE_GROUPS,
+  ROLE_LABEL,
+  ROLE_PRESETS,
+  type DashboardPermissions,
+  type SystemUser,
+} from '@/types';
 
-const ROLE_LABEL: Record<string, string> = {
-  SUPER_ADMIN: 'Super administrateur',
-  ADMIN: 'Administrateur',
-  OFFICE_MANAGER: 'Office Manager',
+// Rôles à droits bornés : l'administrateur décide, par compte, ce qu'ils voient et modifient.
+const BOUND_ROLES = ['OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT'];
+const LABEL_BY_KEY = Object.fromEntries(DASHBOARD_RESOURCES.map((r) => [r.key, r.label]));
+
+interface RoleInfo {
+  icon: LucideIcon;
+  title: string;
+  tagline: string;
+  tone: string;
+  points: string[];
+}
+
+const ROLE_INFO: Record<string, RoleInfo> = {
+  SALES_MANAGER: {
+    icon: Target,
+    title: 'Responsable commercial',
+    tagline: 'Pilote l’équipe commerciale',
+    tone: 'text-violet-700 bg-violet-600/10 border-violet-600/30',
+    points: ['Qualifie et valide les leads entrants', 'Assigne les leads à ses commerciaux', 'Voit tous les leads, devis et rendez-vous'],
+  },
+  SALES_AGENT: {
+    icon: UserRound,
+    title: 'Commercial',
+    tagline: 'Traite ses propres leads',
+    tone: 'text-brand-blue bg-brand-blue/10 border-brand-blue/30',
+    points: ['Ne voit que les leads qui lui sont assignés', 'Crée ses devis, rendez-vous et notes de suivi', 'Ne valide ni n’assigne les leads'],
+  },
+  OFFICE_MANAGER: {
+    icon: UserCog,
+    title: 'Office Manager',
+    tagline: 'Gestion administrative',
+    tone: 'text-amber-700 bg-accent-yellow/20 border-accent-yellow/60',
+    points: ['Accède uniquement aux blocs que vous cochez', 'Voit tous les leads du CRM et peut les assigner', 'Pas d’accès aux utilisateurs système'],
+  },
+  ADMIN: {
+    icon: Crown,
+    title: 'Administrateur',
+    tagline: 'Accès total',
+    tone: 'text-brand-orange bg-brand-orange/10 border-brand-orange/30',
+    points: ['Tous les blocs, sans restriction', 'Gère les utilisateurs système et leurs droits'],
+  },
 };
-
-const LEVEL_OPTIONS = [
-  { value: '', label: 'Aucun accès' },
-  { value: 'read', label: 'Lecture seule' },
-  { value: 'write', label: 'Lecture + modification' },
-];
 
 function errorText(e: unknown) {
   return e instanceof ApiRequestError ? e.message : 'Une erreur est survenue.';
 }
 
+const initials = (name: string) =>
+  name
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join('');
+
 /* -------------------------------------------------------------------------- */
-/*  Éditeur de permissions (matrice bloc → niveau)                            */
+/*  Contrôle segmenté : Aucun / Lecture / Modification                         */
 /* -------------------------------------------------------------------------- */
-function PermissionMatrix({
-  value,
-  onChange,
-}: {
-  value: DashboardPermissions;
-  onChange: (next: DashboardPermissions) => void;
-}) {
+const LEVELS: { value: '' | 'read' | 'write'; label: string }[] = [
+  { value: '', label: 'Aucun' },
+  { value: 'read', label: 'Lecture' },
+  { value: 'write', label: 'Modification' },
+];
+
+function LevelControl({ label, value, onChange }: { label: string; value: '' | 'read' | 'write'; onChange: (v: '' | 'read' | 'write') => void }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      {DASHBOARD_RESOURCES.map((res) => (
-        <label key={res.key} className="flex items-center justify-between gap-3 rounded-xl border border-ink-900/8 px-3 py-2 text-sm">
-          <span className="text-ink-700">{res.label}</span>
-          <Select
-            className="h-8 w-44 text-xs"
-            value={value[res.key] ?? ''}
-            onChange={(e) => {
-              const next = { ...value };
-              if (e.target.value === '') delete next[res.key];
-              else next[res.key] = e.target.value as 'read' | 'write';
-              onChange(next);
-            }}
+    <div role="radiogroup" aria-label={label} className="inline-flex shrink-0 rounded-lg border border-ink-900/10 bg-ink-900/[0.03] p-0.5">
+      {LEVELS.map((level) => {
+        const on = value === level.value;
+        return (
+          <button
+            key={level.label}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => onChange(level.value)}
+            className={cn(
+              'rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
+              on && level.value === '' && 'bg-white text-ink-500 shadow-soft',
+              on && level.value === 'read' && 'bg-brand-blue text-white shadow-soft',
+              on && level.value === 'write' && 'bg-brand-orange text-white shadow-soft',
+              !on && 'text-ink-500 hover:text-ink-900',
+            )}
           >
-            {LEVEL_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </label>
-      ))}
+            {level.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Formulaire de création                                                    */
+/*  Matrice d'accès, groupée par thème                                         */
 /* -------------------------------------------------------------------------- */
-function CreateSystemUserForm({ canCreateAdmin }: { canCreateAdmin: boolean }) {
+function PermissionMatrix({ value, onChange }: { value: DashboardPermissions; onChange: (next: DashboardPermissions) => void }) {
+  const setLevel = (key: string, level: '' | 'read' | 'write') => {
+    const next = { ...value };
+    if (level === '') delete next[key];
+    else next[key] = level;
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-5">
+      {RESOURCE_GROUPS.map((group) => {
+        const levelKeys = group.keys.filter((k) => !FLAG_RESOURCES.includes(k));
+        const flagKeys = group.keys.filter((k) => FLAG_RESOURCES.includes(k));
+        const granted = levelKeys.filter((k) => value[k]).length;
+        return (
+          <section key={group.title} className="overflow-hidden rounded-2xl border border-ink-900/10 bg-white">
+            <header className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-900/8 bg-ink-900/[0.03] px-4 py-2.5">
+              <h4 className="font-heading text-sm font-bold text-ink-900">
+                {group.title} <span className="ml-1 text-xs font-medium text-ink-500">{granted} / {levelKeys.length} accessibles</span>
+              </h4>
+              <div className="flex gap-1 text-xs">
+                <button type="button" onClick={() => onChange({ ...value, ...Object.fromEntries(levelKeys.map((k) => [k, 'read'])) })} className="rounded-md px-2 py-1 font-semibold text-brand-blue hover:bg-brand-blue/10">
+                  Tout en lecture
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = { ...value };
+                    levelKeys.forEach((k) => delete next[k]);
+                    onChange(next);
+                  }}
+                  className="rounded-md px-2 py-1 font-semibold text-ink-500 hover:bg-ink-900/5"
+                >
+                  Tout retirer
+                </button>
+              </div>
+            </header>
+            <ul className="divide-y divide-ink-900/8">
+              {levelKeys.map((key) => (
+                <li key={key} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
+                  <span className="text-sm text-ink-800">{LABEL_BY_KEY[key]}</span>
+                  <LevelControl label={LABEL_BY_KEY[key]} value={(value[key] as '' | 'read' | 'write') ?? ''} onChange={(level) => setLevel(key, level)} />
+                </li>
+              ))}
+              {flagKeys.map((key) => (
+                <li key={key} className="bg-violet-600/[0.04]">
+                  <label className="flex cursor-pointer items-start justify-between gap-3 px-4 py-3">
+                    <span>
+                      <span className="block text-sm font-medium text-ink-900">{LABEL_BY_KEY[key]}</span>
+                      <span className="block text-xs text-ink-500">
+                        {key === 'crm_all' ? 'Sans ce droit, le compte ne voit que ses leads assignés.' : 'Réservé en principe au responsable commercial.'}
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-5 w-5 shrink-0 accent-[#964594]"
+                      checked={Boolean(value[key])}
+                      onChange={(e) => setLevel(key, e.target.checked ? 'write' : '')}
+                    />
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Résumé en une ligne des accès d'un compte. */
+function accessSummary(role: string, permissions: DashboardPermissions | null | undefined) {
+  if (!BOUND_ROLES.includes(role)) return 'Accès total';
+  const keys = Object.keys(permissions ?? {}).filter((k) => !FLAG_RESOURCES.includes(k));
+  const writable = keys.filter((k) => permissions?.[k] === 'write').length;
+  return keys.length === 0 ? 'Aucun bloc accessible' : `${keys.length} bloc${keys.length > 1 ? 's' : ''} (${writable} en modification)`;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Cartes de choix du rôle                                                    */
+/* -------------------------------------------------------------------------- */
+function RoleCards({ value, onChange, roles }: { value: string; onChange: (role: string) => void; roles: string[] }) {
+  return (
+    <div role="radiogroup" aria-label="Rôle" className="grid gap-3 md:grid-cols-2">
+      {roles.map((role) => {
+        const info = ROLE_INFO[role];
+        const on = value === role;
+        return (
+          <button
+            key={role}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => onChange(role)}
+            className={cn('relative flex flex-col gap-3 rounded-2xl border-2 p-4 text-left transition-all', on ? 'border-ink-900 bg-white shadow-soft-lg' : 'border-ink-900/10 bg-white hover:border-ink-900/30')}
+          >
+            {on && (
+              <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 text-white">
+                <Check className="h-3.5 w-3.5" />
+              </span>
+            )}
+            <span className="flex items-center gap-3">
+              <span className={cn('flex h-10 w-10 items-center justify-center rounded-xl border', info.tone)}>
+                <info.icon className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block font-heading text-base font-bold text-ink-900">{info.title}</span>
+                <span className="block text-xs text-ink-500">{info.tagline}</span>
+              </span>
+            </span>
+            <ul className="space-y-1.5 text-sm text-ink-600">
+              {info.points.map((point) => (
+                <li key={point} className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-700" /> {point}
+                </li>
+              ))}
+            </ul>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function StepTitle({ n, title, hint }: { n: number; title: string; hint?: string }) {
+  return (
+    <div className="mb-4 flex items-start gap-3">
+      <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink-900 font-heading text-sm font-bold text-white">
+        {n}
+      </span>
+      <div>
+        <h3 className="font-heading text-lg font-bold text-ink-900">{title}</h3>
+        {hint && <p className="text-sm text-ink-500">{hint}</p>}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Création d'un utilisateur : 3 étapes                                       */
+/* -------------------------------------------------------------------------- */
+function CreateSystemUserForm({ canCreateAdmin, onClose }: { canCreateAdmin: boolean; onClose: () => void }) {
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ email: '', displayName: '', phone: '', role: 'OFFICE_MANAGER' });
-  const [permissions, setPermissions] = useState<DashboardPermissions>({});
+  const [form, setForm] = useState({ email: '', displayName: '', phone: '', role: 'SALES_AGENT' });
+  const [permissions, setPermissions] = useState<DashboardPermissions>({ ...ROLE_PRESETS.SALES_AGENT });
   const [message, setMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
+
+  const roles = ['SALES_MANAGER', 'SALES_AGENT', 'OFFICE_MANAGER', ...(canCreateAdmin ? ['ADMIN'] : [])];
+  const bound = BOUND_ROLES.includes(form.role);
 
   const create = useMutation({
     mutationFn: () =>
@@ -84,158 +275,183 @@ function CreateSystemUserForm({ canCreateAdmin }: { canCreateAdmin: boolean }) {
         displayName: form.displayName.trim(),
         phone: form.phone.trim() || undefined,
         role: form.role,
-        permissions: form.role === 'OFFICE_MANAGER' ? permissions : undefined,
+        permissions: bound ? permissions : undefined,
       }),
     onSuccess: () => {
-      setMessage({ text: 'Compte créé — le mot de passe a été envoyé par email.', kind: 'success' });
-      setForm({ email: '', displayName: '', phone: '', role: 'OFFICE_MANAGER' });
-      setPermissions({});
       queryClient.invalidateQueries({ queryKey: ['admin-system-users'] });
+      setMessage({ text: `Compte créé : les accès ont été envoyés à ${form.email.trim()}.`, kind: 'success' });
+      setForm({ email: '', displayName: '', phone: '', role: 'SALES_AGENT' });
+      setPermissions({ ...ROLE_PRESETS.SALES_AGENT });
     },
     onError: (e) => setMessage({ text: errorText(e), kind: 'error' }),
   });
 
-  if (!open) {
-    return (
-      <Button variant="primary" onClick={() => setOpen(true)}>
-        <UserPlus className="mr-1.5 h-4 w-4" /> Ajouter un utilisateur
-      </Button>
-    );
-  }
+  const ready = form.email.trim() && form.displayName.trim();
 
   return (
     <Card>
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
+      <CardContent className="space-y-8">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <Label htmlFor="su-name">Nom affiché</Label>
-            <Input id="su-name" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
+            <h2 className="font-heading text-xl font-bold text-ink-900">Nouvel utilisateur</h2>
+            <p className="text-sm text-ink-500">Trois étapes : qui, quel rôle, quels accès. Le mot de passe est généré et envoyé par email.</p>
           </div>
-          <div>
-            <Label htmlFor="su-email">Email</Label>
-            <Input id="su-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          </div>
-          <div>
-            <Label htmlFor="su-phone">Téléphone (optionnel)</Label>
-            <Input id="su-phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          </div>
-          <div>
-            <Label htmlFor="su-role">Rôle</Label>
-            <Select id="su-role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-              <option value="OFFICE_MANAGER">Office Manager (accès restreint)</option>
-              {canCreateAdmin && <option value="ADMIN">Administrateur (accès total)</option>}
-            </Select>
-          </div>
+          <button type="button" onClick={onClose} aria-label="Fermer" className="rounded-lg p-2 text-ink-500 hover:bg-ink-900/5">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        {form.role === 'OFFICE_MANAGER' && (
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-500">Accès par bloc</p>
-            <PermissionMatrix value={permissions} onChange={setPermissions} />
+        <section>
+          <StepTitle n={1} title="Qui est-ce ?" />
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="su-name">Nom affiché *</Label>
+              <Input id="su-name" placeholder="Ex. Samira Benali" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="su-email">Email professionnel *</Label>
+              <Input id="su-email" type="email" placeholder="prenom@entreprise.dz" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <p className="mt-1 text-xs text-ink-500">C&apos;est son identifiant de connexion.</p>
+            </div>
+            <div>
+              <Label htmlFor="su-phone">Téléphone</Label>
+              <Input id="su-phone" type="tel" placeholder="Optionnel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </div>
           </div>
-        )}
+        </section>
 
-        {message && (
-          <p className={message.kind === 'success' ? 'text-sm text-accent-green' : 'text-sm text-brand-orange'}>
-            {message.text}
+        <section>
+          <StepTitle n={2} title="Quel rôle ?" hint="Le rôle donne des droits de départ ; vous les ajustez à l’étape suivante." />
+          <RoleCards
+            roles={roles}
+            value={form.role}
+            onChange={(role) => {
+              setForm({ ...form, role });
+              setPermissions({ ...(ROLE_PRESETS[role] ?? {}) });
+            }}
+          />
+        </section>
+
+        <section>
+          <StepTitle n={3} title="Quels accès ?" hint={bound ? 'Pour chaque bloc du back-office : aucun accès, lecture seule, ou lecture et modification.' : undefined} />
+          {bound ? (
+            <>
+              <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl bg-ink-900/[0.04] px-4 py-2.5 text-sm text-ink-700">
+                <span>
+                  Droits préremplis pour <strong>{ROLE_LABEL[form.role]}</strong>.
+                </span>
+                <button type="button" onClick={() => setPermissions({ ...(ROLE_PRESETS[form.role] ?? {}) })} className="font-semibold text-brand-blue hover:underline">
+                  Revenir aux droits par défaut
+                </button>
+              </div>
+              <PermissionMatrix value={permissions} onChange={setPermissions} />
+            </>
+          ) : (
+            <p className="flex items-center gap-2 rounded-xl border border-brand-orange/30 bg-brand-orange/5 px-4 py-3 text-sm text-ink-800">
+              <ShieldCheck className="h-4 w-4 text-brand-orange" /> Un administrateur a accès à tous les blocs du back-office, y compris la gestion des utilisateurs.
+            </p>
+          )}
+        </section>
+
+        <footer className="sticky bottom-0 -mx-6 -mb-6 flex flex-wrap items-center justify-between gap-4 rounded-b-3xl border-t border-ink-900/10 bg-white/95 px-6 py-4 backdrop-blur">
+          <p className="text-sm text-ink-600">
+            {form.displayName.trim() ? <strong className="text-ink-900">{form.displayName.trim()}</strong> : 'Nouvel utilisateur'} · {ROLE_LABEL[form.role]} · {accessSummary(form.role, permissions)}
           </p>
-        )}
-
-        <div className="flex gap-3">
-          <Button
-            variant="primary"
-            disabled={create.isPending || !form.email.trim() || !form.displayName.trim()}
-            onClick={() => create.mutate()}
-          >
-            {create.isPending ? 'Création...' : 'Créer et envoyer les accès'}
-          </Button>
-          <Button variant="ghost" onClick={() => setOpen(false)}>
-            Fermer
-          </Button>
-        </div>
+          <div className="flex items-center gap-3">
+            {message && (
+              <span role={message.kind === 'error' ? 'alert' : 'status'} className={cn('text-sm', message.kind === 'success' ? 'text-green-700' : 'text-brand-orange')}>
+                {message.text}
+              </span>
+            )}
+            <Button variant="ghost" onClick={onClose}>
+              Fermer
+            </Button>
+            <Button variant="primary" size="lg" disabled={create.isPending || !ready} onClick={() => create.mutate()}>
+              {create.isPending ? 'Création…' : 'Créer et envoyer les accès'}
+            </Button>
+          </div>
+        </footer>
       </CardContent>
     </Card>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Ligne utilisateur (édition inline)                                        */
+/*  Ligne utilisateur                                                          */
 /* -------------------------------------------------------------------------- */
 function SystemUserRow({ user, currentUserId }: { user: SystemUser; currentUserId: string | undefined }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [permissions, setPermissions] = useState<DashboardPermissions>(user.permissions ?? {});
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; kind: 'ok' | 'err' } | null>(null);
 
   const isSelf = user.id === currentUserId;
-  const isSuperAdmin = user.role === 'SUPER_ADMIN';
-  const locked = isSelf || isSuperAdmin;
+  const locked = isSelf || user.role === 'SUPER_ADMIN';
+  const bound = BOUND_ROLES.includes(user.role);
+  const info = ROLE_INFO[user.role];
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['admin-system-users'] });
+  const done = (text: string) => setMessage({ text, kind: 'ok' });
+  const fail = (e: unknown) => setMessage({ text: errorText(e), kind: 'err' });
 
   const update = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.patch(`/api/admin/system-users/${user.id}`, body),
     onSuccess: () => {
-      setMessage('Enregistré.');
+      done('Enregistré.');
       invalidate();
     },
-    onError: (e) => setMessage(errorText(e)),
+    onError: fail,
   });
-
-  const remove = useMutation({
-    mutationFn: () => api.delete(`/api/admin/system-users/${user.id}`),
-    onSuccess: invalidate,
-    onError: (e) => setMessage(errorText(e)),
-  });
-
+  const remove = useMutation({ mutationFn: () => api.delete(`/api/admin/system-users/${user.id}`), onSuccess: invalidate, onError: fail });
   const resetPassword = useMutation({
     mutationFn: () => api.post(`/api/admin/system-users/${user.id}/reset-password`),
-    onSuccess: () => setMessage('Nouveau mot de passe envoyé par email.'),
-    onError: (e) => setMessage(errorText(e)),
+    onSuccess: () => done('Nouveau mot de passe envoyé par email.'),
+    onError: fail,
   });
 
   return (
-    <div className="p-5">
-      <div className="flex flex-wrap items-center gap-3">
+    <li className="p-5">
+      <div className="flex flex-wrap items-center gap-4">
+        <span aria-hidden className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-heading text-sm font-bold', user.isActive ? 'bg-ink-900 text-white' : 'bg-ink-900/15 text-ink-500')}>
+          {initials(user.displayName || user.email)}
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-ink-800">
+          <p className="flex flex-wrap items-center gap-2 font-semibold text-ink-900">
             {user.displayName || user.email}
-            {isSelf && <span className="ml-2 text-xs font-normal text-ink-400">(vous)</span>}
+            {isSelf && <span className="text-xs font-normal text-ink-400">(vous)</span>}
+            <span className={cn('inline-flex items-center gap-1 rounded-pill border px-2 py-0.5 text-xs font-semibold', info?.tone ?? 'border-ink-900/15 bg-ink-900/5 text-ink-700')}>
+              {info && <info.icon className="h-3 w-3" />} {ROLE_LABEL[user.role] ?? user.role}
+            </span>
+            {!user.isActive && <span className="rounded-pill bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Désactivé</span>}
           </p>
           <p className="text-sm text-ink-500">
-            {user.email} · {ROLE_LABEL[user.role] ?? user.role}
+            {user.email} · {accessSummary(user.role, user.permissions)}
           </p>
         </div>
-        <Badge variant={user.isActive ? 'success' : 'startup'}>{user.isActive ? 'Actif' : 'Désactivé'}</Badge>
-        {user.role === 'OFFICE_MANAGER' && !locked && (
-          <Button size="sm" variant="ghost" onClick={() => setExpanded((v) => !v)}>
-            {expanded ? 'Masquer' : 'Gérer les accès'}
-          </Button>
-        )}
         {!locked && (
-          <>
+          <div className="flex flex-wrap items-center gap-2">
+            {bound && (
+              <Button size="sm" variant={expanded ? 'secondary' : 'outline'} onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
+                Gérer les accès <ChevronDown className={cn('h-4 w-4 transition-transform', expanded && 'rotate-180')} />
+              </Button>
+            )}
             <Button
               size="sm"
               variant="ghost"
               disabled={resetPassword.isPending}
               onClick={() => {
-                if (window.confirm(`Réinitialiser le mot de passe de ${user.email} ? Un nouveau mot de passe lui sera envoyé par email.`))
-                  resetPassword.mutate();
+                if (window.confirm(`Réinitialiser le mot de passe de ${user.email} ? Un nouveau mot de passe lui sera envoyé par email.`)) resetPassword.mutate();
               }}
             >
-              <KeyRound className="mr-1.5 h-4 w-4" /> Mot de passe
+              <KeyRound className="h-4 w-4" /> Mot de passe
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={update.isPending}
-              onClick={() => update.mutate({ isActive: !user.isActive })}
-            >
+            <Button size="sm" variant="outline" disabled={update.isPending} onClick={() => update.mutate({ isActive: !user.isActive })}>
               {user.isActive ? 'Désactiver' : 'Réactiver'}
             </Button>
             <Button
               size="sm"
               variant="ghost"
+              aria-label={`Supprimer ${user.email}`}
               disabled={remove.isPending}
               onClick={() => {
                 if (window.confirm(`Supprimer définitivement le compte ${user.email} ?`)) remove.mutate();
@@ -243,37 +459,54 @@ function SystemUserRow({ user, currentUserId }: { user: SystemUser; currentUserI
             >
               <Trash2 className="h-4 w-4" />
             </Button>
-          </>
+          </div>
         )}
       </div>
 
-      {expanded && user.role === 'OFFICE_MANAGER' && (
-        <div className="mt-4 space-y-3 rounded-2xl border border-ink-900/8 p-4">
-          <PermissionMatrix value={permissions} onChange={setPermissions} />
+      {expanded && bound && !locked && (
+        <div className="mt-5 space-y-5 rounded-2xl border border-ink-900/10 bg-ink-900/[0.02] p-5">
+          <div>
+            <p className="mb-2 text-sm font-semibold text-ink-900">Rôle</p>
+            <RoleCards
+              roles={['SALES_MANAGER', 'SALES_AGENT', 'OFFICE_MANAGER']}
+              value={user.role}
+              onChange={(role) => {
+                if (role === user.role) return;
+                if (!window.confirm(`Passer ${user.displayName || user.email} en « ${ROLE_LABEL[role]} » ? Ses droits seront remplacés par ceux du rôle (modifiables ensuite).`)) return;
+                setPermissions({ ...(ROLE_PRESETS[role] ?? {}) });
+                update.mutate({ role, permissions: ROLE_PRESETS[role] ?? {} });
+              }}
+            />
+          </div>
+          <div>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-ink-900">Accès aux blocs</p>
+              <button type="button" onClick={() => setPermissions({ ...(ROLE_PRESETS[user.role] ?? {}) })} className="text-sm font-semibold text-brand-blue hover:underline">
+                Revenir aux droits par défaut du rôle
+              </button>
+            </div>
+            <PermissionMatrix value={permissions} onChange={setPermissions} />
+          </div>
           <div className="flex items-center gap-3">
-            <Button
-              size="sm"
-              variant="primary"
-              disabled={update.isPending}
-              onClick={() => update.mutate({ permissions })}
-            >
+            <Button variant="primary" disabled={update.isPending} onClick={() => update.mutate({ permissions })}>
               Enregistrer les accès
             </Button>
-            {message && <span className="text-xs text-ink-500">{message}</span>}
+            {message && <span className={cn('text-sm', message.kind === 'ok' ? 'text-green-700' : 'text-brand-orange')}>{message.text}</span>}
           </div>
         </div>
       )}
-      {message && !expanded && <p className="mt-2 text-xs text-brand-orange">{message}</p>}
-    </div>
+      {message && !expanded && <p className={cn('mt-2 text-xs', message.kind === 'ok' ? 'text-green-700' : 'text-brand-orange')}>{message.text}</p>}
+    </li>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Page                                                                      */
+/*  Page                                                                       */
 /* -------------------------------------------------------------------------- */
 export default function AdminSystemUsersPage() {
   const currentUser = useAdminAuthStore((s) => s.user);
   const canManage = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+  const [creating, setCreating] = useState(false);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-system-users'],
@@ -283,17 +516,23 @@ export default function AdminSystemUsersPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-ink-900">Utilisateurs système</h1>
-        <p className="mt-1 text-sm text-ink-500">
-          Comptes de l&apos;équipe backoffice : rôles et accès par bloc. Le mot de passe est généré et envoyé par email
-          à la création.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-ink-900">Utilisateurs système</h1>
+          <p className="mt-1 max-w-2xl text-sm text-ink-500">
+            L&apos;équipe du back-office : chaque compte a un rôle et des accès bloc par bloc. Le mot de passe est généré et envoyé par email à la création.
+          </p>
+        </div>
+        {canManage && !creating && (
+          <Button variant="primary" size="lg" onClick={() => setCreating(true)}>
+            <UserPlus className="h-4 w-4" /> Ajouter un utilisateur
+          </Button>
+        )}
       </div>
 
       {canManage && (
         <section className="space-y-4">
-          <CreateSystemUserForm canCreateAdmin={currentUser?.role === 'SUPER_ADMIN'} />
+          {creating && <CreateSystemUserForm canCreateAdmin={currentUser?.role === 'SUPER_ADMIN'} onClose={() => setCreating(false)} />}
 
           <Card>
             <CardContent className="p-0">
@@ -302,11 +541,11 @@ export default function AdminSystemUsersPage() {
               ) : !users || users.length === 0 ? (
                 <EmptyState title="Aucun utilisateur système" />
               ) : (
-                <div className="divide-y divide-ink-900/8">
+                <ul className="divide-y divide-ink-900/8">
                   {users.map((u) => (
                     <SystemUserRow key={u.id} user={u} currentUserId={currentUser?.id} />
                   ))}
-                </div>
+                </ul>
               )}
             </CardContent>
           </Card>
@@ -315,96 +554,8 @@ export default function AdminSystemUsersPage() {
 
       <section>
         <h2 className="mb-3 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">Mon mot de passe</h2>
-        <ChangePasswordCard />
+        <ChangePasswordCard client={api} />
       </section>
     </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Changement de mot de passe (inchangé)                                     */
-/* -------------------------------------------------------------------------- */
-const EMPTY_FORM = { currentPassword: '', newPassword: '', confirmPassword: '' };
-
-function ChangePasswordCard() {
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  const mutation = useMutation({
-    mutationFn: () =>
-      api.post('/api/auth/change-password', {
-        currentPassword: form.currentPassword,
-        newPassword: form.newPassword,
-      }),
-    onSuccess: () => {
-      setForm(EMPTY_FORM);
-      setSuccess(true);
-      setError(null);
-    },
-    onError: (e) => {
-      setError(errorText(e));
-      setSuccess(false);
-    },
-  });
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSuccess(false);
-    if (form.newPassword !== form.confirmPassword) {
-      setError('Les deux mots de passe ne correspondent pas');
-      return;
-    }
-    setError(null);
-    mutation.mutate();
-  }
-
-  return (
-    <Card className="max-w-md">
-      <CardContent>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <Label htmlFor="currentPassword">Mot de passe actuel</Label>
-            <Input
-              id="currentPassword"
-              type="password"
-              required
-              value={form.currentPassword}
-              onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="newPassword">Nouveau mot de passe</Label>
-            <Input
-              id="newPassword"
-              type="password"
-              required
-              minLength={8}
-              value={form.newPassword}
-              onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
-            />
-            <p className="mt-1 text-xs text-ink-500">Au moins 8 caractères.</p>
-          </div>
-          <div>
-            <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              required
-              minLength={8}
-              value={form.confirmPassword}
-              onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-            />
-          </div>
-
-          {error && <p className="text-sm text-brand-orange">{error}</p>}
-          {success && <p className="text-sm text-accent-green">Mot de passe changé avec succès.</p>}
-
-          <Button type="submit" variant="primary" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Changement...' : 'Changer le mot de passe'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
   );
 }

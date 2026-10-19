@@ -17,6 +17,7 @@ const CATEGORY_TABS: { label: string; value: ServiceCatalogItem['category'] | 'A
   { label: 'Comptabilité', value: 'COMPTABILITE' },
   { label: 'Communication', value: 'MARKETING' },
   { label: 'Domiciliation', value: 'DOMICILIATION' },
+  { label: 'Incubation', value: 'INCUBATION' },
   { label: 'Autre', value: 'AUTRE' },
 ];
 

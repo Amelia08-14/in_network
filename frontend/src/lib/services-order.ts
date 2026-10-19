@@ -10,7 +10,10 @@ export const CATEGORY_ORDER = [
   'JURIDIQUE',
   'COMPTABILITE',
   'MARKETING',
+  'INCUBATION',
   'DOMICILIATION',
+  'OFFRE',
+  'DIASPORA',
   'AUTRE',
 ] as const;
 

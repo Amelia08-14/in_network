@@ -25,6 +25,7 @@ import {
   FileText,
   Receipt,
   Rocket,
+  Inbox,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ import { Logo } from '@/components/layout/Logo';
 import { AdminShell, type AdminNavItem } from '@/components/layout/AdminShell';
 import { useAdminAuthStore } from '@/store/admin-auth';
 import { ApiRequestError } from '@/lib/admin-api';
+import { isStaffRole } from '@/types';
 
 // `resource` = clé de permission (cf. types DASHBOARD_RESOURCES) utilisée
 // pour masquer l'entrée aux OFFICE_MANAGER sans le droit correspondant.
@@ -45,6 +47,8 @@ type NavEntry = AdminNavItem & {
   /** Chemin d'entrée quand seul un droit secondaire est accordé. */
   fallbackHref?: string;
   superOnly?: boolean;
+  /** Visible seulement pour les comptes qui qualifient / assignent les leads. */
+  manageLeadsOnly?: boolean;
 };
 
 const NAV_ITEMS: NavEntry[] = [
@@ -54,14 +58,17 @@ const NAV_ITEMS: NavEntry[] = [
   { href: '/admin/statistiques', label: 'Statistiques', icon: BarChart3, resource: 'stats', section: 'Pilotage' },
   // Commercial : du lead à la facture et au lancement du service
   { href: '/admin/crm', label: 'Tableau commercial', icon: Gauge, resource: 'crm', section: 'Commercial' },
-  { href: '/admin/crm/pipeline', label: 'Pipeline', icon: KanbanSquare, resource: 'crm', section: 'Commercial' },
+  { href: '/admin/crm/entrants', label: 'Leads à traiter', icon: Inbox, resource: 'crm', manageLeadsOnly: true, section: 'Commercial' },
+  { href: '/admin/crm/pipeline', alsoMatch: ['/admin/crm/leads'], label: 'Pipeline', icon: KanbanSquare, resource: 'crm', section: 'Commercial' },
   { href: '/admin/crm/agenda', label: 'Agenda', icon: CalendarClock, resource: 'crm', section: 'Commercial' },
   { href: '/admin/crm/activite', label: 'Activité', icon: NotebookPen, resource: 'crm', section: 'Commercial' },
   { href: '/admin/devis', label: 'Devis', icon: FileText, resource: 'quotes', section: 'Commercial' },
   { href: '/admin/factures', label: 'Factures', icon: Receipt, resource: 'invoices', section: 'Commercial' },
   { href: '/admin/lancements', label: 'Lancement des services', icon: Rocket, resource: 'fulfilment', section: 'Commercial' },
-  { href: '/admin/services-demandes', label: 'Demandes de service', icon: ClipboardList, resource: 'service_requests', section: 'Commercial' },
   { href: '/admin/paiements', label: 'Paiements', icon: CreditCard, resource: 'payments', section: 'Commercial' },
+  // Sources des leads : chaque demande ou message crée un lead dans le CRM (lien sur chaque ligne).
+  { href: '/admin/services-demandes', label: 'Demandes de devis du site', icon: ClipboardList, resource: 'service_requests', section: 'Sources des leads' },
+  { href: '/admin/contact', label: 'Messages de contact', icon: Mail, resource: 'contact', section: 'Sources des leads' },
   // Communauté
   { href: '/admin/membres', label: 'Membres', icon: Users, resource: 'members', section: 'Communauté' },
   { href: '/admin/entreprises', label: 'Entreprises', icon: Landmark, resource: 'companies', section: 'Communauté' },
@@ -74,19 +81,23 @@ const NAV_ITEMS: NavEntry[] = [
   // Services et tarifs : un seul onglet (deux vues, cf. ServicesTarifsHeader).
   { href: '/admin/services', alsoMatch: ['/admin/tarifs'], label: 'Services & tarifs', icon: Briefcase, resources: ['services', 'plans', 'spaces'], fallbackHref: '/admin/tarifs', section: 'Catalogue & site' },
   { href: '/admin/galerie', label: 'Galerie du lieu', icon: Images, resource: 'galerie', section: 'Catalogue & site' },
-  { href: '/admin/contact', label: 'Messages de contact', icon: Mail, resource: 'contact', section: 'Catalogue & site' },
   // Système
   { href: '/admin/compte', label: 'Utilisateurs système', icon: UserCog, superOnly: true, section: 'Système' },
 ];
 
-function visibleNavItems(role: string, permissions: Record<string, string> | null | undefined): AdminNavItem[] {
+function visibleNavItems(
+  role: string,
+  permissions: Record<string, string> | null | undefined,
+  crmAccess: { allLeads: boolean; manageLeads: boolean } | null | undefined,
+): AdminNavItem[] {
   const isFullAccess = role === 'ADMIN' || role === 'SUPER_ADMIN';
   return NAV_ITEMS.filter((item) => {
     if (item.superOnly) return isFullAccess;
+    if (item.manageLeadsOnly && !crmAccess?.manageLeads) return false;
     if (isFullAccess) return true;
     const keys = item.resources ?? (item.resource ? [item.resource] : []);
     return keys.some((key) => Boolean(permissions?.[key]));
-  }).map(({ resource, resources, fallbackHref, superOnly, ...navItem }) => ({
+  }).map(({ resource, resources, fallbackHref, superOnly, manageLeadsOnly, ...navItem }) => ({
     ...navItem,
     // Compte restreint sans droit sur le premier volet : on entre par l'autre.
     href: !isFullAccess && fallbackHref && resources && !permissions?.[resources[0]] ? fallbackHref : navItem.href,
@@ -110,7 +121,7 @@ function AdminLoginScreen() {
     setIsSubmitting(true);
     try {
       const user = await login(email, password);
-      if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN' && user.role !== 'OFFICE_MANAGER') {
+      if (!isStaffRole(user.role)) {
         await useAdminAuthStore.getState().logout();
         setError('Ce compte ne dispose pas des droits administrateur.');
       }
@@ -171,12 +182,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isAdmin =
     status === 'authenticated' &&
     user &&
-    (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'OFFICE_MANAGER');
+    isStaffRole(user.role);
   if (!isAdmin) {
     return <AdminLoginScreen />;
   }
 
   return (
-    <AdminShell navItems={visibleNavItems(user.role, user.permissions ?? null)}>{children}</AdminShell>
+    <AdminShell navItems={visibleNavItems(user.role, user.permissions ?? null, user.crmAccess)}>{children}</AdminShell>
   );
 }

@@ -20,7 +20,7 @@ export function Hero() {
         className="absolute inset-0 opacity-60"
         style={{
           backgroundImage:
-            'radial-gradient(circle at 1px 1px, rgba(15,27,46,0.07) 1px, transparent 0)',
+            'radial-gradient(circle at 1px 1px, rgba(71,41,92,0.08) 1px, transparent 0)',
           backgroundSize: '36px 36px',
         }}
       />
@@ -38,21 +38,22 @@ export function Hero() {
           <div className="hero-in flex items-center gap-3">
             <span className="h-px w-10 bg-brand-orange" />
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink-600">
-              Le réseau entrepreneurial algérien
+              IN NETWORK · Hydra, Alger
             </p>
           </div>
 
-          <h1 className="hero-in hero-d1 mt-6 font-heading text-[2.5rem] font-extrabold leading-[1.05] tracking-[-0.04em] text-ink-900 lg:text-[clamp(2.25rem,3.4vw,3rem)]">
-            Les bonnes connexions
+          <h1 className="hero-in hero-d1 mt-6 font-heading text-[2.5rem] font-extrabold leading-[1.05] tracking-[-0.02em] text-ink-900 lg:text-[clamp(2.25rem,3.4vw,3rem)]">
+            Ce n&apos;est plus
             <br />
-            font avancer les
+            un coworking.
             <br />
-            <span className="text-brand-orange">bonnes entreprises.</span>
+            <span className="text-brand-orange">C&apos;est un networking.</span>
           </h1>
 
           <p className="hero-in hero-d2 mt-6 max-w-[520px] text-base leading-7 text-ink-600">
-            IN NETWORK réunit entrepreneurs, experts, partenaires et opportunités professionnelles
-            au sein d&apos;un réseau structuré, accessible et ancré en Algérie.
+            IN NETWORK réunit en un seul lieu des espaces de travail modernes, des services pour créer et
+            structurer votre activité, des experts qui vous accompagnent et une communauté
+            d&apos;entrepreneurs. Notre ambition : faire de chaque connexion une opportunité.
           </p>
 
           <div className="hero-in hero-d3 mt-8 flex flex-col gap-3 sm:flex-row">

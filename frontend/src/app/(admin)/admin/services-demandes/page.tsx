@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -48,8 +49,10 @@ export default function AdminServiceRequestsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-ink-900">Demandes de service</h1>
-        <p className="mt-1 text-sm text-ink-500">{data?.meta.total ?? 0} demandes au total.</p>
+        <h1 className="font-heading text-2xl font-bold text-ink-900">Demandes de devis du site</h1>
+        <p className="mt-1 text-sm text-ink-500">
+          {data?.meta.total ?? 0} demandes au total. Chacune crée un lead dans le CRM : le suivi commercial (qualification, devis, facture) se fait depuis la fiche du lead.
+        </p>
       </div>
 
       <Card>
@@ -69,6 +72,7 @@ export default function AdminServiceRequestsPage() {
                     <th className="px-5 py-3">Devis</th>
                     <th className="px-5 py-3">Reçue le</th>
                     <th className="px-5 py-3">Statut</th>
+                    <th className="px-5 py-3">Lead CRM</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-900/8">
@@ -92,6 +96,15 @@ export default function AdminServiceRequestsPage() {
                       <td className="px-5 py-3 text-ink-500">{new Date(req.createdAt).toLocaleDateString('fr-FR')}</td>
                       <td className="px-5 py-3">
                         <Badge variant={STATUS_VARIANT[req.status]}>{STATUS_LABEL[req.status]}</Badge>
+                      </td>
+                      <td className="px-5 py-3">
+                        {req.lead ? (
+                          <Link href={`/admin/crm/leads/${req.lead.id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-brand-blue hover:underline">
+                            {req.lead.reference}
+                          </Link>
+                        ) : (
+                          <span className="text-ink-400">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}

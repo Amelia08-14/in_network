@@ -1,4 +1,17 @@
-export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'OFFICE_MANAGER' | 'MEMBER';
+export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'OFFICE_MANAGER' | 'SALES_MANAGER' | 'SALES_AGENT' | 'MEMBER';
+
+/** Rôles du back-office (tout sauf MEMBER). */
+export const STAFF_ROLES: Role[] = ['SUPER_ADMIN', 'ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT'];
+export const isStaffRole = (role: string | undefined | null): boolean => STAFF_ROLES.includes(role as Role);
+
+export const ROLE_LABEL: Record<string, string> = {
+  SUPER_ADMIN: 'Super administrateur',
+  ADMIN: 'Administrateur',
+  OFFICE_MANAGER: 'Office Manager',
+  SALES_MANAGER: 'Responsable commercial',
+  SALES_AGENT: 'Commercial',
+  MEMBER: 'Membre',
+};
 export type MemberType = 'FREELANCE' | 'STARTUP' | 'ENTREPRISE';
 
 export type PermissionLevel = 'read' | 'write';
@@ -24,10 +37,30 @@ export const DASHBOARD_RESOURCES: { key: string; label: string }[] = [
   { key: 'plans', label: 'Formules d’abonnement' },
   { key: 'contact', label: 'Messages de contact' },
   { key: 'crm', label: 'CRM commercial (leads, pipeline, agenda)' },
+  { key: 'crm_all', label: 'CRM — voir les leads de toute l’équipe (sinon : ses leads assignés)' },
+  { key: 'crm_manage', label: 'CRM — qualifier, valider et assigner les leads' },
   { key: 'quotes', label: 'Devis' },
   { key: 'invoices', label: 'Factures' },
   { key: 'fulfilment', label: 'Lancement des services' },
 ];
+
+/** Blocs du back-office regroupés par thème (écran de gestion des accès). */
+export const RESOURCE_GROUPS: { title: string; keys: string[] }[] = [
+  { title: 'Pilotage', keys: ['stats', 'validations'] },
+  { title: 'Commercial', keys: ['crm', 'crm_all', 'crm_manage', 'quotes', 'invoices', 'fulfilment', 'service_requests', 'contact', 'payments'] },
+  { title: 'Communauté', keys: ['members', 'companies', 'bookings', 'events', 'experts', 'partners', 'testimonials'] },
+  { title: 'Catalogue & site', keys: ['services', 'plans', 'spaces', 'galerie'] },
+];
+
+/** Clés de permission « oui / non » (pas de niveau lecture / écriture). */
+export const FLAG_RESOURCES = ['crm_all', 'crm_manage'];
+
+// Droits proposés à la création d'un compte (miroir de ROLE_PRESETS côté API).
+export const ROLE_PRESETS: Record<string, DashboardPermissions> = {
+  OFFICE_MANAGER: {},
+  SALES_MANAGER: { crm: 'write', quotes: 'write', invoices: 'read', fulfilment: 'read', service_requests: 'read', contact: 'read' },
+  SALES_AGENT: { crm: 'write', quotes: 'write' },
+};
 
 export interface AuthUser {
   id: string;
@@ -36,6 +69,8 @@ export interface AuthUser {
   emailVerified: boolean;
   permissions?: DashboardPermissions | null;
   displayName?: string | null;
+  // Portée commerciale d'un compte staff : voit toute l'équipe / peut qualifier et assigner.
+  crmAccess?: { allLeads: boolean; manageLeads: boolean } | null;
   // Rattachement à un compte entreprise (parcours « Inscrire mon entreprise »).
   // isOwner = ce compte a inscrit l'entreprise et gère les postes.
   company?: CompanySummary | null;
@@ -117,6 +152,8 @@ export interface MemberProfileSummary {
   companyLogoUrl: string | null;
   jobTitle: string | null;
   companyName: string | null;
+  city?: string | null;
+  phone?: string | null;
   siteId: string;
   sectors: string[];
   bio?: string | null;

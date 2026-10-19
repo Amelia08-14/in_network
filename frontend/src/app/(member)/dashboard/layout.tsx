@@ -2,18 +2,23 @@
 
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, UserRound, CalendarDays, Users2, Building2, ClipboardCheck } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { LayoutDashboard, UserRound, CalendarDays, Users2, Building2, ClipboardCheck, MessageCircle, ShoppingBag } from 'lucide-react';
 import { DashboardShell, type NavItem } from '@/components/layout/DashboardShell';
 import { ProfileCompletionBanner } from '@/components/features/ProfileCompletionBanner';
 import { useAuthStore } from '@/store/auth';
+import { api } from '@/lib/api';
 
 const SITUATION_HREF = '/dashboard/situation';
 
 const BASE_NAV: NavItem[] = [
   { href: '/dashboard', label: "Vue d'ensemble", icon: LayoutDashboard },
   { href: '/dashboard/profil', label: 'Mon profil', icon: UserRound },
+  { href: '/dashboard/services', label: 'Services', icon: ShoppingBag },
   { href: '/dashboard/reservations', label: 'Réservations', icon: CalendarDays },
   { href: '/dashboard/networking', label: 'Networking', icon: Users2 },
+  // Messagerie : la suite d'une mise en relation acceptée (pastille = messages non lus).
+  { href: '/dashboard/messages', label: 'Messages', icon: MessageCircle },
 ];
 
 // « Mon équipe » n'apparaît que pour le représentant qui a inscrit
@@ -72,7 +77,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
   }, [pending, refreshUser]);
 
-  const base = user?.company?.isOwner ? [...BASE_NAV, TEAM_NAV] : BASE_NAV;
+  // Messages non lus (actualisés toutes les 20 s, seulement pour un compte validé).
+  const { data: unread } = useQuery({
+    queryKey: ['messages-unread'],
+    queryFn: () => api.get<{ data: { count: number } }>('/api/messages/unread-count').then((r) => r.data.count),
+    enabled: validated,
+    refetchInterval: 20_000,
+  });
+
+  const withBadges = BASE_NAV.map((item) => (item.href === '/dashboard/messages' && unread ? { ...item, badge: unread } : item));
+  const base = user?.company?.isOwner ? [...withBadges, TEAM_NAV] : withBadges;
   const navItems: NavItem[] = pending
     ? [SITUATION_NAV, ...base.map((item) => ({ ...item, locked: !OPEN_WHILE_PENDING.includes(item.href) }))]
     : base;

@@ -74,7 +74,7 @@ export default function ActivityPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi hue="blue" label="Contacts effectués" value={String(contacts)} hint="Appels, emails, réunions, visites" />
-        <Kpi hue="teal" label="Appels" value={String(countBy('CALL'))} />
+        <Kpi hue="violet" label="Appels" value={String(countBy('CALL'))} />
         <Kpi hue="orange" label="Visites et réunions" value={String(countBy('VISIT') + countBy('MEETING'))} />
         <Kpi hue="amber" label="Notes" value={String(countBy('NOTE'))} />
       </div>

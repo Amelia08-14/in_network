@@ -65,7 +65,7 @@ export default function AgendaPage() {
   return (
     <div className="space-y-6">
       <PageTitle
-        hue="teal"
+        hue="violet"
         title="Agenda commercial"
         description={`${scheduled} rendez-vous prévu${scheduled > 1 ? 's' : ''} sur la période affichée.`}
         actions={

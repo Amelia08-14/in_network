@@ -51,8 +51,11 @@ export const SERVICE_CATEGORY_ACCENT: Record<string, CardAccent> = {
   ADMINISTRATION: 'blue',
   COMPTABILITE: 'yellow',
   JURIDIQUE: 'ink',
-  MARKETING: 'teal',
+  MARKETING: 'violet',
   SECRETARIAT: 'green',
+  OFFRE: 'orange',
+  DIASPORA: 'blue',
+  INCUBATION: 'green',
   AUTRE: 'none',
 };
 
