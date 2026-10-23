@@ -94,10 +94,13 @@ function creationChecklist(tierLabel: string | null | undefined): string[] {
   return CREATION_STEPS.slice(0, tier ? CREATION_TIER_STEPS[tier] : CREATION_STEPS.length);
 }
 
+// Solutions IN Group (décision du 23/10/2026) : pas d'accès des filiales à la
+// plateforme pour l'instant. L'Office Manager gère en interne la demande avec
+// la filiale concernée et tient l'avancement à jour pour le membre.
 const POLE_CHECKLIST: Record<DeliveryPole, string[]> = {
   SPACES: ['Remettre les accès (badge, poste ou bureau)', 'Mettre en place le courrier / la domiciliation', 'Remettre l’attestation au membre (48 h)'],
   COMPANY_CREATION: ['Prendre contact avec le client', 'Constituer le dossier', 'Réaliser les démarches auprès des organismes', 'Remettre les documents officiels'],
-  IN_GROUP: ['Transmettre la demande à la filiale', 'Mettre en relation le membre', 'Confirmer le démarrage de la prestation'],
+  IN_GROUP: ['Transmettre la demande à la filiale', 'Obtenir la confirmation de la filiale (délai, interlocuteur)', 'Mettre en relation le membre', 'Confirmer le démarrage de la prestation'],
 };
 const PLAN_CHECKLIST = ['Faire signer le contrat', 'Remettre les accès au client', 'Accueillir le client dans l’espace'];
 
@@ -128,13 +131,21 @@ function addPeriod(start: Date, cycle: PlanBillingCycle, count: number) {
   return end;
 }
 
-/** Qui livre : l'Office Manager (espaces), le support administratif (création), le référent (IN Group). */
+/**
+ * Qui livre : le support administratif (création d'entreprise) ; l'Office
+ * Manager pour les espaces et pour les Solutions IN Group, qu'il traite en
+ * interne avec la filiale concernée.
+ */
 async function poleAssignee(pole: DeliveryPole, fallback: string | null, referentId: string | null) {
   if (pole === 'COMPANY_CREATION') {
     const support = await listStaffByRole('ADMIN_SUPPORT');
     if (support.length) return support[0].id;
   }
-  if (pole === 'IN_GROUP') return referentId ?? fallback;
+  if (pole === 'IN_GROUP') {
+    const oms = await listStaffByRole('OFFICE_MANAGER');
+    if (fallback && oms.some((u) => u.id === fallback)) return fallback;
+    if (oms.length) return oms[0].id;
+  }
   return fallback ?? referentId;
 }
 

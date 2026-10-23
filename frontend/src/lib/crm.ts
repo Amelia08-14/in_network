@@ -198,7 +198,7 @@ export const ORDER_STATUS: Record<OrderStatus, { label: string; tone: Tone }> = 
 export const POLE: Record<DeliveryPole, { label: string; tone: Tone; who: string }> = {
   SPACES: { label: 'Espaces et domiciliation', tone: 'blue', who: 'Office Manager' },
   COMPANY_CREATION: { label: 'Création d’entreprise', tone: 'orange', who: 'Support administratif' },
-  IN_GROUP: { label: 'Solutions IN Group', tone: 'violet', who: 'Filiale concernée' },
+  IN_GROUP: { label: 'Solutions IN Group', tone: 'violet', who: 'Office Manager, avec la filiale' },
 };
 /** Statut du service vu par le membre (calculé par l'API à partir des dates). */
 export const MEMBER_SERVICE_STATUS: Record<MemberServiceStatus, { label: string; tone: Tone }> = {

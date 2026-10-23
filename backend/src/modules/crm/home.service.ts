@@ -100,7 +100,7 @@ export async function getHome(scope: StaffScope) {
   if (scope.officeManager || scope.direction || isSupport) {
     queue(
       { key: 'to_deliver', group: 'Clients', label: isSupport ? 'Dossiers de création à traiter' : 'Services à livrer', hint: 'À lancer, en cours, ajustements', href: isSupport ? '/admin/lancements?pole=COMPANY_CREATION' : '/admin/lancements' },
-      prisma.serviceOrder.count({ where: { AND: [ordersScope], status: { in: ['TO_START', 'IN_PROGRESS', 'ADJUSTMENT_REQUESTED'] }, ...(scope.direction || isSupport ? {} : { OR: [{ assignedToId: me }, { pole: 'SPACES' }] }) } }),
+      prisma.serviceOrder.count({ where: { AND: [ordersScope], status: { in: ['TO_START', 'IN_PROGRESS', 'ADJUSTMENT_REQUESTED'] }, ...(scope.direction || isSupport ? {} : { OR: [{ assignedToId: me }, { pole: { in: ['SPACES', 'IN_GROUP'] } }] }) } }),
     );
   }
   if (scope.officeManager || scope.direction) {
