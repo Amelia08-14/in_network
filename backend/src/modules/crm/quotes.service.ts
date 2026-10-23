@@ -3,9 +3,9 @@ import { prisma } from '../../lib/prisma';
 import { sendEmail } from '../../lib/email';
 import { ApiError } from '../../utils/apiResponse';
 import { getSettings } from '../settings/settings.service';
-import { renderDocumentPdf, type PdfDocumentInput } from './documentPdf';
+import { discountLabel, renderDocumentPdf, type PdfDocumentInput } from './documentPdf';
 import { advanceStageTo, logActivity, scheduleTask } from './leads.service';
-import { DEFAULT_VAT_RATE, computeTotals, formatAmount } from './money';
+import { DEFAULT_VAT_RATE, computeTotals, formatAmount, netLineAmount, round2, type DocDiscount } from './money';
 import { nextNumber } from './numbering';
 import { assertLeadAccess, leadScopeWhere, type StaffScope } from './scope';
 import { STAFF_SELECT, listStaffByRole, listStaffWith, notifyUsers } from './staff';
@@ -22,12 +22,28 @@ export interface DocLineInput {
   description: string;
   quantity: number;
   unitPrice: number;
+  /** Remise sur la ligne, en %. */
+  discountRate?: number | null;
   serviceId?: string | null;
   planId?: string | null;
   spaceId?: string | null;
   tierLabel?: string | null;
   renewsOrderId?: string | null;
 }
+
+export interface DiscountPatch {
+  discountType?: 'PERCENT' | 'AMOUNT' | null;
+  discountValue?: number;
+}
+
+/** Remise sur le total après modification : ce qui est envoyé, sinon ce qui est enregistré. */
+export function mergeDiscount(patch: DiscountPatch, existing: { discountType: string | null; discountValue: unknown }): DocDiscount {
+  const type = (patch.discountType !== undefined ? patch.discountType : existing.discountType) as DocDiscount['type'];
+  return { type, value: type ? patch.discountValue ?? Number(existing.discountValue) : 0 };
+}
+
+export const storedLines = (lines: { description: string; quantity: unknown; unitPrice: unknown; discountRate: unknown }[]) =>
+  lines.map((l) => ({ description: l.description, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice), discountRate: Number(l.discountRate) }));
 
 const QUOTE_INCLUDE = {
   lines: { orderBy: { position: 'asc' } },
@@ -46,6 +62,7 @@ export function lineData(lines: DocLineInput[]) {
     description: line.description,
     quantity: line.quantity,
     unitPrice: line.unitPrice,
+    discountRate: line.discountRate ?? 0,
     serviceId: line.serviceId ?? null,
     planId: line.planId ?? null,
     spaceId: line.spaceId ?? null,
@@ -98,7 +115,7 @@ export interface ApprovalCheck {
  * ligne libre, prix ajusté — c'est une demande de devis à faire valider. Un
  * montant au-delà du seuil fixé dans les paramètres passe par la Direction.
  */
-export async function checkApproval(quote: { total: unknown; lines: { description: string; unitPrice: unknown; serviceId: string | null; planId: string | null; spaceId: string | null; tierLabel: string | null }[]; lead: { circuit: string | null } }): Promise<ApprovalCheck> {
+export async function checkApproval(quote: { total: unknown; subtotal: unknown; discountAmount: unknown; lines: { description: string; unitPrice: unknown; serviceId: string | null; planId: string | null; spaceId: string | null; tierLabel: string | null }[]; lead: { circuit: string | null } }): Promise<ApprovalCheck> {
   const ids = (key: 'serviceId' | 'planId' | 'spaceId') => quote.lines.map((l) => l[key]).filter((id): id is string => Boolean(id));
   const [services, plans, spaces, settings] = await Promise.all([
     prisma.serviceCatalogItem.findMany({ where: { id: { in: ids('serviceId') } }, select: { id: true, title: true, priceFrom: true, pricingTiers: true } }),
@@ -129,6 +146,17 @@ export async function checkApproval(quote: { total: unknown; lines: { descriptio
       if (!rates.some((rate) => rate !== null && samePrice(price, Number(rate)))) reasons.push(`tarif de salle ajusté sur « ${line.description} »`);
     } else {
       reasons.push(`« ${line.description} » n’est pas au catalogue`);
+    }
+  }
+
+  // Remise accordée : validée au-delà du taux libre fixé dans les paramètres
+  // (aucun taux fixé = toute remise est validée).
+  const discount = Number(quote.discountAmount);
+  if (discount > 0) {
+    const gross = Number(quote.subtotal) + discount;
+    const rate = gross > 0 ? round2((discount / gross) * 100) : 100;
+    if (settings.discountWithoutApprovalRate === null || rate > settings.discountWithoutApprovalRate + 0.005) {
+      reasons.push(`remise de ${String(rate).replace('.', ',')} % (${formatAmount(discount)} HT)`);
     }
   }
 
@@ -210,6 +238,7 @@ export async function createQuote(input: { leadId: string; templateId?: string; 
       notes,
       vatRate: DEFAULT_VAT_RATE,
       subtotal: totals.subtotal,
+      discountAmount: totals.discountAmount,
       total: totals.total,
       createdById: actorId,
       lines: { create: lineData(lines) },
@@ -222,14 +251,16 @@ export async function createQuote(input: { leadId: string; templateId?: string; 
 
 export async function updateQuote(
   id: string,
-  patch: { validUntil?: Date | null; notes?: string | null; vatRate?: number; lines?: DocLineInput[] },
+  patch: { validUntil?: Date | null; notes?: string | null; vatRate?: number; lines?: DocLineInput[] } & DiscountPatch,
 ) {
   const existing = await getQuote(id);
   if (existing.status !== 'DRAFT') throw ApiError.conflict('Seul un devis en brouillon peut être modifié — repassez-le en brouillon d’abord.');
 
   const vatRate = patch.vatRate ?? Number(existing.vatRate);
-  const lines = patch.lines ?? existing.lines.map((l) => ({ description: l.description, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) }));
-  const totals = computeTotals(lines, vatRate);
+  const lines = patch.lines ?? storedLines(existing.lines);
+  const discount = mergeDiscount(patch, existing);
+  const totals = computeTotals(lines, vatRate, discount);
+  const discountChanged = discount.type !== existing.discountType || discount.value !== Number(existing.discountValue);
 
   await prisma.$transaction(async (tx) => {
     if (patch.lines) {
@@ -242,10 +273,13 @@ export async function updateQuote(
         validUntil: patch.validUntil,
         notes: patch.notes,
         vatRate,
+        discountType: discount.type,
+        discountValue: discount.value,
+        discountAmount: totals.discountAmount,
         subtotal: totals.subtotal,
         total: totals.total,
         // Une validation porte sur un contenu précis : le modifier l'annule.
-        ...(patch.lines || patch.vatRate !== undefined ? { approvedAt: null, approvedById: null } : {}),
+        ...(patch.lines || patch.vatRate !== undefined || discountChanged ? { approvedAt: null, approvedById: null } : {}),
       },
     });
   });
@@ -271,9 +305,10 @@ export async function quotePdf(id: string) {
     date: quote.createdAt,
     dueDate: quote.validUntil,
     customer: { name: quote.lead.contactName, company: quote.lead.companyName, email: quote.lead.email, phone: quote.lead.phone },
-    lines: quote.lines.map((l) => ({ description: l.description, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })),
+    lines: storedLines(quote.lines),
     vatRate: Number(quote.vatRate),
     subtotal: Number(quote.subtotal),
+    discountLabel: discountLabel(quote),
     vatAmount: Number(quote.total) - Number(quote.subtotal),
     total: Number(quote.total),
     notes: quote.notes,
@@ -292,9 +327,15 @@ export async function quotePdf(id: string) {
 }
 
 function quoteEmailHtml(quote: Awaited<ReturnType<typeof getQuote>>) {
-  const rows = quote.lines
-    .map((l) => `<tr><td style="padding:6px 12px 6px 0">${escapeHtml(l.description)}</td><td style="padding:6px 0;text-align:right;white-space:nowrap">${formatAmount(Number(l.quantity) * Number(l.unitPrice))}</td></tr>`)
-    .join('');
+  const row = (label: string, amount: string) =>
+    `<tr><td style="padding:6px 12px 6px 0">${label}</td><td style="padding:6px 0;text-align:right;white-space:nowrap">${amount}</td></tr>`;
+  const lines = storedLines(quote.lines);
+  const linesNet = lines.reduce((sum, l) => sum + netLineAmount(l), 0);
+  const totalDiscount = round2(linesNet - Number(quote.subtotal));
+  const rows = [
+    ...lines.map((l) => row(`${escapeHtml(l.description)}${l.discountRate > 0 ? ` (remise ${String(l.discountRate).replace('.', ',')} %)` : ''}`, formatAmount(netLineAmount(l)))),
+    totalDiscount > 0 ? row('Remise sur le total', `-${formatAmount(totalDiscount)}`) : '',
+  ].join('');
   return [
     `<p>Bonjour ${escapeHtml(quote.lead.contactName)},</p>`,
     `<p>Suite à nos échanges, vous trouverez ci-joint notre devis <strong>${quote.number}</strong>.</p>`,

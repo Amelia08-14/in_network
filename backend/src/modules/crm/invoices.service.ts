@@ -4,14 +4,14 @@ import { sendEmail } from '../../lib/email';
 import { ApiError } from '../../utils/apiResponse';
 import { activateMember, ensureMemberAccount } from './activation.service';
 import { cancelCommissionsForInvoice, createCommissionsForInvoice } from './commissions.service';
-import { renderDocumentPdf, type PdfDocumentInput } from './documentPdf';
+import { discountLabel, renderDocumentPdf, type PdfDocumentInput } from './documentPdf';
 import { launchServicesForInvoice } from './fulfilment.service';
 import { advanceStageTo, logActivity } from './leads.service';
-import { DEFAULT_VAT_RATE, computeTotals, formatAmount, round2 } from './money';
+import { DEFAULT_VAT_RATE, computeTotals, formatAmount, round2, type DocDiscount } from './money';
 import { nextNumber } from './numbering';
 import { leadScopeWhere, type StaffScope } from './scope';
 import { STAFF_SELECT, notifyUsers } from './staff';
-import { lineData, type DocLineInput } from './quotes.service';
+import { lineData, mergeDiscount, storedLines, type DiscountPatch, type DocLineInput } from './quotes.service';
 import { DIASPORA_CHANNELS } from './workflow';
 
 // Facturation (phase 3 du processus v1.3, décision du 23/10/2026) :
@@ -76,6 +76,7 @@ export async function createInvoice(
   let quoteId = input.quoteId;
   let lines = input.lines ?? [];
   let vatRate = DEFAULT_VAT_RATE;
+  let discount: DocDiscount = { type: null, value: 0 };
 
   if (quoteId) {
     const quote = await prisma.quote.findUnique({ where: { id: quoteId }, include: { lines: { orderBy: { position: 'asc' } }, invoices: { select: { status: true } } } });
@@ -88,10 +89,13 @@ export async function createInvoice(
     }
     leadId = quote.leadId;
     vatRate = Number(quote.vatRate);
+    // Les remises accordées sur le devis passent telles quelles sur la proforma.
+    discount = { type: quote.discountType, value: Number(quote.discountValue) };
     lines = quote.lines.map((l) => ({
       description: l.description,
       quantity: Number(l.quantity),
       unitPrice: Number(l.unitPrice),
+      discountRate: Number(l.discountRate),
       serviceId: l.serviceId,
       planId: l.planId,
       spaceId: l.spaceId,
@@ -106,7 +110,7 @@ export async function createInvoice(
   const customerName = input.customerName ?? lead?.contactName;
   if (!customerName) throw ApiError.badRequest('Le nom du client est requis.');
 
-  const totals = computeTotals(lines, vatRate);
+  const totals = computeTotals(lines, vatRate, discount);
   const invoice = await prisma.invoice.create({
     data: {
       leadId,
@@ -120,6 +124,8 @@ export async function createInvoice(
       customerRc: input.customerRc,
       customerAi: input.customerAi,
       vatRate,
+      discountType: discount.type,
+      discountValue: discount.value,
       ...totals,
       createdById: actorId,
       lines: { create: lineData(lines) },
@@ -132,22 +138,23 @@ export async function createInvoice(
 
 export async function updateInvoice(
   id: string,
-  patch: CustomerInput & { vatRate?: number; dueDate?: Date | null; notes?: string | null; lines?: DocLineInput[] },
+  patch: CustomerInput & { vatRate?: number; dueDate?: Date | null; notes?: string | null; lines?: DocLineInput[] } & DiscountPatch,
 ) {
   const existing = await getInvoice(id);
   if (existing.status !== 'DRAFT') throw ApiError.conflict('Une proforma envoyée ne peut plus être modifiée.');
 
-  const { lines, ...rest } = patch;
+  const { lines, discountType: _type, discountValue: _value, ...rest } = patch;
   const vatRate = patch.vatRate ?? Number(existing.vatRate);
-  const currentLines = lines ?? existing.lines.map((l) => ({ quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) }));
-  const totals = computeTotals(currentLines, vatRate);
+  const currentLines = lines ?? storedLines(existing.lines);
+  const discount = mergeDiscount(patch, existing);
+  const totals = computeTotals(currentLines, vatRate, discount);
 
   await prisma.$transaction(async (tx) => {
     if (lines) {
       await tx.invoiceLine.deleteMany({ where: { invoiceId: id } });
       await tx.invoiceLine.createMany({ data: lineData(lines).map((l) => ({ ...l, invoiceId: id })) });
     }
-    await tx.invoice.update({ where: { id }, data: { ...rest, vatRate, ...totals } });
+    await tx.invoice.update({ where: { id }, data: { ...rest, vatRate, discountType: discount.type, discountValue: discount.value, ...totals } });
   });
   return getInvoice(id);
 }
@@ -185,9 +192,10 @@ export async function invoicePdf(id: string) {
       rc: invoice.customerRc,
       ai: invoice.customerAi,
     },
-    lines: invoice.lines.map((l) => ({ description: l.description, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })),
+    lines: storedLines(invoice.lines),
     vatRate: Number(invoice.vatRate),
     subtotal: Number(invoice.subtotal),
+    discountLabel: discountLabel(invoice),
     vatAmount: Number(invoice.vatAmount),
     total: Number(invoice.total),
     notes: invoice.notes,

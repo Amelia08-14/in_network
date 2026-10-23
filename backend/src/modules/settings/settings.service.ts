@@ -30,6 +30,8 @@ export const SETTINGS_SCHEMA = {
   quoteDirectionThreshold: z.number().min(0).max(1e10).nullable(),
   /** Les devis sur mesure du circuit 2 sont validés par la Direction. */
   directionApprovesOfficeManagerQuotes: z.boolean(),
+  /** Remise totale (en % du HT) accordée sans validation ; null = toute remise est validée. */
+  discountWithoutApprovalRate: z.number().min(0).max(100).nullable(),
 } as const;
 
 export type SettingKey = keyof typeof SETTINGS_SCHEMA;
@@ -45,6 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   leadProtectionDays: null,
   quoteDirectionThreshold: null,
   directionApprovesOfficeManagerQuotes: true,
+  discountWithoutApprovalRate: null,
 };
 
 export const SETTING_LABELS: Record<SettingKey, string> = {
@@ -57,6 +60,7 @@ export const SETTING_LABELS: Record<SettingKey, string> = {
   leadProtectionDays: 'Protection d’un lead de la Sales Team sans activité (jours)',
   quoteDirectionThreshold: 'Montant TTC au-delà duquel la Direction valide un devis',
   directionApprovesOfficeManagerQuotes: 'La Direction valide les devis sur mesure du circuit 2',
+  discountWithoutApprovalRate: 'Remise accordée sans validation, jusqu’à (% du HT)',
 };
 
 const KEYS = Object.keys(SETTINGS_SCHEMA) as SettingKey[];

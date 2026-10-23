@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { LineItemsEditor } from '@/components/admin/LineItemsEditor';
 import { errorMessage, Field, InvoiceBadge, QuoteBadge, useCrmAccess } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
-import { dateTimeFr, invoiceNumber, openAdminPdf, QUOTE_STATUS, staffName, toInputDate } from '@/lib/crm';
+import { dateTimeFr, invoiceNumber, openAdminPdf, QUOTE_STATUS, staffName, toInputDate, type DocDiscountInput } from '@/lib/crm';
 import { HUE_ACCENT } from '@/lib/palette';
 import type { DocLine, QuoteDetail } from '@/types/crm';
 
@@ -44,7 +44,8 @@ function QuoteEditor({ quote }: { quote: QuoteDetail }) {
   const needsApproval = editable && Boolean(approval?.required) && !quote.approvedAt;
   const canApprove = access.direction || (approval?.approver === 'SALES_MANAGER' && access.salesManager);
   const [returnComment, setReturnComment] = useState('');
-  const [lines, setLines] = useState<DocLine[]>(quote.lines.map((l) => ({ ...l, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })));
+  const [lines, setLines] = useState<DocLine[]>(quote.lines.map((l) => ({ ...l, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice), discountRate: Number(l.discountRate ?? 0) })));
+  const [discount, setDiscount] = useState<DocDiscountInput>({ type: quote.discountType, value: Number(quote.discountValue) });
   const [validUntil, setValidUntil] = useState(toInputDate(quote.validUntil));
   const [vatRate, setVatRate] = useState(String(Number(quote.vatRate)));
   const [notes, setNotes] = useState(quote.notes ?? '');
@@ -66,7 +67,9 @@ function QuoteEditor({ quote }: { quote: QuoteDetail }) {
     validUntil: validUntil ? new Date(`${validUntil}T23:59:59`).toISOString() : null,
     vatRate: Number(vatRate) || 0,
     notes,
-    lines: lines.map((l) => ({ description: l.description, quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, serviceId: l.serviceId, planId: l.planId, spaceId: l.spaceId, tierLabel: l.tierLabel, renewsOrderId: l.renewsOrderId })),
+    discountType: discount.type,
+    discountValue: discount.type ? Number(discount.value) || 0 : 0,
+    lines: lines.map((l) => ({ description: l.description, quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, discountRate: Number(l.discountRate) || 0, serviceId: l.serviceId, planId: l.planId, spaceId: l.spaceId, tierLabel: l.tierLabel, renewsOrderId: l.renewsOrderId })),
   });
 
   const save = useMutation({
@@ -243,7 +246,7 @@ function QuoteEditor({ quote }: { quote: QuoteDetail }) {
               <Input id="q-vat" type="number" min="0" max="100" step="0.01" disabled={!editable} value={vatRate} onChange={(e) => setVatRate(e.target.value)} />
             </Field>
           </div>
-          <LineItemsEditor lines={lines} onChange={setLines} vatRate={Number(vatRate) || 0} readOnly={!editable} />
+          <LineItemsEditor lines={lines} onChange={setLines} vatRate={Number(vatRate) || 0} readOnly={!editable} discount={discount} onDiscountChange={setDiscount} />
           <Field label="Notes et conditions (reprises sur le PDF)" htmlFor="q-notes">
             <Textarea id="q-notes" rows={3} disabled={!editable} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Modalités de paiement, délais, périmètre…" />
           </Field>

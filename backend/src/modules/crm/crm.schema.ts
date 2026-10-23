@@ -141,13 +141,22 @@ export const docLineSchema = z.object({
   description: z.string().trim().min(1, 'Une ligne doit avoir une désignation').max(1000),
   quantity: z.coerce.number().positive('Quantité invalide').max(100000),
   unitPrice: z.coerce.number().nonnegative('Prix invalide').max(1e10),
+  discountRate: z.coerce.number().min(0, 'Remise invalide').max(100, 'Une remise ne dépasse pas 100 %').optional(),
   serviceId: z.string().nullish(),
   planId: z.string().nullish(),
   spaceId: z.string().nullish(),
   tierLabel: z.string().nullish(),
+  renewsOrderId: z.string().nullish(),
 });
 const linesSchema = z.array(docLineSchema).max(60);
 const vatSchema = z.coerce.number().min(0).max(100);
+// Remise sur le total : en % (jusqu'à 100) ou en montant HT.
+const discountFields = {
+  discountType: z.enum(['PERCENT', 'AMOUNT']).nullable().optional(),
+  discountValue: z.coerce.number().min(0, 'Remise invalide').max(1e10).optional(),
+};
+const percentWithinRange = (v: { discountType?: string | null; discountValue?: number }) => v.discountType !== 'PERCENT' || (v.discountValue ?? 0) <= 100;
+const percentMessage = { message: 'Une remise ne dépasse pas 100 %', path: ['discountValue'] };
 
 // --- Devis ----------------------------------------------------------------------------
 
@@ -158,7 +167,8 @@ export const quotePatchSchema = z.object({
   notes: text(3000).optional(),
   vatRate: vatSchema.optional(),
   lines: linesSchema.optional(),
-});
+  ...discountFields,
+}).refine(percentWithinRange, percentMessage);
 export const quoteListQuerySchema = z.object({
   status: z.enum(['DRAFT', 'PENDING_APPROVAL', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED']).optional(),
   leadId: z.string().optional(),
@@ -206,7 +216,8 @@ export const invoicePatchSchema = z.object({
   dueDate: nullableDate.optional(),
   notes: text(3000).optional(),
   lines: linesSchema.optional(),
-});
+  ...discountFields,
+}).refine(percentWithinRange, percentMessage);
 export const invoiceIssueSchema = z.object({ dueDate: z.coerce.date().optional(), send: z.boolean().optional() });
 export const invoicePaymentSchema = z.object({
   method: z.nativeEnum(InvoicePaymentMethod),

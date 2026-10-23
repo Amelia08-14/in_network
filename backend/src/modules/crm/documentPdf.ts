@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import PDFDocument from 'pdfkit';
 import { env } from '../../config/env';
-import { amountInWords, formatAmount } from './money';
+import { amountInWords, formatAmount, netLineAmount, round2 } from './money';
 
 // Rendu PDF des devis et des factures (polices PDF standard : pas de fichier
 // de police à déployer). Mise en page A4 sobre : émetteur / titre, client,
@@ -12,6 +12,7 @@ export interface PdfLine {
   description: string;
   quantity: number;
   unitPrice: number;
+  discountRate?: number;
 }
 
 export interface PdfDocumentInput {
@@ -34,7 +35,10 @@ export interface PdfDocumentInput {
   };
   lines: PdfLine[];
   vatRate: number;
+  /** Total HT net (remises déduites). */
   subtotal: number;
+  /** Libellé de la remise sur le total, s'il y en a une (« Remise (5 %) »). */
+  discountLabel?: string;
   vatAmount: number;
   total: number;
   notes?: string | null;
@@ -115,8 +119,14 @@ export function renderDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
 
     // --- Tableau des lignes
     y = doc.y + 22;
-    const cols = { desc: MARGIN, qty: MARGIN + contentWidth * 0.52, unit: MARGIN + contentWidth * 0.62, total: MARGIN + contentWidth * 0.82 };
-    const widths = { desc: contentWidth * 0.5, qty: contentWidth * 0.08, unit: contentWidth * 0.18, total: contentWidth * 0.18 };
+    // Colonne « Remise » seulement si une ligne en porte une.
+    const lineDiscounts = input.lines.some((line) => (line.discountRate ?? 0) > 0);
+    const cols = lineDiscounts
+      ? { desc: MARGIN, qty: MARGIN + contentWidth * 0.44, unit: MARGIN + contentWidth * 0.53, disc: MARGIN + contentWidth * 0.71, total: MARGIN + contentWidth * 0.82 }
+      : { desc: MARGIN, qty: MARGIN + contentWidth * 0.52, unit: MARGIN + contentWidth * 0.62, disc: 0, total: MARGIN + contentWidth * 0.82 };
+    const widths = lineDiscounts
+      ? { desc: contentWidth * 0.42, qty: contentWidth * 0.07, unit: contentWidth * 0.17, disc: contentWidth * 0.1, total: contentWidth * 0.18 }
+      : { desc: contentWidth * 0.5, qty: contentWidth * 0.08, unit: contentWidth * 0.18, disc: 0, total: contentWidth * 0.18 };
 
     const drawHeader = (top: number) => {
       doc.rect(MARGIN, top, contentWidth, 22).fill(INK);
@@ -124,6 +134,7 @@ export function renderDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
       doc.text('DÉSIGNATION', cols.desc + 8, top + 7, { width: widths.desc });
       doc.text('QTÉ', cols.qty, top + 7, { width: widths.qty, align: 'right' });
       doc.text('PRIX UNIT. HT', cols.unit, top + 7, { width: widths.unit, align: 'right' });
+      if (lineDiscounts) doc.text('REMISE', cols.disc, top + 7, { width: widths.disc, align: 'right' });
       doc.text('TOTAL HT', cols.total, top + 7, { width: widths.total - 8, align: 'right' });
       return top + 22;
     };
@@ -143,7 +154,8 @@ export function renderDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
       doc.text(line.description, cols.desc + 8, y + 7, { width: widths.desc - 8 });
       doc.text(String(line.quantity).replace('.', ','), cols.qty, y + 7, { width: widths.qty, align: 'right' });
       doc.text(formatAmount(line.unitPrice), cols.unit, y + 7, { width: widths.unit, align: 'right' });
-      doc.text(formatAmount(line.quantity * line.unitPrice), cols.total, y + 7, { width: widths.total - 8, align: 'right' });
+      if (lineDiscounts && line.discountRate) doc.text(`-${String(line.discountRate).replace('.', ',')} %`, cols.disc, y + 7, { width: widths.disc, align: 'right' });
+      doc.text(formatAmount(netLineAmount(line)), cols.total, y + 7, { width: widths.total - 8, align: 'right' });
       y += rowHeight;
     });
     doc.moveTo(MARGIN, y).lineTo(pageWidth - MARGIN, y).strokeColor(LINE).lineWidth(0.8).stroke();
@@ -162,7 +174,17 @@ export function renderDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
       doc.text(value, boxX + boxW * 0.4, y, { width: boxW * 0.6, align: 'right' });
       y += bold ? 20 : 16;
     };
-    row('Total HT', formatAmount(input.subtotal));
+    // Les remises de ligne sont déjà dans chaque « Total HT » ; la remise sur
+    // le total s'affiche entre le total des lignes et le HT net.
+    const linesNet = round2(input.lines.reduce((sum, line) => sum + netLineAmount(line), 0));
+    const globalDiscount = round2(linesNet - input.subtotal);
+    if (globalDiscount > 0) {
+      row('Total HT', formatAmount(linesNet));
+      row(input.discountLabel ?? 'Remise sur le total', `-${formatAmount(globalDiscount)}`);
+      row('Total HT net', formatAmount(input.subtotal));
+    } else {
+      row('Total HT', formatAmount(input.subtotal));
+    }
     row(`TVA (${String(input.vatRate).replace('.', ',')} %)`, formatAmount(input.vatAmount));
     doc.moveTo(boxX, y - 2).lineTo(pageWidth - MARGIN, y - 2).strokeColor(INK).lineWidth(1).stroke();
     y += 4;
@@ -199,4 +221,9 @@ export function renderDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
 
     doc.end();
   });
+}
+
+/** Libellé de la remise sur le total : « Remise (5 %) » ou « Remise sur le total ». */
+export function discountLabel(doc: { discountType: string | null; discountValue: unknown }) {
+  return doc.discountType === 'PERCENT' ? `Remise (${String(Number(doc.discountValue)).replace('.', ',')} %)` : 'Remise sur le total';
 }

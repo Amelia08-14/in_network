@@ -152,6 +152,8 @@ export interface DocLine {
   description: string;
   quantity: number | string;
   unitPrice: number | string;
+  /** Remise sur la ligne, en %. */
+  discountRate?: number | string;
   serviceId?: string | null;
   planId?: string | null;
   spaceId?: string | null;
@@ -177,7 +179,17 @@ export interface ApprovalCheck {
   reasons: string[];
 }
 
-export interface QuoteDetail extends QuoteListItem {
+export type DiscountType = 'PERCENT' | 'AMOUNT';
+
+/** Remise sur le total d'un devis / d'une facture ; subtotal = total HT net. */
+export interface DocDiscountFields {
+  discountType: DiscountType | null;
+  discountValue: string;
+  /** Total des remises accordées (lignes + total). */
+  discountAmount: string;
+}
+
+export interface QuoteDetail extends QuoteListItem, DocDiscountFields {
   subtotal: string;
   vatRate: string;
   notes: string | null;
@@ -216,7 +228,7 @@ export interface InvoiceListItem {
   lead: { id: string; reference: string; circuit?: LeadCircuit | null } | null;
 }
 
-export interface InvoiceDetail extends InvoiceListItem {
+export interface InvoiceDetail extends InvoiceListItem, DocDiscountFields {
   customerEmail: string | null;
   customerPhone: string | null;
   customerAddress: string | null;

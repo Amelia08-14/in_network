@@ -8,12 +8,45 @@ export const round2 = (value: number) => Math.round((value + Number.EPSILON) * 1
 export interface PricedLine {
   quantity: number;
   unitPrice: number;
+  /** Remise sur la ligne, en % (0 = aucune). */
+  discountRate?: number | null;
 }
 
-export function computeTotals(lines: PricedLine[], vatRate: number) {
-  const subtotal = round2(lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0));
+/** Remise sur le total HT (après les remises de ligne) : en % ou en montant HT. */
+export interface DocDiscount {
+  type: 'PERCENT' | 'AMOUNT' | null;
+  value: number;
+}
+
+export const grossLineAmount = (line: PricedLine) => round2(line.quantity * line.unitPrice);
+export const netLineAmount = (line: PricedLine) => round2(grossLineAmount(line) * (1 - Math.min(100, Math.max(0, Number(line.discountRate ?? 0))) / 100));
+
+function globalDiscountOn(base: number, discount?: DocDiscount | null) {
+  if (!discount?.type || !(discount.value > 0)) return 0;
+  return round2(discount.type === 'PERCENT' ? (base * Math.min(100, discount.value)) / 100 : Math.min(discount.value, base));
+}
+
+/**
+ * subtotal = total HT net (toutes remises déduites), base de la TVA ;
+ * discountAmount = total des remises (lignes + total), pour l'afficher.
+ */
+export function computeTotals(lines: PricedLine[], vatRate: number, discount?: DocDiscount | null) {
+  const gross = round2(lines.reduce((sum, line) => sum + grossLineAmount(line), 0));
+  const linesNet = round2(lines.reduce((sum, line) => sum + netLineAmount(line), 0));
+  const subtotal = round2(linesNet - globalDiscountOn(linesNet, discount));
   const vatAmount = round2((subtotal * vatRate) / 100);
-  return { subtotal, vatAmount, total: round2(subtotal + vatAmount) };
+  return { subtotal, discountAmount: round2(gross - subtotal), vatAmount, total: round2(subtotal + vatAmount) };
+}
+
+/**
+ * Montant HT net de chaque ligne, la remise sur le total étant répartie au
+ * prorata : base des commissions et montant de chaque service du panier.
+ */
+export function netLineAmounts(lines: PricedLine[], discount?: DocDiscount | null) {
+  const nets = lines.map(netLineAmount);
+  const linesNet = nets.reduce((sum, value) => sum + value, 0);
+  const ratio = linesNet > 0 ? (linesNet - globalDiscountOn(round2(linesNet), discount)) / linesNet : 1;
+  return nets.map((value) => round2(value * ratio));
 }
 
 // « 22 900,00 DA » — espaces classiques (pas d'espace insécable fine, que les

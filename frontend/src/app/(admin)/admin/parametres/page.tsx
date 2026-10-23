@@ -33,6 +33,7 @@ const HINTS: Record<string, string> = {
   leadProtectionDays: 'À fixer par IN NETWORK. Vide : pas de règle.',
   quoteDirectionThreshold: 'À fixer par IN NETWORK. Vide : pas de seuil.',
   directionApprovesOfficeManagerQuotes: 'Sinon, le responsable commercial valide aussi les devis sur mesure du circuit 2.',
+  discountWithoutApprovalRate: 'À fixer par IN NETWORK. Vide : toute remise (ligne ou total) fait valider le devis avant l’envoi.',
 };
 
 const toText = (value: SettingValue) => (Array.isArray(value) ? value.join(', ') : value === null ? '' : String(value));

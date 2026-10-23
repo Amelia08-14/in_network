@@ -2,7 +2,7 @@ import type { CommissionBeneficiary, CommissionMode, CommissionStatus, LeadCircu
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
 import { logActivity } from './leads.service';
-import { round2 } from './money';
+import { netLineAmounts, round2 } from './money';
 import type { StaffScope } from './scope';
 import { STAFF_SELECT, notifyUsers } from './staff';
 
@@ -108,9 +108,14 @@ export async function createCommissionsForInvoice(invoiceId: string) {
   const serviceIds = invoice.lines.map((l) => l.serviceId).filter((id): id is string => Boolean(id));
   const services = serviceIds.length ? await prisma.serviceCatalogItem.findMany({ where: { id: { in: serviceIds } }, select: { id: true, category: true } }) : [];
 
+  // Base : montant HT net de la ligne, remises (ligne et total) déduites.
+  const nets = netLineAmounts(
+    invoice.lines.map((l) => ({ quantity: Number(l.quantity), unitPrice: Number(l.unitPrice), discountRate: Number(l.discountRate) })),
+    { type: invoice.discountType, value: Number(invoice.discountValue) },
+  );
   const created: string[] = [];
-  for (const line of invoice.lines) {
-    const base = round2(Number(line.quantity) * Number(line.unitPrice));
+  for (const [index, line] of invoice.lines.entries()) {
+    const base = nets[index];
     if (base <= 0) continue;
     const order = invoice.serviceOrders.find((o) => o.invoiceLineId === line.id);
     for (const beneficiary of beneficiaries) {

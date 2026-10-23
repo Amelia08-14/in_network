@@ -15,7 +15,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { LineItemsEditor } from '@/components/admin/LineItemsEditor';
 import { errorMessage, Field, InvoiceBadge, OrderBadge, Pill } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
-import { dateFr, DIASPORA_CHANNELS, INVOICE_STATUS, invoiceNumber, money, openAdminPdf, PAYMENT_LABEL, toInputDate } from '@/lib/crm';
+import { dateFr, DIASPORA_CHANNELS, INVOICE_STATUS, invoiceNumber, money, openAdminPdf, PAYMENT_LABEL, toInputDate, type DocDiscountInput } from '@/lib/crm';
 import { HUE_ACCENT } from '@/lib/palette';
 import type { DocLine, InvoiceDetail, PaymentMethod } from '@/types/crm';
 
@@ -54,7 +54,8 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
     notes: invoice.notes ?? '',
     sendOnIssue: Boolean(invoice.customerEmail),
   });
-  const [lines, setLines] = useState<DocLine[]>(invoice.lines.map((l) => ({ ...l, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })));
+  const [lines, setLines] = useState<DocLine[]>(invoice.lines.map((l) => ({ ...l, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice), discountRate: Number(l.discountRate ?? 0) })));
+  const [discount, setDiscount] = useState<DocDiscountInput>({ type: invoice.discountType, value: Number(invoice.discountValue) });
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [payOpen, setPayOpen] = useState(false);
@@ -89,7 +90,9 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
     dueDate: form.dueDate ? new Date(`${form.dueDate}T23:59:59`).toISOString() : null,
     vatRate: Number(form.vatRate) || 0,
     notes: form.notes,
-    lines: lines.map((l) => ({ description: l.description, quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, serviceId: l.serviceId, planId: l.planId, spaceId: l.spaceId, tierLabel: l.tierLabel, renewsOrderId: l.renewsOrderId })),
+    discountType: discount.type,
+    discountValue: discount.type ? Number(discount.value) || 0 : 0,
+    lines: lines.map((l) => ({ description: l.description, quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, discountRate: Number(l.discountRate) || 0, serviceId: l.serviceId, planId: l.planId, spaceId: l.spaceId, tierLabel: l.tierLabel, renewsOrderId: l.renewsOrderId })),
   });
 
   const save = useMutation({
@@ -280,7 +283,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
               <Input id="i-vat" type="number" min="0" max="100" step="0.01" disabled={!editable} value={form.vatRate} onChange={(e) => set({ vatRate: e.target.value })} />
             </Field>
           </div>
-          <LineItemsEditor lines={lines} onChange={setLines} vatRate={Number(form.vatRate) || 0} readOnly={!editable} />
+          <LineItemsEditor lines={lines} onChange={setLines} vatRate={Number(form.vatRate) || 0} readOnly={!editable} discount={discount} onDiscountChange={setDiscount} />
           <Field label="Notes (reprises sur le PDF)" htmlFor="i-notes">
             <Textarea id="i-notes" rows={2} disabled={!editable} value={form.notes} onChange={(e) => set({ notes: e.target.value })} />
           </Field>

@@ -227,6 +227,33 @@ export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   CARD: 'Carte bancaire',
 };
 
+// Totaux d'un devis / d'une facture, calculés comme côté serveur
+// (backend crm/money.ts) : remise en % par ligne, puis remise sur le total
+// (en % ou en montant HT), TVA sur le HT net.
+const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+const clampRate = (value: unknown) => Math.min(100, Math.max(0, Number(value) || 0));
+
+export interface DocDiscountInput {
+  type: 'PERCENT' | 'AMOUNT' | null;
+  value: number | string;
+}
+
+export const grossLine = (line: { quantity: unknown; unitPrice: unknown }) => round2((Number(line.quantity) || 0) * (Number(line.unitPrice) || 0));
+export const netLine = (line: { quantity: unknown; unitPrice: unknown; discountRate?: unknown }) => round2(grossLine(line) * (1 - clampRate(line.discountRate) / 100));
+
+export function docTotals(lines: { quantity: unknown; unitPrice: unknown; discountRate?: unknown }[], vatRate: number, discount?: DocDiscountInput | null) {
+  const gross = round2(lines.reduce((sum, line) => sum + grossLine(line), 0));
+  const linesNet = round2(lines.reduce((sum, line) => sum + netLine(line), 0));
+  const value = Number(discount?.value) || 0;
+  const global = !discount?.type || value <= 0 ? 0 : round2(discount.type === 'PERCENT' ? (linesNet * Math.min(100, value)) / 100 : Math.min(value, linesNet));
+  const subtotal = round2(linesNet - global);
+  const vat = round2((subtotal * vatRate) / 100);
+  return { gross, linesNet, globalDiscount: global, discountAmount: round2(gross - subtotal), subtotal, vat, total: round2(subtotal + vat) };
+}
+
+/** Libellé de la remise sur le total, comme sur le PDF. */
+export const discountLabel = (discount: { type: string | null; value: unknown }) => (discount.type === 'PERCENT' ? `Remise (${Number(discount.value)} %)` : 'Remise sur le total');
+
 export function money(value: number | string | null | undefined): string {
   const n = Number(value ?? 0);
   return `${(Number.isFinite(n) ? n : 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} DA`;

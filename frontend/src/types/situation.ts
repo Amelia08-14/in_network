@@ -11,13 +11,20 @@ export interface SituationQuoteLine {
   description: string;
   quantity: string;
   unitPrice: string;
+  discountRate: string;
 }
 
 export interface SituationQuote {
   id: string;
   number: string;
   status: QuoteStatus;
+  /** Total HT net (remises déduites). */
   subtotal: string;
+  /** Total des remises accordées ; « 0.00 » = aucune. */
+  discountAmount: string;
+  /** Remise sur le total : en % ou en montant HT. */
+  discountType: 'PERCENT' | 'AMOUNT' | null;
+  discountValue: string;
   total: string;
   vatRate: string;
   validUntil: string | null;

@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { api, apiPostForm, openMemberFile } from '@/lib/api';
-import { INVOICE_STATUS, QUOTE_STATUS, TONE_CLASS, dateFr, invoiceNumber, money, type Tone } from '@/lib/crm';
+import { INVOICE_STATUS, QUOTE_STATUS, TONE_CLASS, dateFr, discountLabel, invoiceNumber, money, netLine, type Tone } from '@/lib/crm';
 import { HUE } from '@/lib/palette';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth';
@@ -187,6 +187,10 @@ function QuoteCard({
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const vat = Number(quote.total) - Number(quote.subtotal);
+  const lineDiscounts = quote.lines.some((line) => Number(line.discountRate) > 0);
+  // Remise sur le total : écart entre la somme des lignes (déjà remisées) et le HT net.
+  const linesNet = quote.lines.reduce((sum, line) => sum + netLine(line), 0);
+  const globalDiscount = Math.round((linesNet - Number(quote.subtotal)) * 100) / 100;
 
   async function openPdf() {
     setPdfLoading(true);
@@ -218,6 +222,7 @@ function QuoteCard({
               <th className="px-4 py-2">Prestation</th>
               <th className="px-2 py-2 text-right">Qté</th>
               <th className="px-2 py-2 text-right">Prix unitaire</th>
+              {lineDiscounts && <th className="px-2 py-2 text-right">Remise</th>}
               <th className="px-4 py-2 text-right">Total</th>
             </tr>
           </thead>
@@ -227,9 +232,8 @@ function QuoteCard({
                 <td className="px-4 py-2.5 text-ink-800">{line.description}</td>
                 <td className="px-2 py-2.5 text-right tabular-nums text-ink-600">{Number(line.quantity)}</td>
                 <td className="px-2 py-2.5 text-right tabular-nums text-ink-600">{money(line.unitPrice)}</td>
-                <td className="px-4 py-2.5 text-right font-medium tabular-nums text-ink-900">
-                  {money(Number(line.quantity) * Number(line.unitPrice))}
-                </td>
+                {lineDiscounts && <td className="px-2 py-2.5 text-right tabular-nums text-ink-600">{Number(line.discountRate) > 0 ? `-${Number(line.discountRate)} %` : '—'}</td>}
+                <td className="px-4 py-2.5 text-right font-medium tabular-nums text-ink-900">{money(netLine(line))}</td>
               </tr>
             ))}
           </tbody>
@@ -237,7 +241,13 @@ function QuoteCard({
       </div>
 
       <dl className="ml-auto w-full space-y-1 border-t border-ink-900/8 px-4 py-3 text-sm sm:w-72">
-        <div className="flex justify-between text-ink-600"><dt>Total HT</dt><dd className="tabular-nums">{money(quote.subtotal)}</dd></div>
+        {globalDiscount > 0 && (
+          <>
+            <div className="flex justify-between text-ink-600"><dt>Total HT</dt><dd className="tabular-nums">{money(linesNet)}</dd></div>
+            <div className="flex justify-between text-brand-orange"><dt>{discountLabel({ type: quote.discountType, value: quote.discountValue })}</dt><dd className="tabular-nums">-{money(globalDiscount)}</dd></div>
+          </>
+        )}
+        <div className="flex justify-between text-ink-600"><dt>{globalDiscount > 0 ? 'Total HT net' : 'Total HT'}</dt><dd className="tabular-nums">{money(quote.subtotal)}</dd></div>
         <div className="flex justify-between text-ink-600"><dt>TVA ({Number(quote.vatRate)} %)</dt><dd className="tabular-nums">{money(vat)}</dd></div>
         <div className="flex justify-between font-heading text-base font-bold text-ink-900"><dt>Total TTC</dt><dd className="tabular-nums">{money(quote.total)}</dd></div>
       </dl>

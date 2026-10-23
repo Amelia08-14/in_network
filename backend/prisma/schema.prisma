@@ -974,6 +974,12 @@ enum InvoiceStatus {
   REFUNDED
 }
 
+// Remise sur le total d'un devis / d'une facture.
+enum DiscountType {
+  PERCENT
+  AMOUNT
+}
+
 enum QuoteConfirmation {
   PLATFORM
   EMAIL
@@ -1171,6 +1177,11 @@ model Quote {
   validUntil     DateTime?
   notes          String?            @db.Text
   vatRate        Decimal            @default(19) @db.Decimal(5, 2)
+  // Remise sur le total HT (en % ou en DA), en plus des remises de ligne.
+  // subtotal = total HT net ; discountAmount = total des remises accordées.
+  discountType   DiscountType?
+  discountValue  Decimal            @default(0) @db.Decimal(12, 2)
+  discountAmount Decimal            @default(0) @db.Decimal(12, 2)
   subtotal       Decimal            @default(0) @db.Decimal(12, 2)
   total          Decimal            @default(0) @db.Decimal(12, 2)
   sentAt         DateTime?
@@ -1211,6 +1222,8 @@ model QuoteLine {
   description   String  @db.Text
   quantity      Decimal @default(1) @db.Decimal(10, 2)
   unitPrice     Decimal @default(0) @db.Decimal(12, 2)
+  // Remise sur la ligne, en %.
+  discountRate  Decimal @default(0) @db.Decimal(5, 2)
   serviceId     String?
   planId        String?
   spaceId       String?
@@ -1261,6 +1274,9 @@ model Invoice {
   issueDate       DateTime?
   dueDate         DateTime?
   vatRate         Decimal               @default(19) @db.Decimal(5, 2)
+  discountType    DiscountType?
+  discountValue   Decimal               @default(0) @db.Decimal(12, 2)
+  discountAmount  Decimal               @default(0) @db.Decimal(12, 2)
   subtotal        Decimal               @default(0) @db.Decimal(12, 2)
   vatAmount       Decimal               @default(0) @db.Decimal(12, 2)
   total           Decimal               @default(0) @db.Decimal(12, 2)
@@ -1297,6 +1313,8 @@ model InvoiceLine {
   description   String  @db.Text
   quantity      Decimal @default(1) @db.Decimal(10, 2)
   unitPrice     Decimal @default(0) @db.Decimal(12, 2)
+  // Remise sur la ligne, en %.
+  discountRate  Decimal @default(0) @db.Decimal(5, 2)
   serviceId     String?
   planId        String?
   spaceId       String?

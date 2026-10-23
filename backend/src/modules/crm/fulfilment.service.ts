@@ -3,6 +3,7 @@ import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
 import { markCommissionsEligible } from './commissions.service';
 import { logActivity } from './leads.service';
+import { netLineAmounts } from './money';
 import { leadScopeWhere, type StaffScope } from './scope';
 import { STAFF_SELECT, listStaffByRole, notifyUsers, staffName } from './staff';
 
@@ -164,6 +165,12 @@ export async function launchServicesForInvoice(invoiceId: string, actorId: strin
   if (!invoice) throw ApiError.notFound('Facture introuvable');
 
   const alreadyLaunched = new Set(invoice.serviceOrders.map((o) => o.invoiceLineId));
+  // Montant de chaque service : HT net, remises (ligne et total) déduites.
+  const nets = netLineAmounts(
+    invoice.lines.map((l) => ({ quantity: Number(l.quantity), unitPrice: Number(l.unitPrice), discountRate: Number(l.discountRate) })),
+    { type: invoice.discountType, value: Number(invoice.discountValue) },
+  );
+  const netById = new Map(invoice.lines.map((line, index) => [line.id, nets[index]]));
   const lines = invoice.lines.filter((line) => !alreadyLaunched.has(line.id));
   if (lines.length === 0) return [];
 
@@ -186,7 +193,7 @@ export async function launchServicesForInvoice(invoiceId: string, actorId: strin
     const plan = line.planId ? plans.find((p) => p.id === line.planId) : undefined;
     const service = line.serviceId ? services.find((s) => s.id === line.serviceId) : undefined;
     const pole: DeliveryPole = plan || line.spaceId ? 'SPACES' : service?.pole ?? 'SPACES';
-    const amount = Math.round(Number(line.quantity) * Number(line.unitPrice) * 100) / 100;
+    const amount = netById.get(line.id) ?? 0;
     const title = line.description.length > 180 ? `${line.description.slice(0, 177)}...` : line.description;
     const renewed = line.renewsOrderId ? renewedOrders.find((o) => o.id === line.renewsOrderId && !o.renewedBy) : undefined;
 
