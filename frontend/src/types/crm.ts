@@ -33,7 +33,7 @@ export type LeadChannel =
   | 'PHONE';
 export type LeadKind = 'NEW_BUSINESS' | 'EXTENSION' | 'RENEWAL';
 export type LeadPriority = 'COLD' | 'WARM' | 'HOT';
-export type LeadSource = 'REGISTRATION' | 'WEBSITE_QUOTE' | 'CONTACT_FORM' | 'MEMBER_SPACE' | 'MEMBER_REFERRAL' | 'MANUAL';
+export type LeadSource = 'REGISTRATION' | 'WEBSITE_QUOTE' | 'CONTACT_FORM' | 'MEMBER_SPACE' | 'MEMBER_REFERRAL' | 'AD_FORM' | 'MANUAL';
 export type LeadQueue = 'to_dispatch' | 'to_assign' | 'returned' | 'handed_over' | 'to_call' | 'follow_ups_due';
 export type ActivityType = 'NOTE' | 'CALL' | 'EMAIL' | 'MEETING' | 'VISIT' | 'SYSTEM';
 export type AppointmentType = 'CALL' | 'VISIT' | 'VIDEO' | 'TRIAL_DAY' | 'MEETING';

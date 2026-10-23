@@ -145,7 +145,7 @@ export async function register(input: RegisterInput) {
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de bienvenue", err));
 
   // L'inscription alimente le CRM (lead « Inscription ») ; non bloquant.
-  await createLeadFromRegistration(user.id).catch((err) => console.error('[crm] lead d\'inscription non créé', err));
+  await createLeadFromRegistration(user.id, input.attribution).catch((err) => console.error('[crm] lead d\'inscription non créé', err));
 
   const tokens = await issueTokenPair(user.id, user.role);
   return { user: await publicUser(user), ...tokens };
@@ -377,7 +377,7 @@ export async function getMe(userId: string) {
 export async function registerCompany(input: RegisterCompanyInput) {
   const ownerId = await createCompanyAccount(input);
   const user = await prisma.user.findUniqueOrThrow({ where: { id: ownerId } });
-  await createLeadFromRegistration(user.id).catch((err) => console.error("[crm] lead d'inscription entreprise non créé", err));
+  await createLeadFromRegistration(user.id, input.attribution).catch((err) => console.error("[crm] lead d'inscription entreprise non créé", err));
   const tokens = await issueTokenPair(user.id, user.role);
   return { user: await publicUser(user), ...tokens };
 }

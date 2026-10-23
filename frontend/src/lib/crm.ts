@@ -142,6 +142,7 @@ export const SOURCE_LABEL: Record<LeadSource, string> = {
   CONTACT_FORM: 'Formulaire de contact',
   MEMBER_SPACE: 'Espace membre',
   MEMBER_REFERRAL: 'Recommandation d’un membre',
+  AD_FORM: 'Formulaire publicitaire (réseaux)',
   MANUAL: 'Saisie par l’équipe',
 };
 

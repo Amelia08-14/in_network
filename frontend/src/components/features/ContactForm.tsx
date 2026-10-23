@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { api, ApiRequestError } from '@/lib/api';
+import { getAttribution } from '@/lib/attribution';
 
 // Formulaire /contact — cf. POST /api/contact (backend/src/modules/contact/contact.routes.ts).
 // Public, sans compte, pas de ciblage (contrairement à InquiryForm) : nom,
@@ -22,7 +23,7 @@ export function ContactForm() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await api.post('/api/contact', form);
+      await api.post('/api/contact', { ...form, attribution: getAttribution() });
       setIsDone(true);
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Impossible d'envoyer le message, réessaie.");

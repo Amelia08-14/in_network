@@ -30,6 +30,7 @@ import { uploadsRouter, UPLOADS_DIR } from './modules/uploads/uploads.routes';
 import { contactRouter } from './modules/contact/contact.routes';
 import { memberRouter } from './modules/situation/situation.routes';
 import { memberSpaceRouter } from './modules/member/memberSpace.routes';
+import { leadWebhookRouter } from './modules/webhooks/leadWebhook.routes';
 
 export const app = express();
 
@@ -104,6 +105,8 @@ app.use('/api/uploads', uploadsRouter);
 app.use('/api/testimonials', testimonialsRouter);
 app.use('/api/partners', partnersRouter);
 app.use('/api/contact', contactRouter);
+// Leads des formulaires publicitaires des réseaux (Make / Zapier), par jeton.
+app.use('/api/webhooks/leads', leadWebhookRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

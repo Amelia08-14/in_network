@@ -1,6 +1,7 @@
 import type { Lead } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import { requestLabel } from '../services/requestLabel';
+import { describeAttribution, leadOriginFields, type Attribution } from './attribution';
 import { isAccountValidated } from '../situation/accountState';
 import { findOpenDuplicate, logActivity, notifyDispatchers } from './leads.service';
 import { nextNumber } from './numbering';
@@ -8,13 +9,34 @@ import { createQuote, sendQuote } from './quotes.service';
 import { listStaffByRole, notifyUsers } from './staff';
 
 // Leads créés automatiquement (phase 1 du processus v1.3) : inscription,
-// demande de devis du site, formulaire de contact, recommandation d'un membre
-// — et, depuis l'espace membre, les demandes de services supplémentaires
-// (lead « Extension ») rattachées à la fiche du membre.
+// demande de devis du site, formulaire de contact, recommandation d'un membre,
+// formulaires publicitaires des réseaux (webhook) — et, depuis l'espace
+// membre, les demandes de services supplémentaires (lead « Extension »)
+// rattachées à la fiche du membre. L'origine du visiteur (lien de campagne,
+// réseau social, cf. attribution.ts) fixe le canal du lead.
 // « Un contact, une fiche » : un contact déjà suivi n'ouvre pas de second lead,
 // la nouvelle demande est versée à sa fiche existante.
 
 const leadUrl = (id: string) => `/admin/crm/leads/${id}`;
+
+/**
+ * Contact déjà suivi qui revient par une campagne : on précise son canal s'il
+ * n'était connu que comme « Site web » (première origine identifiée conservée).
+ */
+async function refineOrigin(leadId: string, attribution: Attribution | null | undefined) {
+  const origin = leadOriginFields(attribution);
+  if (origin.channel === 'WEBSITE') return;
+  const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { channel: true } });
+  if (lead && (!lead.channel || lead.channel === 'WEBSITE')) {
+    await prisma.lead.update({ where: { id: leadId }, data: origin });
+  }
+  await logActivity(leadId, { content: `Origine : ${describeAttribution(attribution)}.` });
+}
+
+async function logOrigin(leadId: string, attribution: Attribution | null | undefined) {
+  const described = describeAttribution(attribution);
+  if (described) await logActivity(leadId, { content: `Origine : ${described}.` });
+}
 
 /** Dernière fiche gagnée du membre : la fiche membre à laquelle se rattachent ses extensions. */
 export async function memberLeadOf(userId: string) {
@@ -113,7 +135,7 @@ export async function autoQuote(leadId: string) {
 }
 
 /** Demande de devis du site ou de l'espace membre (panier). */
-export async function createLeadFromServiceRequest(requestId: string) {
+export async function createLeadFromServiceRequest(requestId: string, attribution?: Attribution) {
   const request = await prisma.serviceRequest.findUnique({
     where: { id: requestId },
     include: {
@@ -146,6 +168,7 @@ export async function createLeadFromServiceRequest(requestId: string) {
       data: { serviceRequestId: request.id, expectedAmount: priced > 0 ? priced : undefined, userId: request.userId ?? undefined, updatedAt: new Date() },
     });
     await logActivity(existing.id, { content: `Nouvelle demande de devis du site : ${title}.` });
+    await refineOrigin(existing.id, attribution);
     if (existing.assignedTo) {
       await notifyUsers([existing.assignedTo.id], 'lead_request', 'Nouvelle demande de devis', `${existing.reference} — ${title}`, leadUrl(existing.id));
     } else {
@@ -163,8 +186,7 @@ export async function createLeadFromServiceRequest(requestId: string) {
       phone,
       companyName: profile?.companyName ?? request.guestCompany,
       source: 'WEBSITE_QUOTE',
-      pipeline: 'DIGITAL',
-      channel: 'WEBSITE',
+      ...leadOriginFields(attribution),
       expectedAmount: priced > 0 ? priced : null,
       notes: request.notes,
       userId: request.userId,
@@ -174,12 +196,13 @@ export async function createLeadFromServiceRequest(requestId: string) {
   await logActivity(lead.id, {
     content: `Lead créé automatiquement depuis la demande de devis du site (${request.items.length} ligne${request.items.length > 1 ? 's' : ''}).`,
   });
+  await logOrigin(lead.id, attribution);
   await notifyDispatchers(lead, 'Nouveau lead à aiguiller', `(${contactName}) vient d'arriver depuis le site.`);
   return lead;
 }
 
 /** Nouvelle inscription : lead à aiguiller (ou rattachement au lead déjà ouvert pour ce contact). */
-export async function createLeadFromRegistration(userId: string) {
+export async function createLeadFromRegistration(userId: string, attribution?: Attribution) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { profile: true, company: { select: { name: true, seatLimit: true } } },
@@ -190,6 +213,7 @@ export async function createLeadFromRegistration(userId: string) {
   if (existing) {
     await prisma.lead.updateMany({ where: { email: user.email, userId: null }, data: { userId } });
     await logActivity(existing.id, { content: 'Le contact a créé son compte sur le site : sa fiche est rattachée à son espace.' });
+    await refineOrigin(existing.id, attribution);
     return prisma.lead.findUnique({ where: { id: existing.id } });
   }
 
@@ -204,20 +228,20 @@ export async function createLeadFromRegistration(userId: string) {
       phone: user.phone,
       companyName,
       source: 'REGISTRATION',
-      pipeline: 'DIGITAL',
-      channel: 'WEBSITE',
+      ...leadOriginFields(attribution),
       notes: user.company ? `Compte entreprise : ${user.company.seatLimit} poste(s) demandé(s).` : null,
       userId,
     },
   });
   await logActivity(lead.id, { content: 'Lead créé automatiquement à l’inscription : l’espace du membre s’ouvrira à son premier paiement.' });
+  await logOrigin(lead.id, attribution);
   await prisma.lead.updateMany({ where: { email: user.email, userId: null }, data: { userId } });
   await notifyDispatchers(lead, 'Nouvelle inscription à aiguiller', `— ${contactName}${companyName ? ` (${companyName})` : ''} vient de créer un compte.`);
   return lead;
 }
 
 /** Formulaire /contact. */
-export async function createLeadFromContactMessage(messageId: string) {
+export async function createLeadFromContactMessage(messageId: string, attribution?: Attribution) {
   const message = await prisma.contactMessage.findUnique({ where: { id: messageId } });
   if (!message) return null;
 
@@ -226,6 +250,7 @@ export async function createLeadFromContactMessage(messageId: string) {
     await logActivity(existing.id, { type: 'EMAIL', content: `Nouveau message via le formulaire de contact : ${message.message.slice(0, 500)}` });
     const linked = await prisma.lead.findUnique({ where: { id: existing.id }, select: { contactMessageId: true } });
     if (!linked?.contactMessageId) await prisma.lead.update({ where: { id: existing.id }, data: { contactMessageId: message.id } });
+    await refineOrigin(existing.id, attribution);
     if (existing.assignedTo) await notifyUsers([existing.assignedTo.id], 'lead_message', 'Nouveau message du contact', `${existing.reference} — ${existing.title}`, leadUrl(existing.id));
     return prisma.lead.findUnique({ where: { id: existing.id } });
   }
@@ -237,13 +262,13 @@ export async function createLeadFromContactMessage(messageId: string) {
       contactName: message.name,
       email: message.email,
       source: 'CONTACT_FORM',
-      pipeline: 'DIGITAL',
-      channel: 'WEBSITE',
+      ...leadOriginFields(attribution),
       notes: message.message,
       contactMessageId: message.id,
     },
   });
   await logActivity(lead.id, { content: 'Lead créé automatiquement depuis le formulaire de contact.' });
+  await logOrigin(lead.id, attribution);
   await notifyDispatchers(lead, 'Nouveau lead à aiguiller', `— message de ${message.name} reçu via le formulaire de contact.`);
   return lead;
 }
@@ -280,4 +305,66 @@ export async function createReferralLead(
   await logActivity(lead.id, { content: `Contact recommandé par le membre ${referrerName} depuis son espace.` });
   await notifyDispatchers(lead, 'Nouvelle recommandation à aiguiller', `— recommandé par ${referrerName}.`);
   return { lead, alreadyKnown: false };
+}
+
+// --- Formulaires publicitaires des réseaux (webhook) ------------------------------
+
+export interface AdFormLead {
+  /** Réseau d'origine : facebook, instagram, linkedin, tiktok… */
+  platform: string;
+  contactName: string;
+  email?: string | null;
+  phone?: string | null;
+  companyName?: string | null;
+  message?: string | null;
+  campaign?: string | null;
+  form?: string | null;
+  ad?: string | null;
+  /** Autres réponses du formulaire, reprises telles quelles dans les notes. */
+  answers?: Record<string, string>;
+}
+
+/**
+ * Lead reçu d'un formulaire publicitaire (Facebook / Instagram Lead Ads,
+ * LinkedIn Lead Gen…) via Make ou Zapier. Il arrive « à aiguiller » avec son
+ * canal (LinkedIn, ou Publicité pour les autres réseaux) et sa campagne ; un
+ * contact déjà suivi n'ouvre pas de seconde fiche.
+ */
+export async function createLeadFromAdForm(input: AdFormLead) {
+  const attribution: Attribution = { source: input.platform, medium: 'leadads', campaign: input.campaign ?? undefined };
+  const origin = leadOriginFields(attribution);
+  const detail = [origin.channelDetail, input.form ? `formulaire ${input.form}` : null].filter(Boolean).join(' · ').slice(0, 190);
+  const answers = Object.entries(input.answers ?? {})
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${key} : ${value}`);
+  const notes = [input.message, input.ad ? `Annonce : ${input.ad}` : null, ...answers].filter(Boolean).join('\n') || null;
+
+  const existing = await findOpenDuplicate({ email: input.email, phone: input.phone });
+  if (existing) {
+    await logActivity(existing.id, { content: `Nouveau formulaire publicitaire reçu (${detail})${notes ? ` :\n${notes}` : '.'}` });
+    await refineOrigin(existing.id, attribution);
+    if (existing.assignedTo) {
+      await notifyUsers([existing.assignedTo.id], 'lead_ad_form', 'Le contact a rempli un formulaire publicitaire', `${existing.reference} — ${existing.title}`, leadUrl(existing.id));
+    }
+    return { lead: existing, duplicate: true };
+  }
+
+  const lead = await prisma.lead.create({
+    data: {
+      reference: await nextNumber('LD'),
+      title: `Formulaire ${origin.channelDetail?.split(' · ')[0] ?? input.platform} — ${input.contactName}`.slice(0, 190),
+      contactName: input.contactName,
+      email: input.email,
+      phone: input.phone,
+      companyName: input.companyName,
+      notes,
+      source: 'AD_FORM',
+      channel: origin.channel,
+      pipeline: origin.pipeline,
+      channelDetail: detail || origin.channelDetail,
+    },
+  });
+  await logActivity(lead.id, { content: `Lead reçu automatiquement d’un formulaire publicitaire (${detail}).` });
+  await notifyDispatchers(lead, 'Nouveau lead des réseaux à aiguiller', `— ${detail}.`);
+  return { lead, duplicate: false };
 }

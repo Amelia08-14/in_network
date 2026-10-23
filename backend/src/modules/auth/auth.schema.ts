@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { MemberType } from '../../generated/prisma/client';
+import { attributionSchema } from '../crm/attribution';
 
 export const registerSchema = z.object({
   email: z.string().email(),
@@ -8,6 +9,8 @@ export const registerSchema = z.object({
   lastName: z.string().min(1),
   memberType: z.nativeEnum(MemberType).default(MemberType.FREELANCE),
   phone: z.string().optional(),
+  // Origine du visiteur (lien de campagne, réseau social) : canal du lead créé.
+  attribution: attributionSchema.optional(),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 

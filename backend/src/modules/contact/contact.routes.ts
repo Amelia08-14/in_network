@@ -17,9 +17,10 @@ contactRouter.post(
   inquiryRateLimit,
   validate({ body: createContactMessageSchema }),
   asyncHandler(async (req, res) => {
-    const message = await prisma.contactMessage.create({ data: req.body });
-    // Chaque message devient un lead « Nouveau » pour l'équipe commerciale.
-    await createLeadFromContactMessage(message.id).catch((err) => console.error('[crm] lead non créé', err));
+    const { attribution, ...fields } = req.body;
+    const message = await prisma.contactMessage.create({ data: fields });
+    // Chaque message devient un lead à aiguiller, avec son origine (réseau, campagne).
+    await createLeadFromContactMessage(message.id, attribution).catch((err) => console.error('[crm] lead non créé', err));
     ok(res, message, 201);
   }),
 );

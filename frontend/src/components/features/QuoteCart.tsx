@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuthStore } from '@/store/auth';
 import { useCart, type CartItem } from '@/store/cart';
 import { api, ApiRequestError } from '@/lib/api';
+import { getAttribution } from '@/lib/attribution';
 import { formatDzd, PRICE_UNIT_SUFFIX, summarizeAmounts } from '@/lib/quote';
 import { cn } from '@/lib/utils';
 import { CART_KIND_HUE, HUE, SERVICE_HUE, type Hue } from '@/lib/palette';
@@ -49,6 +50,7 @@ export function QuoteCart() {
       await api.post('/api/services/requests', {
         items: items.map(({ targetType, targetId, tierLabel }) => ({ targetType, targetId, tierLabel })),
         notes: notes.trim() || undefined,
+        attribution: getAttribution(),
       });
       setSentCount(items.length);
       clear();

@@ -49,6 +49,11 @@ export const env = {
     webhookSecret: process.env.CHARGILY_WEBHOOK_SECRET ?? '',
   },
 
+  // Réception des leads des formulaires publicitaires (Facebook, Instagram,
+  // LinkedIn) via Make / Zapier : jeton partagé exigé sur POST
+  // /api/webhooks/leads. Vide = réception désactivée.
+  leadWebhookSecret: process.env.LEAD_WEBHOOK_SECRET ?? '',
+
   // Émetteur des devis et factures (PDF). Les identifiants légaux (NIF, RC,
   // AI, NIS, RIB) ne sont jamais inventés : vides tant qu'ils ne sont pas
   // renseignés dans l'environnement, ils sont simplement omis du PDF.

@@ -62,11 +62,11 @@ servicesRouter.post(
   validate({ body: createInquirySchema }),
   asyncHandler(async (req, res) => {
     if (!req.user) throw ApiError.unauthorized();
-    const { items, notes } = req.body;
+    const { items, notes, attribution } = req.body;
     const request = await createServiceRequest(req.user.id, items, notes);
     // La demande alimente le CRM : un lead « Nouveau » est créé pour l'équipe
     // commerciale. Un souci côté CRM ne doit jamais faire échouer l'envoi du client.
-    await createLeadFromServiceRequest(request.id).catch((err) => console.error('[crm] lead non créé', err));
+    await createLeadFromServiceRequest(request.id, attribution).catch((err) => console.error('[crm] lead non créé', err));
     ok(res, request, 201);
   }),
 );

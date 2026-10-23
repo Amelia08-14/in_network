@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getAttribution } from '@/lib/attribution';
 import { api, tryRefreshAccessToken } from '@/lib/api';
 import { setAccessTokenCookie, clearAccessTokenCookie } from '@/lib/auth-cookies';
 import type { AuthUser } from '@/types';
@@ -72,14 +73,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   register: async (input) => {
-    const res = await api.post<AuthResponse>('/api/auth/register', input);
+    // L'origine du visiteur (réseau social, campagne) accompagne l'inscription : canal du lead.
+    const res = await api.post<AuthResponse>('/api/auth/register', { ...input, attribution: getAttribution() });
     setAccessTokenCookie(res.data.accessToken);
     set({ user: res.data.user, status: 'authenticated' });
     startTokenRefreshLoop();
   },
 
   registerCompany: async (input) => {
-    const res = await api.post<AuthResponse>('/api/auth/register-company', input);
+    const res = await api.post<AuthResponse>('/api/auth/register-company', { ...input, attribution: getAttribution() });
     setAccessTokenCookie(res.data.accessToken);
     set({ user: res.data.user, status: 'authenticated' });
     startTokenRefreshLoop();

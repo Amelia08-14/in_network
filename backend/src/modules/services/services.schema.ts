@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { attributionSchema } from '../crm/attribution';
 
 // Demande de devis sous forme de panier — plusieurs lignes (services du
 // catalogue, salles de réunion, formules d'abonnement) dans une même demande.
@@ -17,6 +18,7 @@ const cartItemSchema = z.object({
 export const createInquirySchema = z.object({
   items: z.array(cartItemSchema).min(1, 'Ajoute au moins un service à ta demande').max(MAX_CART_ITEMS),
   notes: z.string().max(2000).optional(),
+  attribution: attributionSchema.optional(),
 });
 
 export type CartItemInput = z.infer<typeof cartItemSchema>;

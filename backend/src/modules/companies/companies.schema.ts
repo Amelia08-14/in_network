@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { attributionSchema } from '../crm/attribution';
 
 const optionalUrl = z.preprocess((value) => {
   if (typeof value !== 'string') return value;
@@ -15,6 +16,8 @@ const optionalUrl = z.preprocess((value) => {
 // Parcours « Inscrire mon entreprise » — crée en une transaction le compte du
 // représentant (owner), son profil, et la fiche Company.
 export const registerCompanySchema = z.object({
+  // Origine du visiteur (lien de campagne, réseau social) : canal du lead créé.
+  attribution: attributionSchema.optional(),
   // Compte représentant
   email: z.string().email('Email invalide'),
   password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),

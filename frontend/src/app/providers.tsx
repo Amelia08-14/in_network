@@ -1,7 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { captureAttribution } from '@/lib/attribution';
+
+/** Mémorise l'origine du visiteur (réseau social, lien de campagne) à chaque arrivée sur une page. */
+function AttributionTracker() {
+  const pathname = usePathname();
+  useEffect(() => captureAttribution(), [pathname]);
+  return null;
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -17,5 +26,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }),
   );
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AttributionTracker />
+      {children}
+    </QueryClientProvider>
+  );
 }

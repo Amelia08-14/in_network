@@ -925,6 +925,7 @@ enum LeadSource {
   CONTACT_FORM // formulaire de contact
   MEMBER_SPACE // demande ou renouvellement depuis l'espace membre
   MEMBER_REFERRAL // recommandation envoyée par un membre depuis son espace
+  AD_FORM // formulaire publicitaire des réseaux (Facebook, Instagram, LinkedIn), reçu par webhook
   MANUAL // saisie par l'équipe
 }
 

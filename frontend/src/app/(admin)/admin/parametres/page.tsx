@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Pill } from '@/components/admin/crm-ui';
 import { EmptyState } from '@/components/ui/empty-state';
 import { errorMessage, ErrorNote, PageTitle, useCrmAccess } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
@@ -34,6 +36,145 @@ const HINTS: Record<string, string> = {
 };
 
 const toText = (value: SettingValue) => (Array.isArray(value) ? value.join(', ') : value === null ? '' : String(value));
+
+interface Integrations {
+  leadWebhook: { enabled: boolean; url: string };
+  siteUrl: string;
+}
+
+// Réseaux proposés dans le générateur de liens : la valeur utm_source est
+// celle que le serveur reconnaît (crm/attribution.ts). WhatsApp reste un canal
+// saisi à la main, mais un lien partagé sur WhatsApp peut quand même être suivi.
+const NETWORKS = [
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'newsletter', label: 'E-mailing / newsletter' },
+  { value: 'whatsapp', label: 'WhatsApp (partage d’un lien)' },
+];
+const PAGES = [
+  { value: '/devis', label: 'Demande de devis' },
+  { value: '/register', label: 'Devenir membre' },
+  { value: '/services', label: 'Services et tarifs' },
+  { value: '/contact', label: 'Contact' },
+  { value: '/', label: 'Accueil' },
+];
+
+const slug = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+/** Lien à publier sur un réseau : le lead qui en vient arrive avec son canal et sa campagne. */
+function CampaignLinkBuilder({ siteUrl }: { siteUrl: string }) {
+  const [network, setNetwork] = useState('linkedin');
+  const [paid, setPaid] = useState(false);
+  const [page, setPage] = useState('/devis');
+  const [campaign, setCampaign] = useState('');
+  const [copied, setCopied] = useState(false);
+  const params = new URLSearchParams({ utm_source: network, utm_medium: network === 'newsletter' ? 'email' : paid ? 'paid_social' : 'social' });
+  if (campaign.trim()) params.set('utm_campaign', slug(campaign));
+  const link = `${siteUrl.replace(/\/$/, '')}${page}?${params}`;
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Select aria-label="Réseau" value={network} onChange={(e) => setNetwork(e.target.value)}>
+          {NETWORKS.map((n) => (
+            <option key={n.value} value={n.value}>
+              {n.label}
+            </option>
+          ))}
+        </Select>
+        <Select aria-label="Page d’arrivée" value={page} onChange={(e) => setPage(e.target.value)}>
+          {PAGES.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </Select>
+        <Input aria-label="Nom de la campagne" placeholder="Nom de la campagne (ex. Rentrée 2026)" value={campaign} onChange={(e) => setCampaign(e.target.value)} />
+      </div>
+      <label className="inline-flex items-center gap-2 text-sm text-ink-700">
+        <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} /> Publication sponsorisée (le lead sera classé « Publicité », sauf LinkedIn)
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <code className="min-w-0 flex-1 break-all rounded-xl bg-ink-900/[0.05] px-3 py-2 text-xs text-ink-800">{link}</code>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            navigator.clipboard?.writeText(link).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            });
+          }}
+        >
+          {copied ? 'Copié' : 'Copier'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SocialLeadsCard() {
+  const { data } = useQuery({
+    queryKey: ['integrations'],
+    queryFn: () => api.get<{ data: Integrations }>('/api/admin/settings/integrations').then((r) => r.data),
+  });
+  if (!data) return null;
+  return (
+    <Card>
+      <CardContent className="space-y-5">
+        <div>
+          <h2 className="font-heading text-base font-bold text-ink-900">Leads des réseaux sociaux</h2>
+          <p className="mt-1 text-sm text-ink-500">WhatsApp reste saisi à la main dans le CRM, avec le canal « WhatsApp ».</p>
+        </div>
+
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold text-ink-900">1 · Liens de campagne</h3>
+          <p className="text-sm text-ink-600">
+            Publiez sur les réseaux un lien généré ici. Le visiteur qui s’inscrit, demande un devis ou écrit via le formulaire de contact (dans les 60 jours) arrive dans « À aiguiller » avec son réseau et sa campagne, au lieu de « Site web ».
+          </p>
+          <CampaignLinkBuilder siteUrl={data.siteUrl} />
+        </section>
+
+        <section className="space-y-2 border-t border-ink-900/8 pt-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-semibold text-ink-900">2 · Formulaires publicitaires (Facebook, Instagram, LinkedIn)</h3>
+            <Pill tone={data.leadWebhook.enabled ? 'green' : 'amber'}>{data.leadWebhook.enabled ? 'Réception active' : 'À configurer'}</Pill>
+          </div>
+          <p className="text-sm text-ink-600">
+            Avec Make ou Zapier : un scénario « nouveau lead » (Facebook Lead Ads ou LinkedIn Lead Gen Forms) envoie chaque lead à l’adresse ci-dessous. Il arrive dans « À aiguiller », classé LinkedIn ou Publicité, avec sa campagne ; un contact déjà suivi n’ouvre pas de seconde fiche.
+          </p>
+          <dl className="space-y-1.5 rounded-xl bg-ink-900/[0.04] px-4 py-3 text-sm">
+            <div>
+              <dt className="text-xs text-ink-500">Adresse (POST, JSON)</dt>
+              <dd className="break-all font-mono text-xs text-ink-900">{data.leadWebhook.url}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-ink-500">En-tête d’authentification</dt>
+              <dd className="font-mono text-xs text-ink-900">X-Webhook-Token : valeur de LEAD_WEBHOOK_SECRET (fichier .env du serveur)</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-ink-500">Champs</dt>
+              <dd className="text-xs text-ink-700">
+                platform (facebook, instagram, linkedin…), full_name (ou first_name et last_name), email, phone_number, company_name, campaign_name, form_name, ad_name, message. Les autres réponses du formulaire sont reprises dans les notes du lead.
+              </dd>
+            </div>
+          </dl>
+          {!data.leadWebhook.enabled && (
+            <p className="text-xs text-amber-800">Pour activer la réception, renseignez LEAD_WEBHOOK_SECRET dans le fichier .env du serveur (une longue valeur aléatoire), puis redémarrez l’API.</p>
+          )}
+        </section>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function SettingsPage() {
   const access = useCrmAccess();
@@ -112,6 +253,7 @@ export default function SettingsPage() {
           {save.isPending ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
       </div>
+      <SocialLeadsCard />
     </div>
   );
 }
