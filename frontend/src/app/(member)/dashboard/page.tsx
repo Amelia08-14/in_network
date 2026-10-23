@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Building2, CalendarCheck, CalendarDays, CheckCircle2, Gift, Loader2, Mail, PackageCheck, Phone, ReceiptText, RefreshCw, UserRound } from 'lucide-react';
+import { ArrowRight, Building2, CalendarCheck, CalendarDays, CheckCircle2, Clock, Gift, Loader2, Mail, PackageCheck, Phone, ReceiptText, RefreshCw, UserRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ interface Overview {
   memberSince: string | null;
   referent: { name: string; email: string; phone: string | null } | null;
   actions: { quotesToConfirm: number; proformasToPay: number; servicesToValidate: number; servicesToRenew: number };
+  requestsInPricing: number;
   services: {
     active: number;
     activating: number;
@@ -160,6 +161,15 @@ export default function DashboardOverviewPage() {
         <div className="space-y-6">
           <section className="space-y-3">
             <h2 className="font-heading text-lg font-bold text-ink-900">À faire</h2>
+            {data.requestsInPricing > 0 && (
+              <Link href="/dashboard/documents" className="flex items-center gap-3 rounded-xl border border-brand-blue/20 bg-brand-blue/5 px-4 py-3 text-sm text-ink-800 hover:border-brand-blue/40">
+                <Clock className="h-4 w-4 shrink-0 text-brand-blue" />
+                <span className="flex-1">
+                  {data.requestsInPricing > 1 ? `${data.requestsInPricing} demandes en cours de chiffrage` : 'Votre demande est en cours de chiffrage'} : l’équipe prépare votre devis, vous serez prévenu dès qu’il arrive.
+                </span>
+                <ArrowRight className="h-4 w-4 text-ink-400" />
+              </Link>
+            )}
             {pending === 0 ? (
               <p className="flex items-center gap-2 rounded-xl bg-accent-green/10 px-4 py-3 text-sm text-green-800">
                 <CheckCircle2 className="h-4 w-4" /> Rien n’attend votre action.

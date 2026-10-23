@@ -45,9 +45,13 @@ export interface SituationInvoice {
   paidAt: string | null;
 }
 
+/** Où en est la demande : chiffrage, devis reçu, devis confirmé, traitée, sans suite. */
+export type RequestProgress = 'PRICING' | 'QUOTE_SENT' | 'QUOTE_ACCEPTED' | 'DONE' | 'CLOSED';
+
 export interface SituationRequest {
   id: string;
   status: 'NEW' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+  progress: RequestProgress;
   createdAt: string;
   items: { id: string; title: string; tierLabel: string | null }[];
 }

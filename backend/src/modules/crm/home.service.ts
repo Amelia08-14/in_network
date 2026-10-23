@@ -93,6 +93,14 @@ export async function getHome(scope: StaffScope) {
       prisma.lead.count({ where: scope.direction ? queueWhere('to_call') : queueWhere('to_call', me) }),
     );
   }
+  // Devis en brouillon : demandes des membres ou du site avec des lignes « sur
+  // devis » à chiffrer, devis préparés à relire avant l'envoi.
+  if (hasCrm) {
+    queue(
+      { key: 'quotes_draft', group: 'Ventes', label: 'Devis à chiffrer ou finaliser', hint: 'Lignes sur devis, relecture avant envoi', href: '/admin/devis?status=DRAFT', alert: true },
+      prisma.quote.count({ where: { status: 'DRAFT', lead: scope.direction ? { stage: { notIn: ['PAID', 'LOST'] } } : { assignedToId: me, stage: { notIn: ['PAID', 'LOST'] } } } }),
+    );
+  }
   if (scope.officeManager || scope.direction) {
     queue({ key: 'proofs', group: 'Ventes', label: 'Justificatifs de paiement à vérifier', hint: 'Valider active le membre', href: '/admin/factures?tab=justificatifs', alert: true }, prisma.paymentProof.count({ where: { status: 'PENDING' } }));
     queue({ key: 'proformas', group: 'Ventes', label: 'Proformas en attente de paiement', hint: 'Cash ou virement', href: '/admin/factures?status=SENT' }, prisma.invoice.count({ where: { status: 'SENT' } }));

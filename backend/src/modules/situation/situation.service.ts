@@ -21,6 +21,21 @@ import { isAccountValidated } from './accountState';
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char] ?? char);
 
+/**
+ * Où en est une demande, vue du membre : le statut de la demande elle-même ne
+ * bouge plus depuis le processus v1.3 (c'est le lead et son devis qui avancent).
+ * Un devis en brouillon ne se montre pas : la demande est « en cours de chiffrage ».
+ */
+export type RequestProgress = 'PRICING' | 'QUOTE_SENT' | 'QUOTE_ACCEPTED' | 'DONE' | 'CLOSED';
+export function requestProgress(request: { status: string; lead: { stage: string; quotes: { status: string }[] } | null }): RequestProgress {
+  if (request.status === 'CANCELLED' || request.lead?.stage === 'LOST') return 'CLOSED';
+  if (request.status === 'DONE' || request.lead?.stage === 'PAID') return 'DONE';
+  const quotes = request.lead?.quotes ?? [];
+  if (quotes.some((q) => q.status === 'ACCEPTED')) return 'QUOTE_ACCEPTED';
+  if (quotes.some((q) => q.status === 'SENT')) return 'QUOTE_SENT';
+  return 'PRICING';
+}
+
 export async function getSituation(userId: string) {
   const [validated, completeness, user, requests, quotes, invoices, proofs] = await Promise.all([
     isAccountValidated(userId),
@@ -35,7 +50,10 @@ export async function getSituation(userId: string) {
     }),
     prisma.serviceRequest.findMany({
       where: { userId },
-      include: { items: { orderBy: { createdAt: 'asc' } } },
+      include: {
+        items: { orderBy: { createdAt: 'asc' } },
+        lead: { select: { stage: true, quotes: { select: { status: true } } } },
+      },
       orderBy: { createdAt: 'desc' },
     }),
     // Les brouillons de l'équipe ne sont jamais visibles par le client.
@@ -80,6 +98,7 @@ export async function getSituation(userId: string) {
     requests: requests.map((r) => ({
       id: r.id,
       status: r.status,
+      progress: requestProgress(r),
       createdAt: r.createdAt,
       items: r.items.map((i) => ({ id: i.id, title: i.title, tierLabel: i.tierLabel })),
     })),

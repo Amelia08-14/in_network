@@ -28,7 +28,7 @@ import { INVOICE_STATUS, QUOTE_STATUS, TONE_CLASS, dateFr, discountLabel, invoic
 import { HUE } from '@/lib/palette';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth';
-import type { PaymentProofStatus, Situation, SituationQuote } from '@/types/situation';
+import type { PaymentProofStatus, RequestProgress, Situation, SituationQuote } from '@/types/situation';
 
 const MAX_PROOF_BYTES = 10 * 1024 * 1024;
 const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
@@ -39,11 +39,12 @@ const PROOF_STATUS: Record<PaymentProofStatus, { label: string; tone: Tone }> = 
   REJECTED: { label: 'Refusé', tone: 'red' },
 };
 
-const REQUEST_STATUS: Record<string, string> = {
-  NEW: 'Reçue',
-  IN_PROGRESS: 'En cours d’étude',
-  DONE: 'Traitée',
-  CANCELLED: 'Annulée',
+const REQUEST_PROGRESS: Record<RequestProgress, { label: string; tone: Tone; detail: string }> = {
+  PRICING: { label: 'En cours de chiffrage', tone: 'blue', detail: 'L’équipe prépare votre devis : il arrivera ici, à confirmer en un clic.' },
+  QUOTE_SENT: { label: 'Devis reçu', tone: 'amber', detail: 'Votre devis est ci-dessous : confirmez-le pour lancer la suite.' },
+  QUOTE_ACCEPTED: { label: 'Devis confirmé', tone: 'green', detail: 'L’équipe vous contacte pour organiser le paiement.' },
+  DONE: { label: 'Traitée', tone: 'green', detail: 'Paiement enregistré : vos services sont lancés.' },
+  CLOSED: { label: 'Sans suite', tone: 'gray', detail: 'Cette demande a été clôturée.' },
 };
 
 function Pill({ tone, children }: { tone: Tone; children: React.ReactNode }) {
@@ -478,6 +479,8 @@ export default function DocumentsPage() {
   });
 
   const steps = useMemo(() => (data ? buildSteps(data) : []), [data]);
+  // Demandes dont le devis n'est pas encore envoyé (en chiffrage) ou pas encore confirmé.
+  const openRequests = data?.requests.filter((r) => r.progress === 'PRICING' || r.progress === 'QUOTE_SENT') ?? [];
   const current = steps.find((step) => !step.done);
 
   if (isLoading) {
@@ -560,35 +563,38 @@ export default function DocumentsPage() {
         </p>
       )}
 
+      {openRequests.length > 0 && (
+        <Panel title="Mes demandes en cours" icon={Clock} hue="blue" aside={`${openRequests.length} demande${openRequests.length > 1 ? 's' : ''}`}>
+          <ul className="space-y-2 text-sm">
+            {openRequests.map((request) => {
+              const progress = REQUEST_PROGRESS[request.progress];
+              return (
+                <li key={request.id} className="rounded-xl border border-ink-900/10 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Pill tone={progress.tone}>{progress.label}</Pill>
+                    <span className="text-xs text-ink-500">Demande du {dateFr(request.createdAt)}</span>
+                  </div>
+                  <p className="mt-2 text-ink-800">{request.items.map((item) => (item.tierLabel ? `${item.title} (${item.tierLabel})` : item.title)).join(' · ')}</p>
+                  <p className="mt-1 text-xs text-ink-500">{progress.detail}</p>
+                </li>
+              );
+            })}
+          </ul>
+        </Panel>
+      )}
+
       <Panel id="devis" title="Mes devis" icon={FileText} hue="blue" aside={data.quotes.length ? `${data.quotes.length} devis` : undefined}>
         {data.quotes.length === 0 ? (
           <div className="space-y-4 text-sm text-ink-600">
             <p>
-              {data.requests.length
-                ? 'Votre demande a bien été reçue : l’équipe prépare votre devis et vous le transmet ici dès qu’il est prêt.'
+              {openRequests.length
+                ? 'Votre devis arrivera ici dès que l’équipe l’aura préparé : vous pourrez le confirmer en un clic.'
                 : 'Aucun devis pour le moment. Choisissez vos services et envoyez votre demande : votre devis arrivera ici, à confirmer en un clic.'}
             </p>
-            {data.requests.length === 0 && (
+            {openRequests.length === 0 && (
               <Link href="/dashboard/catalogue" className="inline-flex items-center gap-1.5 font-semibold text-brand-blue hover:underline">
                 Demander un devis →
               </Link>
-            )}
-            {data.requests.length > 0 && (
-              <ul className="space-y-2">
-                {data.requests.map((request) => (
-                  <li key={request.id} className="rounded-xl border border-ink-900/10 p-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Pill tone={request.status === 'DONE' ? 'green' : request.status === 'CANCELLED' ? 'gray' : 'blue'}>
-                        {REQUEST_STATUS[request.status] ?? request.status}
-                      </Pill>
-                      <span className="text-xs text-ink-500">Demande du {dateFr(request.createdAt)}</span>
-                    </div>
-                    <p className="mt-2 text-ink-800">
-                      {request.items.map((item) => (item.tierLabel ? `${item.title} (${item.tierLabel})` : item.title)).join(' · ')}
-                    </p>
-                  </li>
-                ))}
-              </ul>
             )}
           </div>
         ) : (

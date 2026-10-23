@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
 import { getSettings } from '../settings/settings.service';
 import { isAccountValidated } from '../situation/accountState';
+import { requestProgress } from '../situation/situation.service';
 import { DOCUMENT_KIND_LABEL, ORDER_STATUS_LABEL, POLE_LABEL, memberServiceStatus, requestAdjustment, validateOrder } from '../crm/fulfilment.service';
 import { createMemberLead, createReferralLead } from '../crm/leadIntake.service';
 import { createQuote, sendQuote, type DocLineInput } from '../crm/quotes.service';
@@ -211,7 +212,7 @@ export async function getOwnedDocument(userId: string, documentId: string) {
 // --- Accueil & fidélité ------------------------------------------------------------------
 
 export async function getMyOverview(userId: string) {
-  const [validated, user, services, referrals, upcomingEvents, firstWin, pendingQuotes, proformas] = await Promise.all([
+  const [validated, user, services, referrals, upcomingEvents, firstWin, pendingQuotes, proformas, requests] = await Promise.all([
     isAccountValidated(userId),
     prisma.user.findUnique({
       where: { id: userId },
@@ -223,6 +224,10 @@ export async function getMyOverview(userId: string) {
     prisma.lead.findFirst({ where: { userId, stage: 'PAID' }, select: { wonAt: true }, orderBy: { wonAt: 'asc' } }),
     prisma.quote.count({ where: { lead: { userId }, status: 'SENT' } }),
     prisma.invoice.count({ where: { lead: { userId }, status: 'SENT' } }),
+    prisma.serviceRequest.findMany({
+      where: { userId, status: { not: 'CANCELLED' } },
+      select: { status: true, lead: { select: { stage: true, quotes: { select: { status: true } } } } },
+    }),
   ]);
   const active = services.filter((s) => ['ACTIVE', 'TO_RENEW'].includes(s.status));
   return {
@@ -236,6 +241,8 @@ export async function getMyOverview(userId: string) {
       servicesToValidate: services.filter((s) => s.status === 'AWAITING_VALIDATION').length,
       servicesToRenew: services.filter((s) => s.status === 'TO_RENEW' && s.canRenew).length,
     },
+    /** Demandes envoyées dont l'équipe prépare le devis (rien à faire côté membre). */
+    requestsInPricing: requests.filter((r) => requestProgress(r) === 'PRICING').length,
     services: {
       active: active.length,
       activating: services.filter((s) => ['ACTIVATING', 'AWAITING_VALIDATION', 'ADJUSTMENT_REQUESTED'].includes(s.status)).length,
