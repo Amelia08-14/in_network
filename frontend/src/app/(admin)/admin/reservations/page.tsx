@@ -76,9 +76,10 @@ export default function AdminReservationsPage() {
                       </td>
                       <td className="px-5 py-3 text-ink-600">{b.space.name}</td>
                       <td className="px-5 py-3 text-ink-500">
-                        {new Date(b.startAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
+                        {new Date(b.startAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })} –{' '}
+                        {new Date(b.endAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td className="px-5 py-3 text-ink-600">{b.price} DZD</td>
+                      <td className="px-5 py-3 text-ink-600">{Number(b.price).toLocaleString('fr-FR')} DA HT</td>
                       <td className="px-5 py-3">
                         <Badge variant={STATUS_VARIANT[b.status] ?? 'neutral'}>{b.status}</Badge>
                       </td>

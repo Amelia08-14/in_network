@@ -1,11 +1,14 @@
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
 import { sendEmail } from '../../lib/email';
+import { getRoomHours, roomPrice, siteDate, siteHour } from '../spaces/roomBooking';
 
-const DATE_FMT = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
+// Heures du lieu (Alger), quel que soit le fuseau du serveur.
+const SITE_TIME_ZONE = 'Africa/Algiers';
+const DATE_FMT = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: SITE_TIME_ZONE });
 
 function bookingEmailBody(spaceName: string, start: Date, end: Date, statusLabel: string): string {
-  return `<p>Ta réservation pour <strong>${spaceName}</strong> le ${DATE_FMT.format(start)} (jusqu'à ${new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short' }).format(end)}) est <strong>${statusLabel}</strong>.</p>`;
+  return `<p>Ta réservation pour <strong>${spaceName}</strong> le ${DATE_FMT.format(start)} (jusqu'à ${new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short', timeZone: SITE_TIME_ZONE }).format(end)}) est <strong>${statusLabel}</strong>.</p>`;
 }
 
 // Notification (email + in-app) — retour QA : aucune confirmation n'était
@@ -65,7 +68,7 @@ async function notifyAdminsOfNewBooking(spaceName: string, memberEmail: string, 
   });
   if (admins.length === 0) return;
 
-  const html = `<p>Nouvelle demande de réservation de <strong>${memberEmail}</strong> pour <strong>${spaceName}</strong>, le ${DATE_FMT.format(start)} (jusqu'à ${new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short' }).format(end)}).</p><p>À confirmer ou annuler depuis le backoffice — Réservations.</p>`;
+  const html = `<p>Nouvelle demande de réservation de <strong>${memberEmail}</strong> pour <strong>${spaceName}</strong>, le ${DATE_FMT.format(start)} (jusqu'à ${new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short', timeZone: SITE_TIME_ZONE }).format(end)}).</p><p>À confirmer ou annuler depuis le backoffice — Réservations.</p>`;
 
   sendEmail({
     to: admins.map((a) => a.email).join(','),
@@ -82,20 +85,34 @@ export async function listMyBookings(userId: string) {
   });
 }
 
-function hoursBetween(start: Date, end: Date): number {
-  return (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-}
-
 // CDC §6.2 — contrainte métier critique : vérifier l'absence de chevauchement
 // sur le même spaceId, dans une transaction, pour éviter les doubles
 // réservations en cas de requêtes concurrentes.
+// Salles de réunion uniquement (les bureaux privatifs se louent au mois), sur
+// un même jour, en heures pleines entre l'ouverture et la fermeture ; prix
+// membre calculé par roomPrice (horaire, plafonné demi-journée / journée).
 export async function createBooking(userId: string, spaceId: string, startAt: string, endAt: string) {
   const start = new Date(startAt);
   const end = new Date(endAt);
+  const hours = await getRoomHours();
 
   return prisma.$transaction(async (tx) => {
     const space = await tx.spaceResource.findUnique({ where: { id: spaceId } });
     if (!space || !space.isActive) throw ApiError.notFound('Espace introuvable');
+    if (space.type !== 'MEETING_ROOM') {
+      throw ApiError.badRequest('Les bureaux se louent au mois : faites une demande de devis depuis « Demander un service ».');
+    }
+
+    const startHour = siteHour(start);
+    const endHour = siteHour(end);
+    if (startHour === null || endHour === null) throw ApiError.badRequest('Une réservation commence et finit à l’heure pile.');
+    const sameDay = siteDate(start) === siteDate(new Date(end.getTime() - 1));
+    const closingOk = endHour === 0 ? hours.closing === 24 : endHour <= hours.closing;
+    const lastHour = endHour === 0 ? 24 : endHour;
+    if (!sameDay || startHour < hours.opening || !closingOk || lastHour <= startHour) {
+      throw ApiError.badRequest(`Les salles se réservent sur une même journée, entre ${hours.opening} h et ${hours.closing} h.`);
+    }
+    if (start < new Date()) throw ApiError.badRequest('Ce créneau est déjà passé.');
 
     const overlapping = await tx.booking.findFirst({
       where: {
@@ -108,16 +125,12 @@ export async function createBooking(userId: string, spaceId: string, startAt: st
       throw ApiError.conflict('Ce créneau est déjà réservé pour cet espace');
     }
 
-    // Retour QA : une réservation pouvait se créer avec un prix de 0 DZD
-    // silencieux quand hourlyRateMember n'était pas configuré pour l'espace
-    // (valait alors 0 par défaut au lieu de bloquer). Un espace sans tarif
-    // horaire membre configuré ne doit jamais produire de réservation
-    // gratuite — on bloque explicitement plutôt que de laisser passer.
-    if (!space.hourlyRateMember || Number(space.hourlyRateMember) <= 0) {
-      throw ApiError.badRequest("Cet espace n'a pas de tarif horaire configuré — contacte l'administration");
+    // Retour QA : jamais de réservation gratuite silencieuse — une salle sans
+    // tarif applicable se demande sur devis.
+    const priced = roomPrice(space, startHour, lastHour, hours);
+    if (!priced) {
+      throw ApiError.badRequest('Le tarif de cette salle reste à confirmer : demandez-la sur devis, l’équipe vous répond rapidement.');
     }
-    const hourlyRate = Number(space.hourlyRateMember);
-    const price = hourlyRate * hoursBetween(start, end);
 
     return tx.booking.create({
       data: {
@@ -125,7 +138,7 @@ export async function createBooking(userId: string, spaceId: string, startAt: st
         spaceId,
         startAt: start,
         endAt: end,
-        price,
+        price: priced.price,
         status: 'PENDING',
       },
       include: { space: true, user: { select: { email: true } } },

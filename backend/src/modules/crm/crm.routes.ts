@@ -310,6 +310,8 @@ export const serviceOrdersRouter = Router();
 serviceOrdersRouter.use(attachScope);
 
 serviceOrdersRouter.get('/staff', asyncHandler(async (_req, res) => ok(res, await listStaff())));
+// Bureaux privatifs et leur occupant, pour l'attribution sur un service.
+serviceOrdersRouter.get('/offices', asyncHandler(async (_req, res) => ok(res, await fulfilment.listOffices())));
 serviceOrdersRouter.get(
   '/',
   validate({ query: s.orderListQuerySchema }),

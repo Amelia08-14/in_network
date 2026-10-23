@@ -113,6 +113,7 @@ const ORDER_INCLUDE = {
   validatedBy: { select: STAFF_SELECT },
   user: { select: { id: true, email: true, referentId: true, profile: { select: { firstName: true, lastName: true } } } },
   subscription: { select: { id: true, status: true, startDate: true, endDate: true } },
+  space: { select: { id: true, name: true, capacity: true } },
   renewedFrom: { select: { id: true, title: true, expiresAt: true } },
   renewedBy: { select: { id: true } },
   documents: { select: { id: true, kind: true, title: true, fileName: true, createdAt: true }, orderBy: { createdAt: 'desc' } },
@@ -224,6 +225,8 @@ export async function launchServicesForInvoice(invoiceId: string, actorId: strin
           startsAt,
           expiresAt,
           renewedFromId: renewed.id,
+          // Le membre garde son bureau.
+          spaceId: renewed.spaceId,
           assignedToId: renewed.assignedToId ?? owner,
           subscriptionId,
           tasks: { create: [{ title: 'Renouvellement enregistré au paiement', position: 0, isDone: true, doneAt: now }] },
@@ -339,8 +342,45 @@ export async function getOrder(id: string) {
   return order;
 }
 
-export async function updateOrder(id: string, patch: { assignedToId?: string | null; dueAt?: Date | null; notes?: string | null; startsAt?: Date | null; expiresAt?: Date | null }) {
+// Un service occupe son bureau tant qu'il n'est ni annulé, ni expiré, ni remplacé par son renouvellement.
+const occupyingOrder = { status: { not: 'CANCELLED' as const }, expiredAt: null, renewedBy: null };
+
+/** Bureaux privatifs et le service qui occupe chacun (pour l'attribution par l'Office Manager). */
+export async function listOffices() {
+  const offices = await prisma.spaceResource.findMany({
+    where: { type: 'PRIVATE_OFFICE', isActive: true },
+    select: {
+      id: true,
+      name: true,
+      capacity: true,
+      serviceOrders: {
+        where: occupyingOrder,
+        select: { id: true, title: true, expiresAt: true, user: { select: { email: true, profile: { select: { firstName: true, lastName: true, companyName: true } } } } },
+        take: 1,
+      },
+    },
+    orderBy: [{ capacity: 'asc' }, { name: 'asc' }],
+  });
+  return offices.map(({ serviceOrders, ...office }) => {
+    const order = serviceOrders[0];
+    const profile = order?.user?.profile;
+    return {
+      ...office,
+      occupiedBy: order
+        ? { orderId: order.id, title: order.title, expiresAt: order.expiresAt, member: profile ? profile.companyName || `${profile.firstName} ${profile.lastName}`.trim() : order.user?.email ?? null }
+        : null,
+    };
+  });
+}
+
+export async function updateOrder(id: string, patch: { assignedToId?: string | null; spaceId?: string | null; dueAt?: Date | null; notes?: string | null; startsAt?: Date | null; expiresAt?: Date | null }) {
   await getOrder(id);
+  if (patch.spaceId) {
+    const space = await prisma.spaceResource.findUnique({ where: { id: patch.spaceId }, select: { type: true, name: true } });
+    if (!space || space.type !== 'PRIVATE_OFFICE') throw ApiError.badRequest('Choisissez un bureau privatif.');
+    const taken = await prisma.serviceOrder.findFirst({ where: { ...occupyingOrder, spaceId: patch.spaceId, id: { not: id } }, select: { title: true } });
+    if (taken) throw ApiError.conflict(`${space.name} est déjà attribué (${taken.title}).`);
+  }
   const { startsAt, expiresAt, ...rest } = patch;
   return prisma.serviceOrder.update({
     where: { id },

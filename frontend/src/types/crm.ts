@@ -284,6 +284,14 @@ export interface MemberDocument {
   kindLabel?: string;
 }
 
+/** Bureau privatif et le service qui l'occupe (GET /api/admin/service-orders/offices). */
+export interface OfficeAvailability {
+  id: string;
+  name: string;
+  capacity: number;
+  occupiedBy: { orderId: string; title: string; expiresAt: string | null; member: string | null } | null;
+}
+
 export interface OrderDetail {
   id: string;
   title: string;
@@ -306,6 +314,8 @@ export interface OrderDetail {
   validatedBy: StaffUser | null;
   user: { id: string; email: string; referentId: string | null; profile: { firstName: string; lastName: string } | null } | null;
   subscription: { id: string; status: string; startDate: string; endDate: string } | null;
+  /** Bureau privatif attribué (location au mois). */
+  space: { id: string; name: string; capacity: number } | null;
   renewedFrom: { id: string; title: string; expiresAt: string | null } | null;
   renewedBy: { id: string } | null;
   documents: MemberDocument[];

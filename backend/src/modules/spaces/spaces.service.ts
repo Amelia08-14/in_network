@@ -1,10 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
 
-// CDC §1.4 — hypothèse de travail par défaut: créneaux d'1h, horaires ouverts
-// 08h-20h. À ajuster une fois les horaires officiels du lieu Hydra confirmés.
-const OPENING_HOUR = 8;
-const CLOSING_HOUR = 20;
+import { atSiteHour, getRoomHours, roomPrice } from './roomBooking';
 
 export async function listSpaces(siteId?: string, type?: string) {
   return prisma.spaceResource.findMany({
@@ -13,7 +10,8 @@ export async function listSpaces(siteId?: string, type?: string) {
       ...(siteId ? { siteId } : {}),
       ...(type ? { type: type as never } : {}),
     },
-    orderBy: { name: 'asc' },
+    // De la plus petite à la plus grande salle.
+    orderBy: [{ capacity: 'asc' }, { name: 'asc' }],
   });
 }
 
@@ -23,35 +21,39 @@ export async function getSpaceById(id: string) {
   return space;
 }
 
+// Disponibilités d'une salle de réunion pour un jour : une case par heure
+// pleine entre l'ouverture et la fermeture (paramètres), avec les plages matin /
+// après-midi et les prix de référence pour le récapitulatif côté membre.
 export async function getAvailability(spaceId: string, dateStr: string) {
   const space = await getSpaceById(spaceId);
+  const hours = await getRoomHours();
 
-  const dayStart = new Date(`${dateStr}T00:00:00`);
-  const dayEnd = new Date(`${dateStr}T23:59:59`);
-
+  const dayStart = atSiteHour(dateStr, 0);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 3600 * 1000);
   const bookings = await prisma.booking.findMany({
-    where: {
-      spaceId,
-      status: { in: ['PENDING', 'CONFIRMED'] },
-      startAt: { lt: dayEnd },
-      endAt: { gt: dayStart },
-    },
+    where: { spaceId, status: { in: ['PENDING', 'CONFIRMED'] }, startAt: { lt: dayEnd }, endAt: { gt: dayStart } },
     select: { startAt: true, endAt: true },
   });
 
-  const slots: { startAt: string; endAt: string; available: boolean }[] = [];
-  for (let hour = OPENING_HOUR; hour < CLOSING_HOUR; hour += 1) {
-    const slotStart = new Date(`${dateStr}T${String(hour).padStart(2, '0')}:00:00`);
-    const slotEnd = new Date(`${dateStr}T${String(hour + 1).padStart(2, '0')}:00:00`);
-
-    const overlaps = bookings.some((b) => b.startAt < slotEnd && b.endAt > slotStart);
-
-    slots.push({
-      startAt: slotStart.toISOString(),
-      endAt: slotEnd.toISOString(),
-      available: !overlaps,
-    });
+  const now = new Date();
+  const slots: { hour: number; startAt: string; endAt: string; available: boolean }[] = [];
+  for (let hour = hours.opening; hour < hours.closing; hour += 1) {
+    const slotStart = atSiteHour(dateStr, hour);
+    const slotEnd = atSiteHour(dateStr, hour + 1);
+    const taken = bookings.some((b) => b.startAt < slotEnd && b.endAt > slotStart);
+    slots.push({ hour, startAt: slotStart.toISOString(), endAt: slotEnd.toISOString(), available: !taken && slotStart > now });
   }
 
-  return { spaceId: space.id, date: dateStr, slots };
+  return {
+    spaceId: space.id,
+    date: dateStr,
+    hours,
+    // Prix d'une matinée, d'un après-midi, d'une journée : repères affichés au membre.
+    reference: {
+      morning: roomPrice(space, hours.opening, hours.midday, hours),
+      afternoon: roomPrice(space, hours.midday, hours.closing, hours),
+      day: roomPrice(space, hours.opening, hours.closing, hours),
+    },
+    slots,
+  };
 }

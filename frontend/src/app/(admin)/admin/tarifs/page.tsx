@@ -8,15 +8,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { api, ApiRequestError } from '@/lib/admin-api';
 import { revalidatePublic } from '@/lib/revalidate-public';
+import { capacityText } from '@/lib/spaces';
 import { ServicesTarifsHeader } from '@/components/admin/ServicesTarifsHeader';
 import type { ApiListResponse, MembershipPlan, Site, SpaceResource } from '@/types';
 
 const SPACE_TYPE_LABEL: Record<SpaceResource['type'], string> = {
   DESK: 'Poste de coworking',
-  PRIVATE_OFFICE: 'Bureau privé',
+  PRIVATE_OFFICE: 'Bureau privatif',
   MEETING_ROOM: 'Salle de réunion',
 };
 
@@ -24,6 +26,8 @@ const EMPTY_SPACE_FORM = {
   name: '',
   type: 'MEETING_ROOM' as SpaceResource['type'],
   capacity: 1,
+  capacityMin: '',
+  description: '',
   hourlyRateMember: '',
   halfDayRateMember: '',
   dailyRateMember: '',
@@ -77,45 +81,81 @@ function PlanRow({ plan }: { plan: MembershipPlan }) {
   );
 }
 
+const MEETING_RATE_FIELDS = [
+  ['hourlyRateMember', '1h membre'],
+  ['halfDayRateMember', '1/2j membre'],
+  ['dailyRateMember', 'jour membre'],
+  ['hourlyRateExternal', '1h externe'],
+  ['halfDayRateExternal', '1/2j externe'],
+  ['dailyRateExternal', 'jour externe'],
+] as const;
+type RateKey = (typeof MEETING_RATE_FIELDS)[number][0] | 'monthlyRate';
+
+const amount = (value: string | null) => (value === null || value === '' ? null : Number(value));
+const rateText = (value: string | null) => (value ? `${Number(value).toLocaleString('fr-FR')} DA` : '—');
+
+// Un espace : salle de réunion (tarifs à l'heure, demi-journée, journée ; vide =
+// tarif à confirmer, la salle se demande alors sur devis) ou bureau privatif
+// (loyer mensuel). Le descriptif reste court et factuel : il est montré au membre.
 function SpaceRow({ space }: { space: SpaceResource }) {
   const queryClient = useQueryClient();
+  const isRoom = space.type === 'MEETING_ROOM';
   const [editing, setEditing] = useState(false);
-  const [rates, setRates] = useState({
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: space.name,
+    capacityMin: space.capacityMin ? String(space.capacityMin) : '',
+    capacity: String(space.capacity),
+    description: space.description ?? '',
     hourlyRateMember: space.hourlyRateMember ?? '',
     halfDayRateMember: space.halfDayRateMember ?? '',
     dailyRateMember: space.dailyRateMember ?? '',
     hourlyRateExternal: space.hourlyRateExternal ?? '',
     halfDayRateExternal: space.halfDayRateExternal ?? '',
     dailyRateExternal: space.dailyRateExternal ?? '',
+    monthlyRate: space.monthlyRate ?? '',
   });
 
   const mutation = useMutation({
     mutationFn: () =>
       api.patch(`/api/admin/spaces/${space.id}`, {
-        hourlyRateMember: Number(rates.hourlyRateMember),
-        halfDayRateMember: Number(rates.halfDayRateMember),
-        dailyRateMember: Number(rates.dailyRateMember),
-        hourlyRateExternal: Number(rates.hourlyRateExternal),
-        halfDayRateExternal: Number(rates.halfDayRateExternal),
-        dailyRateExternal: Number(rates.dailyRateExternal),
+        name: form.name.trim(),
+        capacity: Number(form.capacity) || 1,
+        capacityMin: form.capacityMin ? Number(form.capacityMin) : null,
+        description: form.description.trim() || null,
+        ...(isRoom
+          ? Object.fromEntries(MEETING_RATE_FIELDS.map(([key]) => [key, amount(form[key])]))
+          : { monthlyRate: amount(form.monthlyRate) }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-spaces'] });
       revalidatePublic('spaces');
+      setError(null);
       setEditing(false);
     },
+    onError: (e) => setError(e instanceof ApiRequestError ? e.message : 'Enregistrement impossible'),
   });
 
   if (!editing) {
     return (
-      <tr>
-        <td className="px-5 py-3 font-medium text-ink-800">{space.name}</td>
-        <td className="px-5 py-3 text-ink-600">
-          {space.hourlyRateMember}/{space.halfDayRateMember}/{space.dailyRateMember} DA
+      <tr className="align-top">
+        <td className="px-5 py-3">
+          <p className="font-medium text-ink-800">{space.name}</p>
+          <p className="text-xs text-ink-500">{capacityText(space, true)}</p>
+          {space.description && <p className="mt-1 max-w-md text-xs text-ink-500">{space.description}</p>}
         </td>
-        <td className="px-5 py-3 text-ink-600">
-          {space.hourlyRateExternal}/{space.halfDayRateExternal}/{space.dailyRateExternal} DA
-        </td>
+        {isRoom ? (
+          <>
+            <td className="px-5 py-3 text-ink-600">
+              {rateText(space.hourlyRateMember)} / {rateText(space.halfDayRateMember)} / {rateText(space.dailyRateMember)}
+            </td>
+            <td className="px-5 py-3 text-ink-600">
+              {rateText(space.hourlyRateExternal)} / {rateText(space.halfDayRateExternal)} / {rateText(space.dailyRateExternal)}
+            </td>
+          </>
+        ) : (
+          <td className="px-5 py-3 text-ink-600">{space.monthlyRate ? `${rateText(space.monthlyRate)} HT / mois` : 'Selon la formule souscrite'}</td>
+        )}
         <td className="px-5 py-3 text-right">
           <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
             <Pencil className="h-3.5 w-3.5" /> Modifier
@@ -125,36 +165,42 @@ function SpaceRow({ space }: { space: SpaceResource }) {
     );
   }
 
+  const rateFields: readonly (readonly [RateKey, string])[] = isRoom ? MEETING_RATE_FIELDS : [['monthlyRate', 'Loyer mensuel HT (facultatif)']];
   return (
-    <tr>
-      <td className="px-5 py-3 font-medium text-ink-800 align-top">{space.name}</td>
-      <td className="px-5 py-3 align-top" colSpan={2}>
-        <div className="grid grid-cols-3 gap-2">
-          {(
-            [
-              ['hourlyRateMember', '1h membre'],
-              ['halfDayRateMember', '1/2j membre'],
-              ['dailyRateMember', 'jour membre'],
-              ['hourlyRateExternal', '1h externe'],
-              ['halfDayRateExternal', '1/2j externe'],
-              ['dailyRateExternal', 'jour externe'],
-            ] as const
-          ).map(([key, fieldLabel]) => (
+    <tr className="align-top">
+      <td className="px-5 py-3" colSpan={isRoom ? 3 : 2}>
+        <div className="grid gap-2 sm:grid-cols-[1fr_6rem_6rem]">
+          <div>
+            <Label className="text-xs">Nom</Label>
+            <Input className="h-9" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <Label className="text-xs">De (pers.)</Label>
+            <Input className="h-9" type="number" min={1} value={form.capacityMin} onChange={(e) => setForm({ ...form, capacityMin: e.target.value })} />
+          </div>
+          <div>
+            <Label className="text-xs">À (pers.)</Label>
+            <Input className="h-9" type="number" min={1} value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
+          </div>
+        </div>
+        <div className="mt-2">
+          <Label className="text-xs">Descriptif (court, factuel : capacité, équipements)</Label>
+          <Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {rateFields.map(([key, fieldLabel]) => (
             <div key={key}>
               <Label className="text-xs">{fieldLabel}</Label>
-              <Input
-                className="h-9"
-                type="number"
-                value={rates[key]}
-                onChange={(e) => setRates({ ...rates, [key]: e.target.value })}
-              />
+              <Input className="h-9" type="number" min={0} placeholder="—" value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
             </div>
           ))}
         </div>
+        {isRoom && <p className="mt-1 text-xs text-ink-500">Sans aucun tarif membre, la salle se demande sur devis (pas de réservation en ligne).</p>}
+        {error && <p className="mt-1 text-xs text-brand-orange">{error}</p>}
       </td>
-      <td className="px-5 py-3 text-right align-top">
+      <td className="px-5 py-3 text-right">
         <div className="flex justify-end gap-2">
-          <Button size="sm" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+          <Button size="sm" onClick={() => mutation.mutate()} disabled={mutation.isPending || !form.name.trim()}>
             Enregistrer
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
@@ -187,6 +233,8 @@ export default function AdminTarifsPage() {
 
   const plans = plansData?.data ?? [];
   const spaces = spacesData?.data ?? [];
+  const rooms = spaces.filter((space) => space.type === 'MEETING_ROOM');
+  const offices = spaces.filter((space) => space.type !== 'MEETING_ROOM');
   const sites = sitesData?.data ?? [];
 
   const createSpaceMutation = useMutation({
@@ -196,6 +244,8 @@ export default function AdminTarifsPage() {
         name: spaceForm.name,
         type: spaceForm.type,
         capacity: Number(spaceForm.capacity),
+        capacityMin: spaceForm.capacityMin ? Number(spaceForm.capacityMin) : null,
+        description: spaceForm.description.trim() || null,
         hourlyRateMember: spaceForm.hourlyRateMember ? Number(spaceForm.hourlyRateMember) : undefined,
         halfDayRateMember: spaceForm.halfDayRateMember ? Number(spaceForm.halfDayRateMember) : undefined,
         dailyRateMember: spaceForm.dailyRateMember ? Number(spaceForm.dailyRateMember) : undefined,
@@ -274,15 +324,25 @@ export default function AdminTarifsPage() {
                   ))}
                 </Select>
               </div>
-              <div>
-                <Label>Capacité</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={spaceForm.capacity}
-                  onChange={(e) => setSpaceForm({ ...spaceForm, capacity: Number(e.target.value) })}
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>De (pers.)</Label>
+                  <Input type="number" min={1} value={spaceForm.capacityMin} onChange={(e) => setSpaceForm({ ...spaceForm, capacityMin: e.target.value })} />
+                </div>
+                <div>
+                  <Label>À (pers.)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={spaceForm.capacity}
+                    onChange={(e) => setSpaceForm({ ...spaceForm, capacity: Number(e.target.value) })}
+                  />
+                </div>
               </div>
+            </div>
+            <div>
+              <Label>Descriptif (court, factuel)</Label>
+              <Textarea rows={2} value={spaceForm.description} onChange={(e) => setSpaceForm({ ...spaceForm, description: e.target.value })} />
             </div>
             <div className="grid grid-cols-3 gap-2">
               {(
@@ -321,12 +381,10 @@ export default function AdminTarifsPage() {
 
       <Card>
         <CardContent className="p-0">
-          <h2 className="px-5 pt-5 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">
-            Salles de réunion (tarif membre / externe)
-          </h2>
+          <h2 className="px-5 pt-5 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">Salles de réunion (réservées à l’heure)</h2>
           {spacesLoading ? (
             <p className="p-5 text-sm text-ink-500">Chargement...</p>
-          ) : spaces.length === 0 ? (
+          ) : rooms.length === 0 ? (
             <EmptyState title="Aucune salle" />
           ) : (
             <div className="mt-3 overflow-x-auto">
@@ -334,13 +392,42 @@ export default function AdminTarifsPage() {
                 <thead className="border-b border-ink-900/8 text-left text-xs uppercase tracking-wide text-ink-500">
                   <tr>
                     <th className="px-5 py-3">Salle</th>
-                    <th className="px-5 py-3">Membre (h/demi-j/j)</th>
-                    <th className="px-5 py-3">Externe (h/demi-j/j)</th>
+                    <th className="px-5 py-3">Membre (h / demi-j / j)</th>
+                    <th className="px-5 py-3">Externe (h / demi-j / j)</th>
                     <th className="px-5 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-900/8">
-                  {spaces.map((space) => (
+                  {rooms.map((space) => (
+                    <SpaceRow key={space.id} space={space} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-0">
+          <h2 className="px-5 pt-5 font-heading text-sm font-bold uppercase tracking-wide text-ink-500">Bureaux privatifs (loués au mois)</h2>
+          <p className="px-5 pt-1 text-xs text-ink-500">Le bureau est attribué par l’Office Manager sur le service du membre (Services clients). Le prix vient de la formule souscrite.</p>
+          {spacesLoading ? (
+            <p className="p-5 text-sm text-ink-500">Chargement...</p>
+          ) : offices.length === 0 ? (
+            <EmptyState title="Aucun bureau" />
+          ) : (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-ink-900/8 text-left text-xs uppercase tracking-wide text-ink-500">
+                  <tr>
+                    <th className="px-5 py-3">Bureau</th>
+                    <th className="px-5 py-3">Loyer</th>
+                    <th className="px-5 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink-900/8">
+                  {offices.map((space) => (
                     <SpaceRow key={space.id} space={space} />
                   ))}
                 </tbody>

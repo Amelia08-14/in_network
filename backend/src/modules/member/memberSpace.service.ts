@@ -46,6 +46,7 @@ export async function listMyServices(userId: string) {
         renewedFrom: { select: { id: true, title: true } },
         documents: { select: { id: true, kind: true, title: true, createdAt: true }, orderBy: { createdAt: 'desc' } },
         invoice: { select: { id: true, number: true } },
+        space: { select: { name: true, description: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -64,6 +65,8 @@ export async function listMyServices(userId: string) {
       poleLabel: POLE_LABEL[order.pole],
       subsidiary: order.subsidiary,
       amount: order.amount,
+      // Bureau privatif attribué par l'équipe.
+      office: order.space ? { name: order.space.name, description: order.space.description } : null,
       status,
       deliveryStatus: order.status,
       deliveryLabel: ORDER_STATUS_LABEL[order.status],

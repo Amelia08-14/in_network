@@ -24,13 +24,17 @@ export const createSpaceSchema = z.object({
   type: z.nativeEnum(SpaceType),
   name: z.string().min(1),
   capacity: z.number().int().min(1).default(1),
-  monthlyRate: z.number().nonnegative().optional(),
-  hourlyRateMember: z.number().nonnegative().optional(),
-  halfDayRateMember: z.number().nonnegative().optional(),
-  dailyRateMember: z.number().nonnegative().optional(),
-  hourlyRateExternal: z.number().nonnegative().optional(),
-  halfDayRateExternal: z.number().nonnegative().optional(),
-  dailyRateExternal: z.number().nonnegative().optional(),
+  // « 6 à 8 personnes » : capacityMin 6, capacity 8.
+  capacityMin: z.number().int().min(1).nullable().optional(),
+  description: z.string().trim().max(1000).nullable().optional(),
+  // null = tarif retiré (salle « sur devis »).
+  monthlyRate: z.number().nonnegative().nullable().optional(),
+  hourlyRateMember: z.number().nonnegative().nullable().optional(),
+  halfDayRateMember: z.number().nonnegative().nullable().optional(),
+  dailyRateMember: z.number().nonnegative().nullable().optional(),
+  hourlyRateExternal: z.number().nonnegative().nullable().optional(),
+  halfDayRateExternal: z.number().nonnegative().nullable().optional(),
+  dailyRateExternal: z.number().nonnegative().nullable().optional(),
   photos: z.array(z.string().url()).optional(),
 });
 export const updateSpaceSchema = createSpaceSchema.partial().extend({ isActive: z.boolean().optional() });

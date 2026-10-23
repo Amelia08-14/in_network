@@ -34,6 +34,9 @@ const HINTS: Record<string, string> = {
   quoteDirectionThreshold: 'À fixer par IN NETWORK. Vide : pas de seuil.',
   directionApprovesOfficeManagerQuotes: 'Sinon, le responsable commercial valide aussi les devis sur mesure du circuit 2.',
   discountWithoutApprovalRate: 'À fixer par IN NETWORK. Vide : toute remise (ligne ou total) fait valider le devis avant l’envoi.',
+  roomOpeningHour: 'Première heure réservable dans les salles (8 par défaut, à confirmer par IN NETWORK).',
+  roomMiddayHour: 'Le matin se termine et l’après-midi commence à cette heure (13 par défaut).',
+  roomClosingHour: 'Heure de fin de la dernière réservation (20 par défaut).',
 };
 
 const toText = (value: SettingValue) => (Array.isArray(value) ? value.join(', ') : value === null ? '' : String(value));

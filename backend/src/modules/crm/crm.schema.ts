@@ -242,6 +242,8 @@ export const orderListQuerySchema = z.object({
 });
 export const orderPatchSchema = z.object({
   assignedToId: z.string().min(1).nullable().optional(),
+  // Bureau privatif attribué (location au mois).
+  spaceId: z.string().min(1).nullable().optional(),
   dueAt: nullableDate.optional(),
   startsAt: nullableDate.optional(),
   expiresAt: nullableDate.optional(),

@@ -13,7 +13,7 @@ import { errorMessage, Field, OrderBadge, PoleBadge, useStaff } from '@/componen
 import { adminApiPostForm, api } from '@/lib/admin-api';
 import { dateFr, dateTimeFr, invoiceNumber, money, openAdminPdf, staffName, toInputDate } from '@/lib/crm';
 import { cn } from '@/lib/utils';
-import type { MemberDocumentKind, OrderDetail } from '@/types/crm';
+import type { MemberDocumentKind, OfficeAvailability, OrderDetail } from '@/types/crm';
 
 export const DOCUMENT_KINDS: { value: MemberDocumentKind; label: string }[] = [
   { value: 'CONTRACT', label: 'Contrat signé' },
@@ -78,12 +78,19 @@ export function ServiceOrderModal({ id, onClose }: { id: string; onClose: () => 
     queryKey: ['service-order', id],
     queryFn: () => api.get<{ data: OrderDetail }>(`/api/admin/service-orders/${id}`).then((r) => r.data),
   });
+  // Bureaux privatifs (pôle Espaces) : l'Office Manager attribue le bureau loué au mois.
+  const { data: offices } = useQuery({
+    queryKey: ['offices'],
+    queryFn: () => api.get<{ data: OfficeAvailability[] }>('/api/admin/service-orders/offices').then((r) => r.data),
+    enabled: order?.pole === 'SPACES',
+  });
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['service-order', id] });
     queryClient.invalidateQueries({ queryKey: ['service-orders'] });
     queryClient.invalidateQueries({ queryKey: ['member-file'] });
     queryClient.invalidateQueries({ queryKey: ['admin-home'] });
+    queryClient.invalidateQueries({ queryKey: ['offices'] });
   };
   const onError = (e: unknown) => setError(errorMessage(e));
 
@@ -287,6 +294,21 @@ export function ServiceOrderModal({ id, onClose }: { id: string; onClose: () => 
               <Input id="o-end" type="date" value={toInputDate(order.expiresAt)} onChange={(e) => update.mutate({ expiresAt: e.target.value ? new Date(`${e.target.value}T23:59:59`).toISOString() : null })} />
             </Field>
           </div>
+          {order.pole === 'SPACES' && offices && offices.length > 0 && (
+            <Field label="Bureau attribué (bureaux privatifs loués au mois)" htmlFor="o-office">
+              <Select id="o-office" value={order.space?.id ?? ''} onChange={(e) => update.mutate({ spaceId: e.target.value || null })}>
+                <option value="">Aucun bureau</option>
+                {offices.map((office) => {
+                  const takenByOther = office.occupiedBy && office.occupiedBy.orderId !== order.id;
+                  return (
+                    <option key={office.id} value={office.id} disabled={Boolean(takenByOther)}>
+                      {office.name} · {office.capacity} pers.{takenByOther ? ` — occupé (${office.occupiedBy!.member ?? office.occupiedBy!.title})` : ''}
+                    </option>
+                  );
+                })}
+              </Select>
+            </Field>
+          )}
           {order.subscription && (
             <p className="text-xs text-ink-500">
               Abonnement du membre : du {dateFr(order.subscription.startDate)} au {dateFr(order.subscription.endDate)}.

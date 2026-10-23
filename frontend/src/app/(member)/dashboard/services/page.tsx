@@ -24,6 +24,8 @@ interface MyService {
   poleLabel: string;
   subsidiary: string | null;
   amount: string | null;
+  /** Bureau privatif attribué par l'équipe. */
+  office: { name: string; description: string | null } | null;
   status: MemberServiceStatus;
   deliveryLabel: string;
   progress: number | null;
@@ -94,6 +96,12 @@ function ServiceCard({ service }: { service: MyService }) {
             {service.subsidiary ? ` · ${service.subsidiary}` : ''}
             {service.amount ? ` · ${money(service.amount)} HT` : ''}
           </p>
+          {service.office && (
+            <p className="mt-1.5 text-sm text-ink-800">
+              Votre bureau : <strong>{service.office.name}</strong>
+              {service.office.description && <span className="block text-xs text-ink-500">{service.office.description}</span>}
+            </p>
+          )}
         </div>
         <StatusPill status={service.status} />
       </div>

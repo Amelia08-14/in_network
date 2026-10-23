@@ -32,6 +32,10 @@ export const SETTINGS_SCHEMA = {
   directionApprovesOfficeManagerQuotes: z.boolean(),
   /** Remise totale (en % du HT) accordée sans validation ; null = toute remise est validée. */
   discountWithoutApprovalRate: z.number().min(0).max(100).nullable(),
+  /** Salles de réunion : ouverture, bascule matin / après-midi, fermeture (heures pleines, heure d'Alger). */
+  roomOpeningHour: z.number().int().min(0).max(23),
+  roomMiddayHour: z.number().int().min(1).max(23),
+  roomClosingHour: z.number().int().min(1).max(24),
 } as const;
 
 export type SettingKey = keyof typeof SETTINGS_SCHEMA;
@@ -48,6 +52,10 @@ export const DEFAULT_SETTINGS: Settings = {
   quoteDirectionThreshold: null,
   directionApprovesOfficeManagerQuotes: true,
   discountWithoutApprovalRate: null,
+  // Amplitude déjà utilisée par le site (8h–20h), coupure à 13h : à confirmer par IN NETWORK.
+  roomOpeningHour: 8,
+  roomMiddayHour: 13,
+  roomClosingHour: 20,
 };
 
 export const SETTING_LABELS: Record<SettingKey, string> = {
@@ -61,6 +69,9 @@ export const SETTING_LABELS: Record<SettingKey, string> = {
   quoteDirectionThreshold: 'Montant TTC au-delà duquel la Direction valide un devis',
   directionApprovesOfficeManagerQuotes: 'La Direction valide les devis sur mesure du circuit 2',
   discountWithoutApprovalRate: 'Remise accordée sans validation, jusqu’à (% du HT)',
+  roomOpeningHour: 'Salles de réunion : ouverture (heure)',
+  roomMiddayHour: 'Salles de réunion : fin du matin / début de l’après-midi (heure)',
+  roomClosingHour: 'Salles de réunion : fermeture (heure)',
 };
 
 const KEYS = Object.keys(SETTINGS_SCHEMA) as SettingKey[];

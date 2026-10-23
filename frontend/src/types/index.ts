@@ -278,7 +278,10 @@ export interface SpaceResource {
   id: string;
   name: string;
   type: 'DESK' | 'PRIVATE_OFFICE' | 'MEETING_ROOM';
+  /** « 6 à 8 personnes » : capacityMin 6, capacity 8. */
   capacity: number;
+  capacityMin: number | null;
+  description: string | null;
   monthlyRate: string | null;
   hourlyRateMember: string | null;
   halfDayRateMember: string | null;

@@ -7,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ScrollReveal } from '@/components/ui/scroll-motion';
+import { capacityText, hasMemberRate } from '@/lib/spaces';
 import { AddToCartButton } from '@/components/features/AddToCartButton';
 import { ServicesFilterGrid } from '@/components/features/ServicesFilterGrid';
 import { Faq, type FaqItem } from '@/components/features/Faq';
@@ -143,6 +144,7 @@ const LOCATION_POINTS = [
 ];
 
 function formatDzd(value: string | null): string {
+  // Tarif non renseigné : la salle se demande sur devis.
   if (!value) return '—';
   return `${Number(value).toLocaleString('fr-FR')} DA`;
 }
@@ -410,7 +412,7 @@ export default async function ServicesPage() {
             n={3}
             hue="violet"
             title="Salles de réunion"
-            lead="Un cadre professionnel pour convaincre vos clients et signer plus vite. Tarif préférentiel pour les membres IN NETWORK, tarif standard pour les visiteurs externes. Salle de réunion : parfaite pour les réunions, les séances de travail ou l'accueil de vos collaborateurs. Salle de formation, sur demande : spacieuse et équipée, parfaite pour vos ateliers et sessions professionnelles. Des espaces modulables sont aussi disponibles pour vos événements (connexion ultra-rapide, projecteur 8K, jusqu'à 16 personnes)."
+            lead="Des salles réservables à l'heure, le matin ou l'après-midi. Un cadre professionnel pour convaincre vos clients et signer plus vite. Tarif préférentiel pour les membres IN NETWORK, tarif standard pour les visiteurs externes. Salle de réunion : parfaite pour les réunions, les séances de travail ou l'accueil de vos collaborateurs. Salle de formation, sur demande : spacieuse et équipée, parfaite pour vos ateliers et sessions professionnelles. Des espaces modulables sont aussi disponibles pour vos événements (connexion ultra-rapide, projecteur 8K)."
           />
           <div className="overflow-x-auto rounded-card border border-ink-900/8 bg-white shadow-soft">
             <table className="w-full min-w-[560px] text-left text-sm">
@@ -426,9 +428,11 @@ export default async function ServicesPage() {
                 {spaces.map((space) => (
                   <Fragment key={space.id}>
                     <tr className="border-b border-ink-900/6">
-                      <td rowSpan={2} className="p-4 align-top font-semibold text-ink-900">
+                      <td rowSpan={2} className="max-w-xs p-4 align-top font-semibold text-ink-900">
                         {space.name}
-                        <span className="mt-1 block text-xs font-normal text-ink-500">{space.capacity} places</span>
+                        <span className="mt-1 block text-xs font-normal text-ink-500">{capacityText(space)}</span>
+                        {space.description && <span className="mt-1 block text-xs font-normal leading-relaxed text-ink-500">{space.description}</span>}
+                        {!hasMemberRate(space) && <span className="mt-1.5 inline-block rounded-pill bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Sur devis</span>}
                       </td>
                       <td className="p-4 text-ink-700">
                         <span className="mr-1.5 rounded-pill bg-brand-orange/10 px-2 py-0.5 text-xs font-semibold text-brand-orange">Membre</span>
