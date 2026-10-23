@@ -5,7 +5,7 @@ import { validate } from '../../middleware/validate';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ok } from '../../utils/apiResponse';
 import { createContactMessageSchema } from './contact.schema';
-import { createLeadFromContactMessage } from '../crm/leads.service';
+import { createLeadFromContactMessage } from '../crm/leadIntake.service';
 
 export const contactRouter = Router();
 

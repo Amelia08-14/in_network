@@ -1,4 +1,5 @@
-import { hasResourceAccess, isStaffRole, parsePermissions } from '../admin/permissions';
+import { isStaffRole, parsePermissions } from '../admin/permissions';
+import { scopeFlags } from '../crm/scope';
 import { prisma } from '../../lib/prisma';
 import { hashPassword, comparePassword } from '../../lib/password';
 import {
@@ -12,7 +13,7 @@ import { sendEmail } from '../../lib/email';
 import { ApiError } from '../../utils/apiResponse';
 import { env } from '../../config/env';
 import { createCompanyAccount } from '../companies/companies.service';
-import { createLeadFromRegistration } from '../crm/leads.service';
+import { createLeadFromRegistration } from '../crm/leadIntake.service';
 import { isAccountValidated } from '../situation/accountState';
 import type { RegisterInput, LoginInput, RegisterCompanyInput } from './auth.schema';
 
@@ -46,11 +47,7 @@ export async function companyForUser(userId: string) {
 
 function crmAccessFor(role: string, permissions: unknown) {
   if (!isStaffRole(role)) return null;
-  const perms = parsePermissions(permissions);
-  return {
-    allLeads: hasResourceAccess(role, perms, 'crm_all'),
-    manageLeads: hasResourceAccess(role, perms, 'crm_manage'),
-  };
+  return scopeFlags(role, parsePermissions(permissions));
 }
 
 async function publicUser(user: {
@@ -123,19 +120,20 @@ export async function register(input: RegisterInput) {
     include: { profile: true },
   });
 
-  // Notification de complétion de profil (demande client 07/09/2026) — au
-  // moins un rappel visible dès l'inscription ; la bannière du dashboard
-  // prend le relais tant que le profil reste incomplet. Non bloquant.
+  // Processus v1.3 (23/10/2026) : avant le premier paiement, l'espace ne
+  // propose que la demande de devis ; le profil se complète après l'activation
+  // (cf. approveAccount). Non bloquant.
   prisma.notification
     .create({
       data: {
         userId: user.id,
-        type: 'profile_incomplete',
-        title: 'Complétez votre profil',
-        body: 'Renseignez votre poste, votre entreprise, votre présentation et vos secteurs pour activer les demandes, réservations et la mise en relation.',
+        type: 'welcome_quote',
+        title: 'Bienvenue chez IN NETWORK',
+        body: 'Choisissez vos services et envoyez votre demande de devis. Votre espace s’active entièrement dès votre premier paiement.',
+        href: '/dashboard/catalogue',
       },
     })
-    .catch((err) => console.error('[auth] échec création notification profil', err));
+    .catch((err) => console.error('[auth] échec création notification de bienvenue', err));
 
   // Envoi non bloquant : un aléa du serveur SMTP de l'hébergeur ne doit
   // jamais faire échouer la création de compte (retour QA #4 — l'inscription
@@ -143,7 +141,7 @@ export async function register(input: RegisterInput) {
   sendEmail({
     to: user.email,
     subject: "Bienvenue dans l'espace IN NETWORK",
-    html: `<p>Bonjour ${input.firstName},</p><p>Merci pour ton inscription — ton compte et ton espace membre IN NETWORK sont dès à présent actifs.</p><p>À très vite,<br/>L'équipe IN NETWORK</p>`,
+    html: `<p>Bonjour ${input.firstName},</p><p>Merci pour votre inscription. Depuis votre espace IN NETWORK, choisissez vos services et envoyez votre demande de devis : notre équipe vous recontacte rapidement. Votre espace membre s’active entièrement dès votre premier paiement.</p><p>À très vite,<br/>L'équipe IN NETWORK</p>`,
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de bienvenue", err));
 
   // L'inscription alimente le CRM (lead « Inscription ») ; non bloquant.

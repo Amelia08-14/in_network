@@ -3,7 +3,7 @@ import { prisma } from '../../lib/prisma';
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
-export type DocumentPrefix = 'LD' | 'DV' | 'FA';
+export type DocumentPrefix = 'LD' | 'DV' | 'PF' | 'FA';
 
 // Numérotation séquentielle par préfixe et par année : LD-2026-0001,
 // DV-2026-0001, FA-2026-0001. L'incrément est atomique en base ; pour une

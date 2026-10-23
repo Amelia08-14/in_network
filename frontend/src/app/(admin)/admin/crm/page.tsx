@@ -3,21 +3,21 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { AlertTriangle, Banknote, CalendarClock, ClipboardCheck, FileText, Percent, Plus, Receipt, RefreshCw, Rocket, Target, UserCheck } from 'lucide-react';
+import { AlertTriangle, Banknote, CalendarClock, FileText, Inbox, PackageCheck, Percent, Plus, Receipt, RefreshCw, Target, UserCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LeadFormModal } from '@/components/admin/LeadFormModal';
 import { errorMessage, Kpi, PageTitle, useCrmAccess } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
-import { money, SOURCE_LABEL } from '@/lib/crm';
+import { money, STAGE_BY_VALUE } from '@/lib/crm';
 import { HUE } from '@/lib/palette';
 import type { CrmDashboard } from '@/types/crm';
 
 // Palette recharts alignée sur la charte graphique (violet profond, orange, bleu…).
 const NAVY = HUE.blue.hex;
 const ORANGE = HUE.orange.hex;
-const STAGE_COLORS: Record<string, string> = { NEW: HUE.blue.hex, QUALIFIED: HUE.amber.hex, ASSIGNED: HUE.violet.hex, CONTACTED: HUE.ink.hex, QUOTE_SENT: HUE.orange.hex, WON: HUE.green.hex, LOST: HUE.gray.hex };
+const PIPELINE_COLORS = [HUE.blue.hex, HUE.violet.hex, HUE.green.hex, HUE.orange.hex, HUE.gray.hex];
 
 interface AutomationResult {
   quotesExpired: number;
@@ -26,15 +26,18 @@ interface AutomationResult {
   followUpAlerts: number;
   dormantAlerts: number;
   appointmentReminders: number;
+  expiryAlerts: number;
+  servicesExpired: number;
+  protectionAlerts: number;
 }
 
 const AUTOMATIONS = [
-  'Relance automatique des devis sans réponse (email au client, tous les 3 jours, 2 fois maximum)',
-  'Expiration des devis dont la validité est dépassée',
-  'Rappel de paiement des factures échues (email au client, chaque semaine, 3 fois maximum)',
-  'Alerte au commercial quand une action planifiée arrive à échéance',
-  'Alerte sur les leads sans activité depuis 7 jours',
+  'Relance automatique des devis sans réponse (e-mail au client, tous les 3 jours, 2 fois maximum) et expiration des devis dépassés',
+  'Rappel de paiement des proformas échues (e-mail au client, chaque semaine, 3 fois maximum)',
+  'Alerte quand une action planifiée arrive à échéance, et sur les leads sans activité depuis 7 jours',
   'Rappel des rendez-vous dans les 24 heures',
+  'Alertes d’échéance des services à J-60, J-30, J-7 (membre et référent), puis passage « Expiré » après le délai de grâce',
+  'Fin de la protection d’un lead de la Sales Team sans activité (si la durée est fixée dans les paramètres)',
 ];
 
 export default function CrmDashboardPage() {
@@ -55,15 +58,15 @@ export default function CrmDashboardPage() {
   if (!data) return <EmptyState title="Tableau de bord indisponible" description="Vérifiez vos droits d’accès au CRM." />;
 
   const { kpis } = data;
-  const funnel = data.stages.map((s) => ({ ...s, name: s.label }));
-  const sources = data.sources.map((s) => ({ name: SOURCE_LABEL[s.source], count: s.count }));
+  const funnel = data.stages.filter((s) => s.stage !== 'LOST').map((s) => ({ ...s, name: s.label }));
+  const sources = data.pipelines.map((p) => ({ name: p.label, count: p.count }));
   const result = runAutomations.data;
 
   return (
     <div className="space-y-8">
       <PageTitle
         title="Tableau commercial"
-        description={data.scope === 'mine' ? 'Vos leads assignés, devis et rendez-vous : du lead à la facture et au lancement du service.' : 'Du lead à la facture et au lancement du service : l’essentiel de l’activité de l’équipe.'}
+        description={data.scope === 'mine' ? 'Vos dossiers, du lead au paiement : devis, proformas et rendez-vous.' : 'Du lead au paiement, par circuit et par pipeline d’entrée.'}
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4" /> Nouveau lead
@@ -73,18 +76,18 @@ export default function CrmDashboardPage() {
 
       {access.manageLeads && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Kpi hue="blue" icon={ClipboardCheck} label="Leads à qualifier" value={String(kpis.toQualify)} hint="Entrants en attente de validation" href="/admin/crm/entrants" tone={kpis.toQualify ? 'alert' : undefined} />
-          <Kpi hue="amber" icon={UserCheck} label="Leads à assigner" value={String(kpis.toAssign)} hint="Validés, en attente d’un commercial" href="/admin/crm/entrants" />
+          <Kpi hue="orange" icon={Inbox} label="Leads à aiguiller" value={String(kpis.toDispatch)} hint="Circuit 1 ou 2 à choisir" href="/admin/crm/entrants" tone={kpis.toDispatch ? 'alert' : undefined} />
+          <Kpi hue="blue" icon={UserCheck} label="Leads à attribuer" value={String(kpis.toAssign)} hint="Circuit 1, en attente d’un commercial" href="/admin/crm/entrants?tab=attribuer" />
         </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi hue="blue" icon={Target} label="Leads ouverts" value={String(kpis.openLeads)} hint={`Pipeline : ${money(kpis.pipelineAmount)}`} href="/admin/crm/pipeline" />
         <Kpi hue="green" icon={Banknote} label="Encaissé ce mois" value={money(kpis.revenueThisMonth)} hint={`${kpis.wonThisMonth} facture${kpis.wonThisMonth > 1 ? 's' : ''} payée${kpis.wonThisMonth > 1 ? 's' : ''}`} href="/admin/factures" />
-        <Kpi hue="violet" icon={Percent} label="Taux de conversion" value={kpis.conversionRate == null ? '—' : `${kpis.conversionRate} %`} hint="Gagnés / clôturés, 90 derniers jours" />
+        <Kpi hue="violet" icon={Percent} label="Taux de conversion" value={kpis.conversionRate == null ? '—' : `${kpis.conversionRate} %`} hint="Payés / clôturés, 90 derniers jours" />
         <Kpi hue="amber" icon={FileText} label="Devis en attente" value={String(kpis.pendingQuotes)} hint={money(kpis.pendingQuotesAmount)} href="/admin/devis" />
-        <Kpi hue="orange" icon={Receipt} label="À encaisser" value={money(kpis.receivableAmount)} hint={kpis.overdueInvoices ? `${kpis.overdueInvoices} facture${kpis.overdueInvoices > 1 ? 's' : ''} échue${kpis.overdueInvoices > 1 ? 's' : ''}` : 'Aucun retard'} tone={kpis.overdueInvoices ? 'alert' : undefined} href="/admin/factures" />
-        <Kpi hue="green" icon={Rocket} label="Services à lancer" value={String(kpis.servicesToLaunch)} hint="Factures payées, à démarrer" href="/admin/lancements" />
+        <Kpi hue="orange" icon={Receipt} label="Proformas à encaisser" value={money(kpis.receivableAmount)} hint={kpis.overdueInvoices ? `${kpis.overdueInvoices} proforma${kpis.overdueInvoices > 1 ? 's' : ''} échue${kpis.overdueInvoices > 1 ? 's' : ''}` : 'Aucun retard'} tone={kpis.overdueInvoices ? 'alert' : undefined} href="/admin/factures?status=SENT" />
+        <Kpi hue="green" icon={PackageCheck} label="Services à lancer" value={String(kpis.servicesToLaunch)} hint="Payés, livraison à démarrer" href="/admin/lancements" />
         <Kpi hue="blue" icon={CalendarClock} label="Rendez-vous" value={`${kpis.appointmentsToday} aujourd’hui`} hint={`${kpis.appointmentsWeek} dans les 7 prochains jours`} href="/admin/crm/agenda" />
         <Kpi hue="red" icon={AlertTriangle} label="Actions en retard" value={String(kpis.overdueActions)} hint="Leads dont l’action prévue est dépassée" tone={kpis.overdueActions ? 'alert' : undefined} href="/admin/crm/pipeline" />
       </div>
@@ -98,11 +101,11 @@ export default function CrmDashboardPage() {
                 <BarChart data={funnel} layout="vertical" margin={{ left: 8, right: 16 }}>
                   <CartesianGrid horizontal={false} stroke="#47295C14" />
                   <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-                  <YAxis type="category" dataKey="name" width={96} tick={{ fontSize: 12 }} />
+                  <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(value, _n, item) => [`${value} lead(s) · ${money((item.payload as { amount: number }).amount)}`, '']} />
                   <Bar dataKey="count" radius={[0, 6, 6, 0]}>
                     {funnel.map((s) => (
-                      <Cell key={s.stage} fill={STAGE_COLORS[s.stage]} />
+                      <Cell key={s.stage} fill={HUE[STAGE_BY_VALUE[s.stage].tone].hex} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -132,18 +135,22 @@ export default function CrmDashboardPage() {
 
         <Card accent="violet">
           <CardContent className="space-y-3">
-            <h2 className="font-heading text-base font-bold text-ink-900">Origine des leads</h2>
+            <h2 className="font-heading text-base font-bold text-ink-900">Leads par pipeline d’entrée</h2>
             {sources.length === 0 ? (
               <p className="py-10 text-center text-sm text-ink-500">Aucun lead pour l’instant.</p>
             ) : (
-              <div className="h-64" role="img" aria-label="Nombre de leads par source">
+              <div className="h-64" role="img" aria-label="Nombre de leads par pipeline d’entrée">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={sources} layout="vertical" margin={{ left: 8, right: 16 }}>
                     <CartesianGrid horizontal={false} stroke="#47295C14" />
                     <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
                     <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Bar dataKey="count" name="Leads" fill={HUE.violet.hex} radius={[0, 6, 6, 0]} />
+                    <Bar dataKey="count" name="Leads" radius={[0, 6, 6, 0]}>
+                      {sources.map((s, i) => (
+                        <Cell key={s.name} fill={PIPELINE_COLORS[i % PIPELINE_COLORS.length]} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -154,7 +161,10 @@ export default function CrmDashboardPage() {
         {data.scope === 'team' && (
         <Card accent="green">
           <CardContent className="space-y-3">
-            <h2 className="font-heading text-base font-bold text-ink-900">Leads ouverts par commercial</h2>
+            <h2 className="font-heading text-base font-bold text-ink-900">Leads ouverts par intervenant</h2>
+            {data.circuits.length > 0 && (
+              <p className="text-xs text-ink-500">{data.circuits.map((c) => `${c.label} : ${c.count}`).join(' · ')}</p>
+            )}
             {data.assignees.length === 0 ? (
               <p className="py-10 text-center text-sm text-ink-500">Aucun lead ouvert.</p>
             ) : (
@@ -192,7 +202,7 @@ export default function CrmDashboardPage() {
           {runAutomations.isError && <p className="text-sm text-brand-orange">{errorMessage(runAutomations.error)}</p>}
           {result && (
             <p className="rounded-xl bg-ink-900/4 px-4 py-3 text-sm text-ink-700" role="status">
-              Terminé : {result.quoteReminders} relance(s) de devis, {result.invoiceReminders} rappel(s) de facture, {result.quotesExpired} devis expiré(s), {result.followUpAlerts} action(s) à mener, {result.dormantAlerts} lead(s) dormant(s), {result.appointmentReminders} rappel(s) de rendez-vous.
+              Terminé : {result.quoteReminders} relance(s) de devis, {result.invoiceReminders} rappel(s) de proforma, {result.quotesExpired} devis expiré(s), {result.followUpAlerts} action(s) à mener, {result.dormantAlerts} lead(s) dormant(s), {result.appointmentReminders} rappel(s) de rendez-vous, {result.expiryAlerts} alerte(s) d’échéance, {result.servicesExpired} service(s) expiré(s).
             </p>
           )}
         </CardContent>

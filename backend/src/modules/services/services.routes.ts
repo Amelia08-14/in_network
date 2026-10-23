@@ -8,7 +8,7 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { ok, ApiError } from '../../utils/apiResponse';
 import { createInquirySchema } from './services.schema';
 import { createServiceRequest } from './serviceRequests.service';
-import { createLeadFromServiceRequest } from '../crm/leads.service';
+import { createLeadFromServiceRequest } from '../crm/leadIntake.service';
 import { param } from '../../utils/httpParams';
 
 export const servicesRouter = Router();
@@ -56,7 +56,9 @@ servicesRouter.post(
   '/requests',
   inquiryRateLimit,
   requireAuth,
-  requireCompleteProfile,
+  // Processus v1.3 (23/10/2026) : la demande de devis est ouverte dès
+  // l'inscription ; le profil complet n'est exigé qu'après le paiement, pour
+  // les réservations et la mise en relation.
   validate({ body: createInquirySchema }),
   asyncHandler(async (req, res) => {
     if (!req.user) throw ApiError.unauthorized();

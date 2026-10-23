@@ -2,21 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import {
-  LayoutDashboard,
-  ShieldCheck,
+  Sun,
   BarChart3,
   Users,
   CalendarCheck,
-  CreditCard,
   CalendarDays,
   Landmark,
   Briefcase,
-  ClipboardList,
   BadgeCheck,
   Handshake,
   MessageSquareQuote,
   Images,
-  Mail,
   UserCog,
   Gauge,
   KanbanSquare,
@@ -24,9 +20,11 @@ import {
   NotebookPen,
   FileText,
   Receipt,
-  Rocket,
+  PackageCheck,
   Inbox,
   CircleUserRound,
+  Coins,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -54,39 +52,42 @@ type NavEntry = AdminNavItem & {
   alwaysVisible?: boolean;
 };
 
+// Menu dans l'ordre du processus commercial v1.3 : on entre par sa journée,
+// puis les prospects (aiguillage → pipeline), les ventes (devis → proforma →
+// paiement), les clients (membres, services livrés, échéances), les
+// commissions, et enfin le pilotage, le contenu du site et le système.
 const NAV_ITEMS: NavEntry[] = [
+  { href: '/admin', label: 'Ma journée', icon: Sun, alwaysVisible: true, section: 'Accueil' },
+  // Prospects : du lead entrant à la visite confirmée
+  { href: '/admin/crm/entrants', alsoMatch: ['/admin/services-demandes', '/admin/contact'], label: 'À aiguiller', icon: Inbox, resource: 'crm', manageLeadsOnly: true, section: 'Prospects' },
+  { href: '/admin/crm/pipeline', alsoMatch: ['/admin/crm/leads'], label: 'Pipeline', icon: KanbanSquare, resource: 'crm', section: 'Prospects' },
+  { href: '/admin/crm/agenda', label: 'Agenda', icon: CalendarClock, resource: 'crm', section: 'Prospects' },
+  { href: '/admin/crm/activite', label: 'Journal d’activité', icon: NotebookPen, resource: 'crm', section: 'Prospects' },
+  // Ventes : devis, proforma, paiement
+  { href: '/admin/devis', label: 'Devis', icon: FileText, resource: 'quotes', section: 'Ventes' },
+  { href: '/admin/factures', alsoMatch: ['/admin/paiements'], label: 'Proformas et factures', icon: Receipt, resource: 'invoices', section: 'Ventes' },
+  // Clients : activation, livraison, échéances, fiche membre
+  { href: '/admin/lancements', label: 'Services clients', icon: PackageCheck, resource: 'fulfilment', section: 'Clients' },
+  { href: '/admin/membres', label: 'Membres', icon: Users, resource: 'members', section: 'Clients' },
+  { href: '/admin/entreprises', label: 'Entreprises', icon: Landmark, resource: 'companies', section: 'Clients' },
+  { href: '/admin/reservations', label: 'Réservations', icon: CalendarCheck, resource: 'bookings', section: 'Clients' },
+  // Commissions
+  { href: '/admin/commissions', label: 'Commissions', icon: Coins, resource: 'commissions', section: 'Commissions' },
   // Pilotage
-  { href: '/admin', label: "Vue d'ensemble", icon: LayoutDashboard, resource: 'stats', section: 'Pilotage' },
-  { href: '/admin/validations', label: 'Validations', icon: ShieldCheck, resource: 'validations', section: 'Pilotage' },
-  { href: '/admin/statistiques', label: 'Statistiques', icon: BarChart3, resource: 'stats', section: 'Pilotage' },
-  // Commercial : du lead à la facture et au lancement du service
-  { href: '/admin/crm', label: 'Tableau commercial', icon: Gauge, resource: 'crm', section: 'Commercial' },
-  { href: '/admin/crm/entrants', label: 'Leads à traiter', icon: Inbox, resource: 'crm', manageLeadsOnly: true, section: 'Commercial' },
-  { href: '/admin/crm/pipeline', alsoMatch: ['/admin/crm/leads'], label: 'Pipeline', icon: KanbanSquare, resource: 'crm', section: 'Commercial' },
-  { href: '/admin/crm/agenda', label: 'Agenda', icon: CalendarClock, resource: 'crm', section: 'Commercial' },
-  { href: '/admin/crm/activite', label: 'Activité', icon: NotebookPen, resource: 'crm', section: 'Commercial' },
-  { href: '/admin/devis', label: 'Devis', icon: FileText, resource: 'quotes', section: 'Commercial' },
-  { href: '/admin/factures', label: 'Factures', icon: Receipt, resource: 'invoices', section: 'Commercial' },
-  { href: '/admin/lancements', label: 'Lancement des services', icon: Rocket, resource: 'fulfilment', section: 'Commercial' },
-  { href: '/admin/paiements', label: 'Paiements', icon: CreditCard, resource: 'payments', section: 'Commercial' },
-  // Sources des leads : chaque demande ou message crée un lead dans le CRM (lien sur chaque ligne).
-  { href: '/admin/services-demandes', label: 'Demandes de devis du site', icon: ClipboardList, resource: 'service_requests', section: 'Sources des leads' },
-  { href: '/admin/contact', label: 'Messages de contact', icon: Mail, resource: 'contact', section: 'Sources des leads' },
-  // Communauté
-  { href: '/admin/membres', label: 'Membres', icon: Users, resource: 'members', section: 'Communauté' },
-  { href: '/admin/entreprises', label: 'Entreprises', icon: Landmark, resource: 'companies', section: 'Communauté' },
-  { href: '/admin/reservations', label: 'Réservations', icon: CalendarCheck, resource: 'bookings', section: 'Communauté' },
-  { href: '/admin/evenements', label: 'Événements', icon: CalendarDays, resource: 'events', section: 'Communauté' },
-  { href: '/admin/experts', label: 'Experts', icon: BadgeCheck, resource: 'experts', section: 'Communauté' },
-  { href: '/admin/partenaires', label: 'Partenaires', icon: Handshake, resource: 'partners', section: 'Communauté' },
-  { href: '/admin/temoignages', label: 'Témoignages', icon: MessageSquareQuote, resource: 'testimonials', section: 'Communauté' },
-  // Catalogue & site
+  { href: '/admin/crm', label: 'Tableau commercial', icon: Gauge, resource: 'crm', section: 'Pilotage' },
+  { href: '/admin/statistiques', label: 'Statistiques du lieu', icon: BarChart3, resource: 'stats', section: 'Pilotage' },
+  // Communauté et site
+  { href: '/admin/evenements', label: 'Événements', icon: CalendarDays, resource: 'events', section: 'Communauté et site' },
+  { href: '/admin/experts', label: 'Experts', icon: BadgeCheck, resource: 'experts', section: 'Communauté et site' },
+  { href: '/admin/partenaires', label: 'Partenaires', icon: Handshake, resource: 'partners', section: 'Communauté et site' },
+  { href: '/admin/temoignages', label: 'Témoignages', icon: MessageSquareQuote, resource: 'testimonials', section: 'Communauté et site' },
   // Services et tarifs : un seul onglet (deux vues, cf. ServicesTarifsHeader).
-  { href: '/admin/services', alsoMatch: ['/admin/tarifs'], label: 'Services & tarifs', icon: Briefcase, resources: ['services', 'plans', 'spaces'], fallbackHref: '/admin/tarifs', section: 'Catalogue & site' },
-  { href: '/admin/galerie', label: 'Galerie du lieu', icon: Images, resource: 'galerie', section: 'Catalogue & site' },
+  { href: '/admin/services', alsoMatch: ['/admin/tarifs'], label: 'Services et tarifs', icon: Briefcase, resources: ['services', 'plans', 'spaces'], fallbackHref: '/admin/tarifs', section: 'Communauté et site' },
+  { href: '/admin/galerie', label: 'Galerie du lieu', icon: Images, resource: 'galerie', section: 'Communauté et site' },
   // Système
   { href: '/admin/mon-compte', label: 'Mon compte', icon: CircleUserRound, alwaysVisible: true, section: 'Système' },
   { href: '/admin/compte', label: 'Utilisateurs système', icon: UserCog, superOnly: true, section: 'Système' },
+  { href: '/admin/parametres', label: 'Paramètres du processus', icon: SlidersHorizontal, superOnly: true, section: 'Système' },
 ];
 
 function visibleNavItems(

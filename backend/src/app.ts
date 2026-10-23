@@ -29,6 +29,7 @@ import { partnersRouter } from './modules/partners/partners.routes';
 import { uploadsRouter, UPLOADS_DIR } from './modules/uploads/uploads.routes';
 import { contactRouter } from './modules/contact/contact.routes';
 import { memberRouter } from './modules/situation/situation.routes';
+import { memberSpaceRouter } from './modules/member/memberSpace.routes';
 
 export const app = express();
 
@@ -82,6 +83,7 @@ app.use(
 app.use('/api/auth', authRouter);
 // Espace membre : « Situation du compte » (devis, justificatifs de paiement).
 app.use('/api/member', memberRouter);
+app.use('/api/member', memberSpaceRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/companies', companiesRouter);
 app.use('/api/experts', expertsRouter);

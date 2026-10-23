@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Receipt, Search, Target } from 'lucide-react';
 import { api } from '@/lib/admin-api';
-import { money, STAGE_BY_VALUE } from '@/lib/crm';
+import { money, stageLabel } from '@/lib/crm';
 import { cn } from '@/lib/utils';
 import type { SearchResults } from '@/types/crm';
 
@@ -44,9 +44,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const hits = useMemo<Hit[]>(() => {
     if (!data) return [];
     return [
-      ...data.leads.map((l) => ({ key: `l-${l.id}`, href: `/admin/crm/leads/${l.id}`, title: `${l.reference} — ${l.title}`, subtitle: `${l.contactName} · ${STAGE_BY_VALUE[l.stage].label}`, group: 'Leads', icon: Target })),
+      ...data.leads.map((l) => ({ key: `l-${l.id}`, href: `/admin/crm/leads/${l.id}`, title: `${l.reference} — ${l.title}`, subtitle: `${l.contactName} · ${stageLabel(l.stage, l.circuit)}`, group: 'Leads', icon: Target })),
       ...data.quotes.map((q) => ({ key: `q-${q.id}`, href: `/admin/devis/${q.id}`, title: q.number, subtitle: `${q.lead.contactName} · ${money(q.total)}`, group: 'Devis', icon: FileText })),
-      ...data.invoices.map((i) => ({ key: `i-${i.id}`, href: `/admin/factures/${i.id}`, title: i.number ?? 'Facture (brouillon)', subtitle: `${i.customerName} · ${money(i.total)}`, group: 'Factures', icon: Receipt })),
+      ...data.invoices.map((i) => ({ key: `i-${i.id}`, href: `/admin/factures/${i.id}`, title: i.number ?? i.proformaNumber ?? 'Proforma (brouillon)', subtitle: `${i.customerName} · ${money(i.total)}`, group: 'Proformas et factures', icon: Receipt })),
     ];
   }, [data]);
 

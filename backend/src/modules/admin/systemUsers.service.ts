@@ -1,4 +1,4 @@
-import { Prisma, type Role } from '../../generated/prisma/client';
+import { Prisma, type Role, type SalesProfile } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import { hashPassword } from '../../lib/password';
 import { generatePassword, sendCredentialsEmail } from '../../lib/account-provisioning';
@@ -28,6 +28,8 @@ const SAFE_SELECT = {
   role: true,
   permissions: true,
   displayName: true,
+  salesProfile: true,
+  isExternal: true,
   isActive: true,
   phone: true,
   createdAt: true,
@@ -63,6 +65,8 @@ interface CreateInput {
   phone?: string;
   role: AssignableRole;
   permissions?: DashboardPermissions;
+  salesProfile?: SalesProfile | null;
+  isExternal?: boolean;
   actorRole: Role;
 }
 
@@ -84,6 +88,9 @@ export async function createSystemUser(input: CreateInput) {
       role: input.role,
       displayName: input.displayName,
       phone: input.phone,
+      // Sédentaire / terrain : n'a de sens que pour un commercial.
+      salesProfile: input.role === 'SALES_AGENT' ? (input.salesProfile ?? null) : null,
+      isExternal: input.isExternal ?? false,
       emailVerified: new Date(),
       // Droits fournis par l'administrateur, à défaut ceux proposés pour le rôle.
       permissions: isPermissionBoundRole(input.role) ? (input.permissions ?? ROLE_PRESETS[input.role]) : undefined,
@@ -126,6 +133,8 @@ interface UpdateInput {
   permissions?: DashboardPermissions;
   isActive?: boolean;
   displayName?: string;
+  salesProfile?: SalesProfile | null;
+  isExternal?: boolean;
 }
 
 export async function updateSystemUser(input: UpdateInput) {
@@ -152,6 +161,8 @@ export async function updateSystemUser(input: UpdateInput) {
       ...(input.role ? { role: input.role } : {}),
       ...(input.displayName === undefined ? {} : { displayName: input.displayName }),
       ...(input.isActive === undefined ? {} : { isActive: input.isActive }),
+      ...(input.isExternal === undefined ? {} : { isExternal: input.isExternal }),
+      ...(nextRole !== 'SALES_AGENT' ? { salesProfile: null } : input.salesProfile === undefined ? {} : { salesProfile: input.salesProfile }),
       ...(input.permissions !== undefined || input.role
         ? { permissions: isPermissionBoundRole(nextRole) ? parsePermissions(input.permissions ?? ROLE_PRESETS[nextRole as StaffRole]) : Prisma.JsonNull }
         : {}),

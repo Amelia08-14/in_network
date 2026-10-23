@@ -57,6 +57,11 @@ export const createServiceCatalogSchema = z.object({
 });
 export const updateServiceCatalogSchema = createServiceCatalogSchema.partial().extend({
   isActive: z.boolean().optional(),
+  // Processus v1.3 : pôle de livraison, filiale IN Group, durée de validité
+  // (mois ; null = sans échéance) pour calculer l'échéance des services vendus.
+  pole: z.enum(['SPACES', 'COMPANY_CREATION', 'IN_GROUP']).optional(),
+  subsidiary: z.string().trim().max(120).nullable().optional(),
+  durationMonths: z.number().int().min(1).max(120).nullable().optional(),
 });
 
 // Édition d'une demande de service par l'admin AVANT validation : ajustement
@@ -79,15 +84,19 @@ export const createSystemUserSchema = z.object({
   email: z.string().trim().toLowerCase().email('Email invalide'),
   displayName: z.string().trim().min(1, 'Le nom est obligatoire').max(120),
   phone: z.string().trim().max(30).optional(),
-  role: z.enum(['ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT']),
+  role: z.enum(['ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT', 'ADMIN_SUPPORT']),
   permissions: dashboardPermissionsSchema.optional(),
+  salesProfile: z.enum(['SEDENTARY', 'FIELD']).nullable().optional(),
+  isExternal: z.boolean().optional(),
 });
 
 export const updateSystemUserSchema = z.object({
   displayName: z.string().trim().min(1).max(120).optional(),
-  role: z.enum(['ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT']).optional(),
+  role: z.enum(['ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT', 'ADMIN_SUPPORT']).optional(),
   permissions: dashboardPermissionsSchema.optional(),
   isActive: z.boolean().optional(),
+  salesProfile: z.enum(['SEDENTARY', 'FIELD']).nullable().optional(),
+  isExternal: z.boolean().optional(),
 });
 
 export const updateContactMessageSchema = z.object({

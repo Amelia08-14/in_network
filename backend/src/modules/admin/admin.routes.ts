@@ -61,7 +61,9 @@ import {
 import { sendEmail } from '../../lib/email';
 import { confirmServiceRequest } from '../services/serviceRequests.service';
 import { adminPermission } from '../../middleware/adminPermission';
-import { crmRouter, invoicesRouter, quotesRouter, serviceOrdersRouter } from '../crm/crm.routes';
+import { commissionsRouter, crmRouter, homeRouter, invoicesRouter, quotesRouter, serviceOrdersRouter } from '../crm/crm.routes';
+import { memberAdminRouter } from '../member/memberAdmin.routes';
+import { settingsRouter } from '../settings/settings.routes';
 import { paymentProofsAdminRouter } from '../situation/situation.routes';
 import { approveAccount } from '../situation/situation.service';
 import { createSystemUserSchema, updateSystemUserSchema } from './admin.schema';
@@ -77,7 +79,7 @@ export const adminRouter = Router();
 // (demandes client 07/09/2026 et 19/10/2026).
 adminRouter.use(
   requireAuth,
-  requireRole('ADMIN', 'SUPER_ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT'),
+  requireRole('ADMIN', 'SUPER_ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT', 'ADMIN_SUPPORT'),
   adminPermission,
 );
 
@@ -87,6 +89,11 @@ adminRouter.use('/crm', crmRouter);
 adminRouter.use('/quotes', quotesRouter);
 adminRouter.use('/invoices', invoicesRouter);
 adminRouter.use('/service-orders', serviceOrdersRouter);
+// Processus v1.3 : accueil par profil, commissions, fiche membre, paramètres.
+adminRouter.use('/home', homeRouter);
+adminRouter.use('/commissions', commissionsRouter);
+adminRouter.use('/member-services', memberAdminRouter);
+adminRouter.use('/settings', settingsRouter);
 // Justificatifs de paiement envoyés par les membres (vérification par l'équipe).
 adminRouter.use('/payment-proofs', paymentProofsAdminRouter);
 
@@ -316,7 +323,7 @@ adminRouter.get(
       prisma.user.count({ where }),
       prisma.user.findMany({
         where,
-        include: { profile: true },
+        include: { profile: true, referent: { select: { id: true, displayName: true, email: true } }, _count: { select: { memberServiceOrders: true } } },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,

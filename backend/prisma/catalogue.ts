@@ -21,6 +21,13 @@ export interface CatalogueSyncOptions {
   deactivateOthers?: boolean;
 }
 
+// Pôle de livraison par défaut d'un service (processus v1.3).
+function poleFor(category: string): { pole: 'SPACES' | 'COMPANY_CREATION' | 'IN_GROUP'; subsidiary?: string } {
+  if (['CREATION_ENTREPRISE', 'ADMINISTRATION', 'COMPTABILITE', 'JURIDIQUE', 'SECRETARIAT', 'INCUBATION'].includes(category)) return { pole: 'COMPANY_CREATION' };
+  if (category === 'MARKETING') return { pole: 'IN_GROUP', subsidiary: 'IN COM' };
+  return { pole: 'SPACES' };
+}
+
 export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, deactivateOthers = false }: CatalogueSyncOptions) {
   // --- Tarifs réels (grille "N°02 - service et tarifs IN NETWORK") ---
   // Upsert par (siteId, name) plutôt que deleteMany+create : un deleteMany
@@ -536,7 +543,9 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
     await prisma.serviceCatalogItem.upsert({
       where: { slug: item.slug },
       update: data,
-      create: { slug: item.slug, ...data },
+      // Pôle de livraison posé à la création seulement (modifiable ensuite dans
+      // le catalogue) — même règle que la migration du processus v1.3.
+      create: { slug: item.slug, ...data, ...poleFor(item.category) },
     });
   }
 

@@ -17,8 +17,9 @@ import { cn } from '@/lib/utils';
 
 // Inscription unique « Devenir membre » : indépendant·e ou entreprise dans le
 // même formulaire (un seul choix en tête, deux champs de plus pour une
-// entreprise). Le membre arrive ensuite sur « Situation du compte » où il suit
-// sa validation, répond à son devis et envoie son reçu de paiement.
+// entreprise). Le membre arrive ensuite sur « Demander un service » : il compose
+// sa demande de devis, puis suit devis, proforma et paiement dans « Devis et
+// factures » ; son espace s'active à son premier paiement (processus v1.3).
 
 type AccountType = 'individual' | 'company';
 
@@ -94,7 +95,7 @@ export function RegisterForm({ initialType }: { initialType: AccountType }) {
           phone: values.phone,
         });
       }
-      router.push('/dashboard/situation');
+      router.push('/dashboard/catalogue');
     } catch (e) {
       setServerError(
         e instanceof ApiRequestError

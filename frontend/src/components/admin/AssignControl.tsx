@@ -5,13 +5,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
-import { AssigneeOptions, errorMessage, useStaff } from '@/components/admin/crm-ui';
+import { errorMessage, SalesAgentOptions, useStaff } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
 import { cn } from '@/lib/utils';
 
 /**
- * Assignation d'un lead validé à un commercial (responsable commercial). `workload`
- * affiche la charge de chaque commercial (leads en cours) pour répartir équitablement.
+ * Attribution d'un lead du circuit 1 à un commercial (responsable commercial) :
+ * sédentaire pour le digital, l'entrant, la diaspora et les offres simples,
+ * terrain pour les entreprises et les rendez-vous physiques. `workload`
+ * affiche la charge de chaque commercial pour répartir équitablement.
  */
 export function AssignControl({
   leadId,
@@ -39,7 +41,7 @@ export function AssignControl({
       setError(null);
       queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
       queryClient.invalidateQueries({ queryKey: ['crm-lead', leadId] });
-      queryClient.invalidateQueries({ queryKey: ['crm-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-home'] });
       onDone?.();
     },
     onError: (e) => setError(errorMessage(e)),
@@ -52,11 +54,11 @@ export function AssignControl({
     <div className={cn('space-y-2', className)}>
       <div className="flex flex-wrap items-center gap-2">
         <Select aria-label="Commercial" className="h-9 min-w-52 flex-1" value={choice} onChange={(e) => setChoice(e.target.value)}>
-          <option value="">{allowClear ? 'Retirer le commercial (retour à assigner)' : 'Choisir un commercial…'}</option>
-          <AssigneeOptions staff={decorated} />
+          <option value="">{allowClear ? 'Retirer le commercial (retour à attribuer)' : 'Choisir un commercial…'}</option>
+          <SalesAgentOptions staff={decorated} />
         </Select>
         <Button size="sm" disabled={assign.isPending || (!choice && !allowClear) || choice === (current ?? '')} onClick={() => assign.mutate()}>
-          <UserCheck className="h-4 w-4" /> {assign.isPending ? 'Assignation…' : current ? 'Réassigner' : 'Assigner'}
+          <UserCheck className="h-4 w-4" /> {assign.isPending ? 'Attribution…' : current ? 'Réattribuer' : 'Attribuer'}
         </Button>
       </div>
       {error && (

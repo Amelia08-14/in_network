@@ -1,3 +1,4 @@
+import type { Role } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import { hasResourceAccess, parsePermissions, STAFF_ROLES, type DashboardResource } from '../admin/permissions';
 
@@ -5,7 +6,7 @@ import { hasResourceAccess, parsePermissions, STAFF_ROLES, type DashboardResourc
 // SALES_MANAGER (responsable commercial) et SALES_AGENT (commercial) seulement
 // ceux de User.permissions.
 
-export const STAFF_SELECT = { id: true, displayName: true, email: true, role: true } as const;
+export const STAFF_SELECT = { id: true, displayName: true, email: true, role: true, salesProfile: true, isExternal: true } as const;
 
 export async function listStaff() {
   return prisma.user.findMany({
@@ -31,4 +32,9 @@ export async function notifyUsers(userIds: string[], type: string, title: string
   const unique = [...new Set(userIds.filter(Boolean))];
   if (unique.length === 0) return;
   await prisma.notification.createMany({ data: unique.map((userId) => ({ userId, type, title, body, href: href ?? null })) });
+}
+
+/** Comptes staff actifs d'un rôle (ex. les Office Managers qui reçoivent les dossiers transmis). */
+export async function listStaffByRole(role: Role) {
+  return prisma.user.findMany({ where: { role, isActive: true }, select: STAFF_SELECT, orderBy: { createdAt: 'asc' } });
 }

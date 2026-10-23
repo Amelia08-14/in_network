@@ -8,23 +8,42 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { AssigneeOptions, errorMessage, Field, useCrmAccess, useStaff } from '@/components/admin/crm-ui';
+import { errorMessage, Field, OfficeManagerOptions, SalesAgentOptions, useCrmAccess, useStaff } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
-import { SOURCE_LABEL } from '@/lib/crm';
-import type { LeadSource } from '@/types/crm';
+import { CHANNELS, OFFER_OPTIONS, PIPELINE } from '@/lib/crm';
+import { cn } from '@/lib/utils';
+import type { LeadChannel, LeadCircuit, LeadPipeline } from '@/types/crm';
 
-const SOURCES = Object.keys(SOURCE_LABEL).filter((s) => s !== 'WEBSITE_QUOTE' && s !== 'CONTACT_FORM') as LeadSource[];
+type CircuitChoice = 'none' | LeadCircuit;
 
-const EMPTY = { title: '', contactName: '', email: '', phone: '', companyName: '', source: 'PHONE' as LeadSource, expectedAmount: '', assignee: '', nextActionAt: '', notes: '' };
+const EMPTY = {
+  title: '',
+  contactName: '',
+  email: '',
+  phone: '',
+  companyName: '',
+  channel: '' as LeadChannel | '',
+  channelDetail: '',
+  offerInterest: '',
+  expectedAmount: '',
+  circuit: 'none' as CircuitChoice,
+  assignee: '',
+  nextActionAt: '',
+  notes: '',
+};
 
-// Création manuelle d'un lead (appel entrant, visite, recommandation…). Les
-// leads du site et du formulaire de contact arrivent, eux, automatiquement.
+// Fiche lead unique (processus v1.3) : chaque prospect est enregistré dès
+// l'entrée avec sa source (pipeline et canal), son profil, son circuit et son
+// intervenant. L'Office Manager enregistre ses leads en circuit 2, un
+// commercial sa prospection en circuit 1 ; le responsable commercial et la
+// Direction peuvent aiguiller dès la saisie. Un contact déjà suivi est refusé.
 export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: staff } = useStaff();
   const access = useCrmAccess();
-  const [form, setForm] = useState(EMPTY);
+  const isAgent = !access.manageLeads && !access.allLeads;
+  const [form, setForm] = useState({ ...EMPTY, circuit: (access.officeManager ? 'OFFICE_MANAGER' : access.salesManager ? 'SALES_TEAM' : 'none') as CircuitChoice });
   const [error, setError] = useState<string | null>(null);
   const set = (patch: Partial<typeof EMPTY>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -36,16 +55,18 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         email: form.email,
         phone: form.phone,
         companyName: form.companyName,
-        source: form.source,
+        channel: form.channel || null,
+        channelDetail: form.channelDetail,
+        offerInterest: form.offerInterest,
         expectedAmount: form.expectedAmount === '' ? null : Number(form.expectedAmount),
         notes: form.notes,
         nextActionAt: form.nextActionAt ? new Date(form.nextActionAt).toISOString() : null,
-        // Seul le responsable commercial choisit le commercial ; sinon le lead arrive « À qualifier ».
-        ...(access.manageLeads && form.assignee ? { assignedToId: form.assignee } : {}),
+        ...(isAgent ? {} : { circuit: form.circuit === 'none' ? null : form.circuit }),
+        ...(!isAgent && form.assignee ? { assignedToId: form.assignee } : {}),
       }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
-      queryClient.invalidateQueries({ queryKey: ['crm-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-home'] });
       setForm(EMPTY);
       onClose();
       router.push(`/admin/crm/leads/${res.data.id}`);
@@ -53,11 +74,22 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
     onError: (e) => setError(errorMessage(e)),
   });
 
+  const circuitChoices: { value: CircuitChoice; label: string; hint: string }[] = access.officeManager
+    ? [
+        { value: 'OFFICE_MANAGER', label: 'Je le prends en charge', hint: 'Circuit 2 : événement, recommandation, prospect déjà prêt' },
+        { value: 'SALES_TEAM', label: 'Le confier à la Sales Team', hint: 'Circuit 1 : demande un travail de qualification' },
+      ]
+    : [
+        { value: 'SALES_TEAM', label: 'Circuit 1 · Sales Team', hint: 'Prospection, lead à travailler' },
+        { value: 'OFFICE_MANAGER', label: 'Circuit 2 · Office Manager', hint: 'Prospect déjà prêt' },
+        ...(access.direction ? [{ value: 'none' as CircuitChoice, label: 'À aiguiller plus tard', hint: 'Le lead attend dans « À aiguiller »' }] : []),
+      ];
+
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Nouveau lead"
+      title="Enregistrer un lead"
       size="lg"
       footer={
         <>
@@ -65,7 +97,7 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
             Annuler
           </Button>
           <Button disabled={create.isPending || !form.title.trim() || !form.contactName.trim()} onClick={() => create.mutate()}>
-            {create.isPending ? 'Création…' : 'Créer le lead'}
+            {create.isPending ? 'Enregistrement…' : 'Enregistrer'}
           </Button>
         </>
       }
@@ -92,11 +124,29 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         <Field label="Téléphone" htmlFor="lead-phone">
           <Input id="lead-phone" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
         </Field>
-        <Field label="Source" htmlFor="lead-source">
-          <Select id="lead-source" value={form.source} onChange={(e) => set({ source: e.target.value as LeadSource })}>
-            {SOURCES.map((s) => (
-              <option key={s} value={s}>
-                {SOURCE_LABEL[s]}
+        <Field label="Canal d’entrée" htmlFor="lead-channel">
+          <Select id="lead-channel" value={form.channel} onChange={(e) => set({ channel: e.target.value as LeadChannel | '' })}>
+            <option value="">À préciser</option>
+            {(Object.keys(PIPELINE) as LeadPipeline[]).map((pipeline) => (
+              <optgroup key={pipeline} label={PIPELINE[pipeline].label}>
+                {CHANNELS.filter((c) => c.pipeline === pipeline).map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Précision sur le canal" htmlFor="lead-channel-detail">
+          <Input id="lead-channel-detail" value={form.channelDetail} onChange={(e) => set({ channelDetail: e.target.value })} placeholder="Nom de l’événement, du cabinet, de la campagne…" />
+        </Field>
+        <Field label="Offre pressentie" htmlFor="lead-offer">
+          <Select id="lead-offer" value={form.offerInterest} onChange={(e) => set({ offerInterest: e.target.value })}>
+            <option value="">À déterminer</option>
+            {OFFER_OPTIONS.map((offer) => (
+              <option key={offer} value={offer}>
+                {offer}
               </option>
             ))}
           </Select>
@@ -104,19 +154,43 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         <Field label="Montant estimé (DA)" htmlFor="lead-amount">
           <Input id="lead-amount" type="number" min="0" value={form.expectedAmount} onChange={(e) => set({ expectedAmount: e.target.value })} />
         </Field>
-        {access.manageLeads ? (
-          <Field label="Assigner à" htmlFor="lead-assignee">
-            <Select id="lead-assignee" value={form.assignee} onChange={(e) => set({ assignee: e.target.value })}>
-              <option value="">Aucun — à qualifier d’abord</option>
-              <AssigneeOptions staff={staff} />
-            </Select>
-            <p className="mt-1 text-xs text-ink-500">Un lead assigné dès sa création est considéré comme validé.</p>
-          </Field>
-        ) : (
-          <p className="self-end rounded-xl bg-ink-900/[0.04] px-3 py-2.5 text-xs text-ink-600">
-            Le lead vous sera attribué et le responsable commercial le validera (étape « À qualifier »).
+
+        {isAgent ? (
+          <p className="rounded-xl bg-ink-900/[0.04] px-3 py-2.5 text-xs text-ink-600 sm:col-span-2">
+            Le lead est enregistré dans votre prospection (circuit 1) : il vous est attribué et le responsable commercial en est informé.
           </p>
+        ) : (
+          <fieldset className="space-y-2 sm:col-span-2">
+            <legend className="mb-1 text-sm font-medium text-ink-800">Circuit</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {circuitChoices.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  aria-pressed={form.circuit === c.value}
+                  onClick={() => set({ circuit: c.value, assignee: '' })}
+                  className={cn('rounded-xl border px-3 py-2.5 text-left text-sm', form.circuit === c.value ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/10 text-ink-700 hover:bg-ink-900/5')}
+                >
+                  <span className="block font-semibold">{c.label}</span>
+                  <span className={cn('block text-xs', form.circuit === c.value ? 'text-white/70' : 'text-ink-500')}>{c.hint}</span>
+                </button>
+              ))}
+            </div>
+            {form.circuit === 'SALES_TEAM' && (access.salesManager || access.direction) && (
+              <Select aria-label="Commercial" value={form.assignee} onChange={(e) => set({ assignee: e.target.value })}>
+                <option value="">Attribuer plus tard</option>
+                <SalesAgentOptions staff={staff} />
+              </Select>
+            )}
+            {form.circuit === 'OFFICE_MANAGER' && !access.officeManager && (
+              <Select aria-label="Office Manager" value={form.assignee} onChange={(e) => set({ assignee: e.target.value })}>
+                <option value="">Office Manager…</option>
+                <OfficeManagerOptions staff={staff} />
+              </Select>
+            )}
+          </fieldset>
         )}
+
         <Field label="Prochaine action" htmlFor="lead-next">
           <Input id="lead-next" type="datetime-local" value={form.nextActionAt} onChange={(e) => set({ nextActionAt: e.target.value })} />
         </Field>

@@ -28,14 +28,21 @@ const FALLBACK: Record<'admin' | 'member', [prefix: string, href: string][]> = {
     ['lead_', '/admin/crm/pipeline'],
     ['quote_', '/admin/devis'],
     ['invoice_', '/admin/factures'],
-    ['payment_proof', '/admin/factures'],
+    ['payment_proof', '/admin/factures?tab=justificatifs'],
+    ['service_', '/admin/lancements'],
+    ['commission_', '/admin/commissions'],
   ],
   member: [
     ['new_message', '/dashboard/messages'],
     ['connection_', '/dashboard/networking'],
     ['booking_', '/dashboard/reservations'],
     ['account_', '/dashboard'],
-    ['payment_proof', '/dashboard/situation'],
+    ['payment_proof', '/dashboard/documents'],
+    ['quote_', '/dashboard/documents'],
+    ['proforma_', '/dashboard/documents'],
+    ['service_', '/dashboard/services'],
+    ['document_', '/dashboard/historique'],
+    ['referent_', '/dashboard'],
   ],
 };
 

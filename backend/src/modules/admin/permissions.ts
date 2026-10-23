@@ -1,8 +1,9 @@
 import { z } from 'zod';
 
 // Permissions backoffice granulaires (demande client 07/09/2026).
-// SUPER_ADMIN et ADMIN ont un accès total ; OFFICE_MANAGER, SALES_MANAGER
-// (responsable commercial) et SALES_AGENT (commercial) sont bornés par
+// SUPER_ADMIN et ADMIN (la Direction) ont un accès total ; OFFICE_MANAGER,
+// SALES_MANAGER (responsable commercial), SALES_AGENT (commercial) et
+// ADMIN_SUPPORT (support administratif, processus v1.3) sont bornés par
 // User.permissions = { "<resource>": "read" | "write" } — l'administrateur
 // décide, compte par compte, ce que chaque rôle voit et modifie (les rôles
 // commerciaux reçoivent seulement des droits par défaut, cf. ROLE_PRESETS).
@@ -31,11 +32,12 @@ export const DASHBOARD_RESOURCES = [
   // Droits « transverses » du CRM — vérifiés par le service, pas par une route.
   // Le responsable commercial et l'office manager les ont d'office (dès qu'ils
   // ont accès au CRM) ; on peut les accorder à un autre compte.
-  { key: 'crm_all', label: 'CRM — voir les leads de toute l’équipe (sinon : ses leads assignés)' },
-  { key: 'crm_manage', label: 'CRM — qualifier, valider et assigner les leads' },
+  { key: 'crm_all', label: 'CRM — voir les leads des deux circuits (sinon : selon le rôle)' },
+  { key: 'crm_manage', label: 'CRM — aiguiller les leads entrants et attribuer ceux du circuit 1' },
   { key: 'quotes', label: 'Devis' },
-  { key: 'invoices', label: 'Factures' },
-  { key: 'fulfilment', label: 'Lancement des services' },
+  { key: 'invoices', label: 'Factures, proformas et justificatifs' },
+  { key: 'fulfilment', label: 'Services clients (activation, livraison, échéances)' },
+  { key: 'commissions', label: 'Commissions (lecture : les siennes ; modification : contrôle)' },
 ] as const;
 
 export type DashboardResource = (typeof DASHBOARD_RESOURCES)[number]['key'];
@@ -49,7 +51,7 @@ export const dashboardPermissionsSchema = z.record(
 );
 
 // Associe le 1er segment du chemin (relatif à /api/admin) à une ressource.
-const PREFIX_TO_RESOURCE: Record<string, DashboardResource | 'system_users'> = {
+const PREFIX_TO_RESOURCE: Record<string, DashboardResource | 'system_users' | 'home'> = {
   stats: 'stats',
   validations: 'validations',
   members: 'members',
@@ -71,7 +73,14 @@ const PREFIX_TO_RESOURCE: Record<string, DashboardResource | 'system_users'> = {
   invoices: 'invoices',
   'payment-proofs': 'invoices',
   'service-orders': 'fulfilment',
+  'member-services': 'fulfilment',
+  commissions: 'commissions',
   'system-users': 'system_users',
+  // Paramètres du processus : réservés aux administrateurs, comme les comptes.
+  settings: 'system_users',
+  // Page d'accueil « Ma journée » : ouverte à tout le staff, chaque bloc est
+  // calculé selon les droits du compte (cf. crm/home.service.ts).
+  home: 'home',
 };
 
 export function resolveRequiredPermission(method: string, path: string) {
@@ -97,26 +106,42 @@ export function parsePermissions(value: unknown): DashboardPermissions {
 
 // --- Rôles du backoffice ------------------------------------------------------
 
-export type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'OFFICE_MANAGER' | 'SALES_MANAGER' | 'SALES_AGENT';
+export type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'OFFICE_MANAGER' | 'SALES_MANAGER' | 'SALES_AGENT' | 'ADMIN_SUPPORT';
 
-export const STAFF_ROLES: StaffRole[] = ['SUPER_ADMIN', 'ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT'];
+export const STAFF_ROLES: StaffRole[] = ['SUPER_ADMIN', 'ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT', 'ADMIN_SUPPORT'];
 /** Comptes à droits bornés par User.permissions (les deux autres ont tout). */
-export const PERMISSION_BOUND_ROLES: StaffRole[] = ['OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT'];
+export const PERMISSION_BOUND_ROLES: StaffRole[] = ['OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT', 'ADMIN_SUPPORT'];
 
 export const ROLE_LABELS: Record<StaffRole, string> = {
   SUPER_ADMIN: 'Super administrateur',
-  ADMIN: 'Administrateur',
+  ADMIN: 'Direction',
   OFFICE_MANAGER: 'Office Manager',
   SALES_MANAGER: 'Responsable commercial',
   SALES_AGENT: 'Commercial',
+  ADMIN_SUPPORT: 'Support administratif',
 };
 
-// Droits proposés à la création d'un compte (modifiables ensuite). Un
-// commercial n'a ni validation de leads, ni vue d'équipe, ni facturation.
+// Droits proposés à la création d'un compte (modifiables ensuite), alignés sur
+// les rôles du processus v1.3. Un commercial n'aiguille pas, ne voit pas
+// l'autre circuit et ne facture pas ; le support administratif ne voit que les
+// services à livrer de son pôle.
 export const ROLE_PRESETS: Record<StaffRole, DashboardPermissions> = {
   SUPER_ADMIN: {},
   ADMIN: {},
-  OFFICE_MANAGER: {},
+  OFFICE_MANAGER: {
+    stats: 'read',
+    members: 'write',
+    companies: 'read',
+    service_requests: 'write',
+    contact: 'write',
+    bookings: 'write',
+    events: 'write',
+    crm: 'write',
+    quotes: 'write',
+    invoices: 'write',
+    fulfilment: 'write',
+    commissions: 'read',
+  },
   SALES_MANAGER: {
     crm: 'write',
     quotes: 'write',
@@ -124,8 +149,10 @@ export const ROLE_PRESETS: Record<StaffRole, DashboardPermissions> = {
     fulfilment: 'read',
     service_requests: 'read',
     contact: 'read',
+    commissions: 'write',
   },
-  SALES_AGENT: { crm: 'write', quotes: 'write' },
+  SALES_AGENT: { crm: 'write', quotes: 'write', commissions: 'read' },
+  ADMIN_SUPPORT: { fulfilment: 'write' },
 };
 
 export const isFullAccessRole = (role: string) => role === 'SUPER_ADMIN' || role === 'ADMIN';
@@ -133,14 +160,16 @@ export const isStaffRole = (role: string): role is StaffRole => (STAFF_ROLES as 
 export const isPermissionBoundRole = (role: string) => (PERMISSION_BOUND_ROLES as string[]).includes(role);
 
 /**
- * Le compte a-t-il ce droit ? ADMIN / SUPER_ADMIN : toujours. Les droits
- * transverses du CRM (crm_all, crm_manage) sont implicites pour le responsable
- * commercial et l'office manager qui ont accès au CRM.
+ * Le compte a-t-il ce droit ? ADMIN / SUPER_ADMIN : toujours. Le droit
+ * d'aiguiller (crm_manage) est implicite pour le responsable commercial et
+ * l'office manager qui ont accès au CRM. La vue des deux circuits (crm_all)
+ * ne l'est plus depuis le processus v1.3 : chacun voit son circuit (scope.ts),
+ * l'administrateur peut l'accorder compte par compte.
  */
 export function hasResourceAccess(role: string, perms: DashboardPermissions, key: DashboardResource): boolean {
   if (isFullAccessRole(role)) return true;
   if (!isStaffRole(role)) return false;
-  if ((key === 'crm_all' || key === 'crm_manage') && (role === 'SALES_MANAGER' || role === 'OFFICE_MANAGER') && perms.crm) {
+  if (key === 'crm_manage' && (role === 'SALES_MANAGER' || role === 'OFFICE_MANAGER') && perms.crm) {
     return true;
   }
   return Boolean(perms[key]);

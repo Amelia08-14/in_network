@@ -15,7 +15,8 @@ export interface PdfLine {
 }
 
 export interface PdfDocumentInput {
-  kind: 'QUOTE' | 'INVOICE';
+  /** PROFORMA = facture proforma à régler (processus v1.3) ; INVOICE = facture définitive. */
+  kind: 'QUOTE' | 'PROFORMA' | 'INVOICE';
   number: string;
   /** Date d'émission (facture) ou de création (devis). */
   date: Date;
@@ -63,8 +64,8 @@ export function renderDocumentPdf(input: PdfDocumentInput): Promise<Buffer> {
 
     const pageWidth = doc.page.width;
     const contentWidth = pageWidth - MARGIN * 2;
-    const isInvoice = input.kind === 'INVOICE';
-    const title = isInvoice ? 'FACTURE' : 'DEVIS';
+    const isInvoice = input.kind !== 'QUOTE';
+    const title = input.kind === 'INVOICE' ? 'FACTURE' : input.kind === 'PROFORMA' ? 'FACTURE PROFORMA' : 'DEVIS';
 
     // --- En-tête : émetteur (gauche) / titre + numéro (droite)
     // Logo officiel (assets/logo-in-network.png, 1400×759) ; repli sur le nom seul s'il manque.

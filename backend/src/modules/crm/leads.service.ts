@@ -1,41 +1,35 @@
-import type { Prisma, LeadSource, LeadStage, LeadPriority, ActivityType, AppointmentType, AppointmentStatus } from '../../generated/prisma/client';
+import type {
+  ActivityType,
+  AppointmentStatus,
+  AppointmentType,
+  LeadChannel,
+  LeadCircuit,
+  LeadKind,
+  LeadPipeline,
+  LeadPriority,
+  LeadSource,
+  LeadStage,
+  Prisma,
+} from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
-import { hasResourceAccess, parsePermissions } from '../admin/permissions';
-import { requestLabel } from '../services/requestLabel';
-// Import circulaire assumé (situation.service importe ce module) : utilisé à l'appel, jamais au chargement.
-import { approveAccount } from '../situation/situation.service';
+import { getSettings } from '../settings/settings.service';
 import { nextNumber } from './numbering';
-import { assertCanManage, assertLeadAccess, leadScopeWhere, type StaffScope } from './scope';
-import { STAFF_SELECT, listStaffWith, notifyUsers, staffName } from './staff';
+import { assertLeadAccess, leadScopeWhere, type StaffScope } from './scope';
+import { STAFF_SELECT, listStaffByRole, listStaffWith, notifyUsers, staffName } from './staff';
+import { CHANNEL_PIPELINE, OPEN_STAGES, STAGE_LABEL, STAGE_ORDER, stageLabel } from './workflow';
 
-// Cœur du CRM : leads / opportunités (un même enregistrement qui avance dans
-// le pipeline), journal d'activité, rendez-vous, tableau de bord.
-//
-// Parcours (demande client 19/10/2026), un seul flux :
-//   NEW (à qualifier) → QUALIFIED (validé par le responsable commercial, à
-//   assigner) → ASSIGNED (confié à un commercial) → CONTACTED → QUOTE_SENT →
-//   WON / LOST.
-// Un commercial ne voit que ses leads assignés (cf. scope.ts).
+// Fiche lead unique (processus v1.3) : création, consultation, journal,
+// rendez-vous, recherche. Le parcours (aiguillage, attribution, qualification,
+// relance, visite, passerelle) est dans leadFlow.service.ts ; les leads créés
+// par le site et l'espace membre dans leadIntake.service.ts.
 
-export const STAGE_ORDER: LeadStage[] = ['NEW', 'QUALIFIED', 'ASSIGNED', 'CONTACTED', 'QUOTE_SENT', 'WON', 'LOST'];
-export const STAGE_LABEL: Record<LeadStage, string> = {
-  NEW: 'À qualifier',
-  QUALIFIED: 'À assigner',
-  ASSIGNED: 'Assigné',
-  CONTACTED: 'Contacté',
-  QUOTE_SENT: 'Devis envoyé',
-  WON: 'Gagné',
-  LOST: 'Perdu',
-};
-const OPEN_STAGES: LeadStage[] = ['NEW', 'QUALIFIED', 'ASSIGNED', 'CONTACTED', 'QUOTE_SENT'];
-/** Étapes que seul le responsable commercial pose à la main (qualification / assignation). */
-const MANAGER_STAGES: LeadStage[] = ['NEW', 'QUALIFIED', 'ASSIGNED'];
 export const PRIORITY_LABEL: Record<LeadPriority, string> = { COLD: 'Froid', WARM: 'Tiède', HOT: 'Chaud' };
 
-const LEAD_LIST_INCLUDE = {
+export const LEAD_LIST_INCLUDE = {
   assignedTo: { select: STAFF_SELECT },
-  // Compte membre rattaché (isPublic = compte validé) : la qualification peut le valider d'un coup.
+  salesAgent: { select: STAFF_SELECT },
+  // Compte membre rattaché (isPublic = espace déverrouillé).
   user: { select: { id: true, profile: { select: { isPublic: true } } } },
   _count: { select: { activities: true, quotes: true, invoices: true } },
 } satisfies Prisma.LeadInclude;
@@ -57,28 +51,19 @@ export async function logActivity(
   });
 }
 
-// --- Leads -------------------------------------------------------------------
-
-export interface LeadListFilter {
-  stage?: LeadStage;
-  /** null = leads non assignés ; undefined = pas de filtre. */
-  assignedToId?: string | null;
-  source?: LeadSource;
-  search?: string;
-}
-
-/** Journal global (reporting quotidien des commerciaux). */
+/** Journal global (reporting quotidien de l'équipe). */
 export async function listActivities(
   filter: { authorId?: string; type?: ActivityType; from?: Date; to?: Date; search?: string },
   scope?: StaffScope,
 ) {
   const search = filter.search?.trim();
+  const scoped = leadScopeWhere(scope);
   return prisma.leadActivity.findMany({
     where: {
       authorId: filter.authorId,
       type: filter.type,
       occurredAt: { gte: filter.from, lte: filter.to },
-      ...(scope && !scope.allLeads ? { lead: leadScopeWhere(scope) } : {}),
+      ...(scoped ? { lead: scoped } : {}),
       ...(search ? { OR: [{ content: { contains: search } }, { lead: { title: { contains: search } } }, { lead: { contactName: { contains: search } } }] } : {}),
     },
     include: {
@@ -90,26 +75,69 @@ export async function listActivities(
   });
 }
 
+// --- Leads -------------------------------------------------------------------
+
+/** Files de travail prêtes à l'emploi (page « À aiguiller », « Ma journée »). */
+export type LeadQueue = 'to_dispatch' | 'to_assign' | 'returned' | 'handed_over' | 'to_call' | 'follow_ups_due';
+
+export interface LeadListFilter {
+  stage?: LeadStage;
+  /** 'none' = leads à aiguiller (sans circuit). */
+  circuit?: LeadCircuit | 'none';
+  pipeline?: LeadPipeline;
+  kind?: LeadKind;
+  source?: LeadSource;
+  /** null = sans intervenant ; undefined = pas de filtre. */
+  assignedToId?: string | null;
+  queue?: LeadQueue;
+  search?: string;
+}
+
+export function queueWhere(queue: LeadQueue, userId?: string): Prisma.LeadWhereInput {
+  const now = new Date();
+  switch (queue) {
+    case 'to_dispatch':
+      return { circuit: null, stage: { in: OPEN_STAGES } };
+    case 'to_assign':
+      return { circuit: 'SALES_TEAM', stage: 'REGISTERED', salesAgentId: null };
+    case 'returned':
+      return { followUpReturnedAt: { not: null }, stage: { in: OPEN_STAGES } };
+    case 'handed_over':
+      return { handedOverAt: { not: null }, stage: { in: ['VISIT_CONFIRMED', 'QUOTE_SENT'] }, ...(userId ? { assignedToId: userId } : {}) };
+    case 'to_call':
+      return { stage: 'CONFIRMED', ...(userId ? { assignedToId: userId } : {}) };
+    case 'follow_ups_due':
+      return { stage: { in: OPEN_STAGES }, nextActionAt: { lte: now }, ...(userId ? { assignedToId: userId } : {}) };
+  }
+}
+
 export async function listLeads(filter: LeadListFilter, scope?: StaffScope) {
   const search = filter.search?.trim();
   const scoped = leadScopeWhere(scope);
+  const where: Prisma.LeadWhereInput[] = [];
+  if (scoped) where.push(scoped);
+  if (filter.queue) where.push(queueWhere(filter.queue));
+  if (search) {
+    where.push({
+      OR: [
+        { title: { contains: search } },
+        { contactName: { contains: search } },
+        { companyName: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
+        { reference: { contains: search } },
+      ],
+    });
+  }
   return prisma.lead.findMany({
     where: {
+      AND: where,
       stage: filter.stage,
-      // Un commercial ne peut pas élargir sa vue via le filtre « commercial ».
-      assignedToId: scoped ? scoped.assignedToId : filter.assignedToId,
+      circuit: filter.circuit === 'none' ? null : filter.circuit,
+      pipeline: filter.pipeline,
+      kind: filter.kind,
       source: filter.source,
-      ...(search
-        ? {
-            OR: [
-              { title: { contains: search } },
-              { contactName: { contains: search } },
-              { companyName: { contains: search } },
-              { email: { contains: search } },
-              { reference: { contains: search } },
-            ],
-          }
-        : {}),
+      assignedToId: filter.assignedToId,
     },
     include: LEAD_LIST_INCLUDE,
     orderBy: { updatedAt: 'desc' },
@@ -118,21 +146,33 @@ export async function listLeads(filter: LeadListFilter, scope?: StaffScope) {
 }
 
 export async function getLead(id: string, scope?: StaffScope) {
-  await assertLeadAccess(scope, id);
+  await assertLeadAccess(scope, id, 'read');
   const lead = await prisma.lead.findUnique({
     where: { id },
     include: {
       assignedTo: { select: STAFF_SELECT },
+      salesAgent: { select: STAFF_SELECT },
       qualifiedBy: { select: STAFF_SELECT },
-      // isPublic = compte validé par l'équipe (cf. situation/accountState.ts).
-      user: { select: { id: true, email: true, profile: { select: { isPublic: true } } } },
+      referrer: { select: { id: true, email: true, profile: { select: { firstName: true, lastName: true } } } },
+      // isPublic = espace membre déverrouillé (cf. situation/accountState.ts).
+      user: {
+        select: {
+          id: true,
+          email: true,
+          referent: { select: STAFF_SELECT },
+          profile: { select: { isPublic: true, firstName: true, lastName: true } },
+        },
+      },
+      parentLead: { select: { id: true, reference: true, title: true, circuit: true } },
+      childLeads: { select: { id: true, reference: true, title: true, kind: true, stage: true, createdAt: true }, orderBy: { createdAt: 'desc' } },
       serviceRequest: { include: { items: { orderBy: { createdAt: 'asc' } } } },
       contactMessage: true,
+      circuitChanges: { include: { author: { select: STAFF_SELECT } }, orderBy: { createdAt: 'desc' } },
       activities: { include: { author: { select: STAFF_SELECT } }, orderBy: { occurredAt: 'desc' } },
       appointments: { include: { assignee: { select: STAFF_SELECT } }, orderBy: { startAt: 'asc' } },
       quotes: { select: { id: true, number: true, status: true, total: true, validUntil: true, createdAt: true }, orderBy: { createdAt: 'desc' } },
-      invoices: { select: { id: true, number: true, status: true, total: true, dueDate: true, createdAt: true }, orderBy: { createdAt: 'desc' } },
-      serviceOrders: { select: { id: true, title: true, status: true }, orderBy: { createdAt: 'asc' } },
+      invoices: { select: { id: true, number: true, proformaNumber: true, status: true, total: true, dueDate: true, createdAt: true }, orderBy: { createdAt: 'desc' } },
+      serviceOrders: { select: { id: true, title: true, status: true, pole: true, expiresAt: true }, orderBy: { createdAt: 'asc' } },
     },
   });
   if (!lead) throw ApiError.notFound('Lead introuvable');
@@ -140,11 +180,11 @@ export async function getLead(id: string, scope?: StaffScope) {
   const paymentProofs = lead.userId
     ? await prisma.paymentProof.findMany({
         where: { userId: lead.userId },
-        select: { id: true, status: true, fileName: true, mimeType: true, amount: true, reference: true, note: true, reviewNote: true, createdAt: true, quote: { select: { number: true } }, invoice: { select: { id: true, number: true } } },
+        select: { id: true, status: true, fileName: true, mimeType: true, amount: true, reference: true, note: true, reviewNote: true, createdAt: true, quote: { select: { number: true } }, invoice: { select: { id: true, number: true, proformaNumber: true } } },
         orderBy: { createdAt: 'desc' },
       })
     : [];
-  return { ...lead, paymentProofs };
+  return { ...lead, stageLabel: stageLabel(lead.stage, lead.circuit), paymentProofs };
 }
 
 export interface LeadInput {
@@ -153,240 +193,205 @@ export interface LeadInput {
   email?: string | null;
   phone?: string | null;
   companyName?: string | null;
-  source?: LeadSource;
+  channel?: LeadChannel | null;
+  channelDetail?: string | null;
+  pipeline?: LeadPipeline | null;
+  circuit?: LeadCircuit | null;
   expectedAmount?: number | null;
   notes?: string | null;
+  offerInterest?: string | null;
   assignedToId?: string | null;
   nextActionAt?: Date | null;
   userId?: string | null;
 }
 
 /** Compte membre portant cette adresse email (pour rattacher un lead à son espace). */
-async function memberIdForEmail(email: string | null | undefined): Promise<string | null> {
+export async function memberIdForEmail(email: string | null | undefined): Promise<string | null> {
   if (!email) return null;
   const user = await prisma.user.findFirst({ where: { email, role: 'MEMBER' }, select: { id: true } });
   return user?.id ?? null;
 }
 
-/** Le compte peut-il recevoir des leads ? (staff actif ayant accès au CRM) */
-async function assertAssignable(userId: string) {
-  const target = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, role: true, isActive: true, permissions: true } });
-  if (!target || !target.isActive || !hasResourceAccess(target.role, parsePermissions(target.permissions), 'crm')) {
-    throw ApiError.badRequest('Ce compte ne peut pas recevoir de leads (accès au CRM requis).');
+const normalizePhone = (phone: string) => phone.replace(/[\s.\-()]/g, '');
+
+/**
+ * « Un contact, une fiche » : un lead encore ouvert avec le même e-mail ou le
+ * même téléphone. Les leads d'extension / renouvellement d'un membre ne
+ * comptent pas (ils vivent à côté de sa fiche membre).
+ */
+export async function findOpenDuplicate(contact: { email?: string | null; phone?: string | null }, excludeId?: string) {
+  const or: Prisma.LeadWhereInput[] = [];
+  if (contact.email?.trim()) or.push({ email: contact.email.trim() });
+  if (contact.phone?.trim()) {
+    const phone = contact.phone.trim();
+    or.push({ phone }, { phone: normalizePhone(phone) });
+  }
+  if (or.length === 0) return null;
+  return prisma.lead.findFirst({
+    where: { OR: or, stage: { in: OPEN_STAGES }, kind: 'NEW_BUSINESS', ...(excludeId ? { id: { not: excludeId } } : {}) },
+    select: { id: true, reference: true, title: true, assignedTo: { select: STAFF_SELECT }, circuit: true },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
+async function assertNoDuplicate(contact: { email?: string | null; phone?: string | null }, excludeId?: string) {
+  const duplicate = await findOpenDuplicate(contact, excludeId);
+  if (duplicate) {
+    throw new ApiError(
+      409,
+      'DUPLICATE_LEAD',
+      `Ce contact est déjà suivi : ${duplicate.reference} — ${duplicate.title}${duplicate.assignedTo ? ` (${staffName(duplicate.assignedTo)})` : ' (à aiguiller)'}.`,
+      { leadId: duplicate.id },
+    );
+  }
+}
+
+/** Le compte peut-il être intervenant sur un lead ? (staff actif ayant accès au CRM) */
+export async function assertCrmStaff(userId: string, roles?: string[]) {
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, role: true, isActive: true, permissions: true, displayName: true, email: true } });
+  const staff = await listStaffWith('crm');
+  if (!target || !target.isActive || !staff.some((u) => u.id === userId) || (roles && !roles.includes(target.role))) {
+    throw ApiError.badRequest('Ce compte ne peut pas recevoir ce lead.');
   }
   return target;
 }
 
-export async function createLead(input: LeadInput, actorId: string, scope?: StaffScope) {
-  const reference = await nextNumber('LD');
-  const userId = input.userId ?? (await memberIdForEmail(input.email));
-  const isManager = !scope || scope.manageLeads;
-
-  // Un commercial qui crée un lead se l'attribue (il le voit dès sa création) mais
-  // le lead reste « À qualifier » jusqu'à validation du responsable commercial.
-  // Un responsable qui crée un lead en le confiant d'emblée le valide de fait.
-  const requested = isManager ? input.assignedToId ?? null : actorId;
-  if (requested) await assertAssignable(requested);
-  const validatedByCreator = isManager && Boolean(requested);
-
-  const lead = await prisma.lead.create({
-    data: {
-      ...input,
-      userId,
-      reference,
-      assignedToId: requested,
-      assignedAt: requested && validatedByCreator ? new Date() : null,
-      stage: validatedByCreator ? 'ASSIGNED' : 'NEW',
-      qualifiedAt: validatedByCreator ? new Date() : null,
-      qualifiedById: validatedByCreator ? actorId : null,
-      source: input.source ?? 'OTHER',
-    },
-  });
-  await logActivity(lead.id, {
-    content: validatedByCreator ? 'Lead créé manuellement et assigné.' : 'Lead créé manuellement, en attente de qualification.',
-    authorId: actorId,
-  });
-  if (!validatedByCreator) await notifyManagers(lead, 'Nouveau lead à qualifier');
-  return lead;
-}
-
-/** Avertit les comptes qui qualifient les leads (responsable commercial, office manager…). */
-async function notifyManagers(lead: { id: string; reference: string; title: string }, title: string, detail?: string) {
-  const managers = await listStaffWith('crm_manage');
+/** Avertit les comptes qui aiguillent les leads entrants (responsable commercial, Office Manager…). */
+export async function notifyDispatchers(lead: { id: string; reference: string; title: string }, title: string, detail?: string) {
+  const dispatchers = await listStaffWith('crm_manage');
   await notifyUsers(
-    managers.map((u) => u.id),
+    dispatchers.map((u) => u.id),
     'lead_new',
     title,
     `${lead.reference} — ${lead.title}${detail ? ` ${detail}` : ''}`,
-    '/admin/crm/entrants',
+    `/admin/crm/leads/${lead.id}`,
   );
 }
 
-export async function updateLead(id: string, patch: Partial<LeadInput>, actorId: string, scope?: StaffScope) {
+/**
+ * Saisie d'un lead par l'équipe. Le circuit découle de qui saisit : l'Office
+ * Manager enregistre lui-même ses leads en circuit 2, un commercial ses leads de
+ * prospection en circuit 1 ; le responsable commercial ou la Direction peuvent
+ * l'aiguiller dès la saisie, sinon il attend dans « À aiguiller ».
+ */
+export async function createLead(input: LeadInput, actorId: string, scope?: StaffScope) {
+  await assertNoDuplicate(input);
+  const reference = await nextNumber('LD');
+  const userId = input.userId ?? (await memberIdForEmail(input.email));
+  const pipeline = input.channel ? CHANNEL_PIPELINE[input.channel] : input.pipeline ?? null;
+  const now = new Date();
+
+  let circuit: LeadCircuit | null = input.circuit ?? null;
+  let assignedToId: string | null = null;
+  let salesAgentId: string | null = null;
+
+  if (scope?.officeManager) {
+    circuit = input.circuit ?? 'OFFICE_MANAGER';
+    if (circuit === 'OFFICE_MANAGER') assignedToId = actorId;
+  } else if (scope && !scope.manageLeads && !scope.allLeads) {
+    // Un commercial enregistre sa propre prospection.
+    circuit = 'SALES_TEAM';
+    assignedToId = actorId;
+    salesAgentId = actorId;
+  } else if (input.assignedToId) {
+    const target = await assertCrmStaff(input.assignedToId);
+    if (!circuit) circuit = target.role === 'OFFICE_MANAGER' ? 'OFFICE_MANAGER' : 'SALES_TEAM';
+    assignedToId = target.id;
+    if (circuit === 'SALES_TEAM') salesAgentId = target.id;
+  } else if (scope?.salesManager && !circuit) {
+    circuit = 'SALES_TEAM';
+  }
+  // Circuit 2 sans Office Manager désigné : le seul compte de ce rôle le prend, sinon il reste à aiguiller.
+  if (circuit === 'OFFICE_MANAGER' && !assignedToId) {
+    const oms = await listStaffByRole('OFFICE_MANAGER');
+    if (oms.length === 1) assignedToId = oms[0].id;
+    else circuit = null;
+  }
+
+  const lead = await prisma.lead.create({
+    data: {
+      reference,
+      title: input.title,
+      contactName: input.contactName,
+      email: input.email,
+      phone: input.phone,
+      companyName: input.companyName,
+      channel: input.channel,
+      channelDetail: input.channelDetail,
+      pipeline,
+      expectedAmount: input.expectedAmount,
+      notes: input.notes,
+      offerInterest: input.offerInterest,
+      nextActionAt: input.nextActionAt,
+      userId,
+      source: 'MANUAL',
+      circuit,
+      dispatchedAt: circuit ? now : null,
+      assignedToId,
+      salesAgentId,
+      assignedAt: assignedToId ? now : null,
+      stage: assignedToId ? 'ASSIGNED' : 'REGISTERED',
+    },
+  });
+  await logActivity(lead.id, {
+    content: circuit
+      ? `Lead enregistré en ${circuit === 'SALES_TEAM' ? 'circuit 1 (Sales Team)' : 'circuit 2 (Office Manager)'}${assignedToId ? '' : ', à attribuer'}.`
+      : 'Lead enregistré, à aiguiller.',
+    authorId: actorId,
+  });
+  if (!circuit) await notifyDispatchers(lead, 'Nouveau lead à aiguiller');
+  else if (circuit === 'SALES_TEAM' && !salesAgentId) {
+    const managers = (await listStaffWith('crm_manage')).filter((u) => u.role !== 'OFFICE_MANAGER');
+    await notifyUsers(managers.map((u) => u.id), 'lead_to_assign', 'Lead à attribuer', `${lead.reference} — ${lead.title}`, `/admin/crm/leads/${lead.id}`);
+  } else if (assignedToId && assignedToId !== actorId) {
+    await notifyUsers([assignedToId], 'lead_assigned', 'Lead attribué', `${lead.reference} — ${lead.title} vous a été confié.`, `/admin/crm/leads/${lead.id}`);
+  }
+  return lead;
+}
+
+/** Informations de la fiche. Circuit et intervenants passent par leadFlow (aiguillage, attribution, passerelle). */
+export async function updateLead(id: string, patch: Partial<Omit<LeadInput, 'circuit' | 'assignedToId'>>, actorId: string, scope?: StaffScope) {
   await assertLeadAccess(scope, id);
   const before = await prisma.lead.findUnique({ where: { id } });
   if (!before) throw ApiError.notFound('Lead introuvable');
-
-  // L'assignation est un acte de gestion (cf. assignLead) : elle ne passe plus
-  // par la simple modification des informations.
-  const { assignedToId, ...rest } = patch;
-  if (assignedToId !== undefined && assignedToId !== before.assignedToId) {
-    await assignLead(id, assignedToId, actorId, scope);
+  if ((patch.email !== undefined && patch.email !== before.email) || (patch.phone !== undefined && patch.phone !== before.phone)) {
+    if (before.kind === 'NEW_BUSINESS') await assertNoDuplicate({ email: patch.email ?? before.email, phone: patch.phone ?? before.phone }, id);
   }
 
   // Une adresse email ajoutée ou corrigée peut désormais correspondre à un membre.
-  const userId = rest.email !== undefined && !before.userId ? await memberIdForEmail(rest.email) : undefined;
-  return prisma.lead.update({
+  const userId = patch.email !== undefined && !before.userId ? await memberIdForEmail(patch.email) : undefined;
+  const { userId: _ignored, ...rest } = patch;
+  void _ignored;
+  const updated = await prisma.lead.update({
     where: { id },
     data: {
       ...rest,
+      ...(patch.channel ? { pipeline: CHANNEL_PIPELINE[patch.channel] } : {}),
       ...(userId ? { userId } : {}),
       // Reprogrammer l'action suivante réarme l'alerte automatique.
       ...(rest.nextActionAt !== undefined ? { nextActionAlertedAt: null } : {}),
     },
   });
-}
-
-// --- Qualification, validation, assignation (responsable commercial) --------
-
-export interface QualificationInput {
-  priority: LeadPriority;
-  need?: string | null;
-  budget?: string | null;
-  decisionMaker?: string | null;
-  timeline?: string | null;
-  notes?: string | null;
-  /** Assigner dans la foulée (« valider et assigner »). */
-  assignedToId?: string | null;
-  /**
-   * Valider aussi le compte membre rattaché au lead (déverrouille son espace). Par défaut oui :
-   * qualifier une inscription et valider le compte sont un seul et même geste.
-   */
-  validateAccount?: boolean;
-}
-
-/** Qualifie un lead entrant et le valide : il passe « À assigner » (ou « Assigné » si un commercial est choisi). */
-export async function qualifyLead(id: string, input: QualificationInput, actorId: string, scope?: StaffScope) {
-  assertCanManage(scope);
-  const lead = await prisma.lead.findUnique({ where: { id } });
-  if (!lead) throw ApiError.notFound('Lead introuvable');
-  if (lead.stage !== 'NEW') throw ApiError.conflict('Ce lead est déjà qualifié.');
-
-  const assigneeId = input.assignedToId === undefined ? lead.assignedToId : input.assignedToId;
-  if (assigneeId) await assertAssignable(assigneeId);
-
-  const { priority, assignedToId: _ignored, validateAccount, ...qualification } = input;
-  void _ignored;
-  const now = new Date();
-  const updated = await prisma.lead.update({
-    where: { id },
-    data: {
-      priority,
-      qualification: qualification as Prisma.InputJsonValue,
-      qualifiedAt: now,
-      qualifiedById: actorId,
-      stage: assigneeId ? 'ASSIGNED' : 'QUALIFIED',
-      assignedToId: assigneeId ?? null,
-      assignedAt: assigneeId ? now : null,
-    },
-    include: { assignedTo: { select: STAFF_SELECT } },
-  });
-
-  await logActivity(id, {
-    content: `Lead qualifié et validé (${PRIORITY_LABEL[priority].toLowerCase()})${updated.assignedTo ? ` — assigné à ${staffName(updated.assignedTo)}` : ' — à assigner'}.`,
-    authorId: actorId,
-  });
-  if (assigneeId && assigneeId !== actorId) {
-    await notifyUsers([assigneeId], 'lead_assigned', 'Lead assigné', `${lead.reference} — ${lead.title} vous a été confié.`, `/admin/crm/leads/${lead.id}`);
-  }
-  // Un lead issu d'une inscription : le valider valide le compte du membre (un seul geste).
-  if (lead.userId && validateAccount !== false) {
-    await approveAccount(lead.userId, actorId);
-  }
-  return updated;
-}
-
-/** Assigne (ou réassigne) un lead validé à un commercial. */
-export async function assignLead(id: string, assigneeId: string | null, actorId: string, scope?: StaffScope) {
-  assertCanManage(scope);
-  const lead = await prisma.lead.findUnique({ where: { id } });
-  if (!lead) throw ApiError.notFound('Lead introuvable');
-  if (lead.stage === 'WON' || lead.stage === 'LOST') throw ApiError.conflict('Ce lead est clos.');
-  if (lead.stage === 'NEW') throw ApiError.conflict('Qualifiez et validez ce lead avant de l’assigner.');
-  if (assigneeId === null && lead.stage !== 'ASSIGNED' && lead.stage !== 'QUALIFIED') {
-    throw ApiError.conflict('Un lead en cours de traitement se réassigne à un autre commercial, il ne peut pas rester sans responsable.');
-  }
-  if (assigneeId) await assertAssignable(assigneeId);
-  if (assigneeId === lead.assignedToId) return lead;
-
-  const target = assigneeId ? await prisma.user.findUnique({ where: { id: assigneeId }, select: STAFF_SELECT }) : null;
-  const stage: LeadStage = assigneeId ? (lead.stage === 'QUALIFIED' ? 'ASSIGNED' : lead.stage) : 'QUALIFIED';
-  const updated = await prisma.lead.update({
-    where: { id },
-    data: { assignedToId: assigneeId, assignedAt: assigneeId ? new Date() : null, stage },
-  });
-  await logActivity(id, {
-    content: target ? `Lead assigné à ${staffName(target)}.` : 'Lead désassigné, retour à assigner.',
-    authorId: actorId,
-  });
-  if (target && target.id !== actorId) {
-    await notifyUsers([target.id], 'lead_assigned', 'Lead assigné', `${lead.reference} — ${lead.title} vous a été confié.`, `/admin/crm/leads/${lead.id}`);
-  }
-  if (lead.assignedToId && lead.assignedToId !== assigneeId && lead.assignedToId !== actorId) {
-    await notifyUsers([lead.assignedToId], 'lead_unassigned', 'Lead réassigné', `${lead.reference} — ${lead.title} a été confié à un autre commercial.`, '/admin/crm/pipeline');
-  }
-  return updated;
-}
-
-export async function changeStage(id: string, stage: LeadStage, actorId: string, lostReason?: string, scope?: StaffScope) {
-  await assertLeadAccess(scope, id);
-  const lead = await prisma.lead.findUnique({ where: { id } });
-  if (!lead) throw ApiError.notFound('Lead introuvable');
-  if (lead.stage === stage) return lead;
-
-  const manager = !scope || scope.manageLeads;
-  if (!manager) {
-    if (MANAGER_STAGES.includes(lead.stage)) {
-      throw ApiError.forbidden('Ce lead attend la validation du responsable commercial.');
-    }
-    if (MANAGER_STAGES.includes(stage)) {
-      throw ApiError.forbidden('Seul le responsable commercial peut ramener un lead à l’étape de qualification ou d’assignation.');
-    }
-  }
-  if (stage === 'ASSIGNED' && !lead.assignedToId) {
-    throw ApiError.badRequest('Choisissez d’abord le commercial à qui confier ce lead.');
-  }
-  if (stage === 'LOST' && !lostReason?.trim()) {
-    throw ApiError.badRequest('Indiquez le motif de perte pour clôturer ce lead.');
-  }
-
-  const now = new Date();
-  const updated = await prisma.lead.update({
-    where: { id },
-    data: {
-      stage,
-      wonAt: stage === 'WON' ? now : null,
-      lostAt: stage === 'LOST' ? now : null,
-      lostReason: stage === 'LOST' ? lostReason!.trim() : null,
-    },
-  });
-  await logActivity(id, {
-    content: `Étape : ${STAGE_LABEL[lead.stage]} → ${STAGE_LABEL[stage]}${stage === 'LOST' ? ` (motif : ${lostReason!.trim()})` : ''}.`,
-    authorId: actorId,
-  });
+  void actorId;
   return updated;
 }
 
 /** Fait avancer un lead sans jamais le faire reculer ni rouvrir un lead clos. */
 export async function advanceStageTo(id: string, stage: LeadStage, actorId?: string | null) {
   const lead = await prisma.lead.findUnique({ where: { id } });
-  if (!lead || lead.stage === 'WON' || lead.stage === 'LOST') return;
+  if (!lead || lead.stage === 'PAID' || lead.stage === 'LOST') return;
   if (STAGE_ORDER.indexOf(stage) <= STAGE_ORDER.indexOf(lead.stage)) return;
+  const now = new Date();
   await prisma.lead.update({
     where: { id },
-    data: { stage, wonAt: stage === 'WON' ? new Date() : undefined },
+    data: {
+      stage,
+      ...(stage === 'CONFIRMED' ? { confirmedAt: now } : {}),
+      ...(stage === 'PAID' ? { wonAt: now, nextActionAt: null } : {}),
+      followUpReturnedAt: null,
+    },
   });
-  await logActivity(id, { content: `Étape : ${STAGE_LABEL[lead.stage]} → ${STAGE_LABEL[stage]}.`, authorId: actorId });
+  await logActivity(id, { content: `Étape : ${stageLabel(lead.stage, lead.circuit)} → ${stageLabel(stage, lead.circuit)}.`, authorId: actorId });
 }
 
 export async function addActivity(
@@ -402,8 +407,6 @@ export async function addActivity(
   const activity = await logActivity(leadId, { ...input, authorId });
   // Toute activité « touche » la fiche : elle sort de la liste des dormants.
   await prisma.lead.update({ where: { id: leadId }, data: { updatedAt: new Date(), dormantAlertedAt: null } });
-  // Premier échange réel (appel, email, réunion, visite) : le lead passe « Contacté ».
-  if (lead.stage === 'ASSIGNED' && input.type !== 'NOTE') await advanceStageTo(leadId, 'CONTACTED', authorId);
 
   const mentions = (input.mentionIds ?? []).filter((id) => id !== authorId);
   if (mentions.length) {
@@ -415,8 +418,9 @@ export async function addActivity(
 // --- Rendez-vous -------------------------------------------------------------
 
 export async function listAppointments(filter: { from: Date; to: Date; assigneeId?: string }, scope?: StaffScope) {
+  const scoped = leadScopeWhere(scope);
   return prisma.appointment.findMany({
-    where: { startAt: { gte: filter.from, lt: filter.to }, assigneeId: filter.assigneeId, ...(scope && !scope.allLeads ? { lead: leadScopeWhere(scope) } : {}) },
+    where: { startAt: { gte: filter.from, lt: filter.to }, assigneeId: filter.assigneeId, ...(scoped ? { lead: scoped } : {}) },
     include: {
       lead: { select: { id: true, reference: true, title: true, contactName: true, companyName: true } },
       assignee: { select: STAFF_SELECT },
@@ -434,6 +438,16 @@ export interface AppointmentInput {
   assigneeId?: string | null;
 }
 
+export const APPOINTMENT_LABEL: Record<AppointmentType, string> = {
+  CALL: 'Appel',
+  VISIT: 'Visite',
+  VIDEO: 'Visio',
+  TRIAL_DAY: 'Journée d’essai',
+  MEETING: 'Réunion',
+};
+
+const when = (date: Date) => date.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+
 export async function createAppointment(leadId: string, input: AppointmentInput, actorId: string, scope?: StaffScope) {
   await assertLeadAccess(scope, leadId);
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
@@ -441,12 +455,19 @@ export async function createAppointment(leadId: string, input: AppointmentInput,
   const appointment = await prisma.appointment.create({
     data: { ...input, leadId, assigneeId: input.assigneeId === undefined ? actorId : input.assigneeId },
   });
-  await logActivity(leadId, {
-    content: `Rendez-vous programmé le ${input.startAt.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}.`,
-    authorId: actorId,
-  });
-  if (lead.stage === 'ASSIGNED') await advanceStageTo(leadId, 'CONTACTED', actorId);
+  await logActivity(leadId, { content: `${APPOINTMENT_LABEL[input.type]} programmé(e) le ${when(input.startAt)}.`, authorId: actorId });
   return appointment;
+}
+
+/**
+ * Tâche planifiée de l'équipe, rangée dans l'agenda comme un rendez-vous
+ * (appel à passer, check-in, suivi d'essai). Sans lead, pas d'agenda : on ignore.
+ */
+export async function scheduleTask(leadId: string | null | undefined, input: { type?: AppointmentType; startAt: Date; assigneeId: string | null; notes: string }) {
+  if (!leadId) return null;
+  return prisma.appointment.create({
+    data: { leadId, type: input.type ?? 'CALL', startAt: input.startAt, assigneeId: input.assigneeId, notes: input.notes },
+  });
 }
 
 export async function updateAppointment(
@@ -463,8 +484,15 @@ export async function updateAppointment(
     data: { ...patch, ...(patch.startAt ? { reminderSentAt: null } : {}) },
   });
   if (patch.status && patch.status !== existing.status) {
-    const label = patch.status === 'DONE' ? 'effectué' : patch.status === 'CANCELLED' ? 'annulé' : 'reprogrammé';
-    await logActivity(existing.leadId, { content: `Rendez-vous ${label}.`, authorId: actorId });
+    const label = patch.status === 'DONE' ? 'effectué(e)' : patch.status === 'CANCELLED' ? 'annulé(e)' : 'reprogrammé(e)';
+    await logActivity(existing.leadId, { content: `${APPOINTMENT_LABEL[existing.type]} ${label}.`, authorId: actorId });
+    // Journée d'essai effectuée : suivi à J+3 (paramétrable) par la même personne.
+    if (patch.status === 'DONE' && existing.type === 'TRIAL_DAY') {
+      const { trialFollowUpDays } = await getSettings();
+      const followUpAt = new Date(Date.now() + trialFollowUpDays * 24 * 3600 * 1000);
+      await scheduleTask(existing.leadId, { startAt: followUpAt, assigneeId: existing.assigneeId, notes: `Suivi de la journée d’essai (J+${trialFollowUpDays}).` });
+      await prisma.lead.update({ where: { id: existing.leadId }, data: { nextActionAt: followUpAt, nextActionAlertedAt: null } });
+    }
   }
   return updated;
 }
@@ -476,206 +504,19 @@ export async function deleteAppointment(id: string, scope?: StaffScope) {
   await prisma.appointment.delete({ where: { id } });
 }
 
-// --- Entrées automatiques ------------------------------------------------------
-// Tous les leads entrants arrivent « À qualifier » : le responsable commercial
-// (et les comptes qui ont le droit de qualifier) sont avertis.
-
-/** Demande de devis du site (panier) → lead « À qualifier », prérempli depuis le compte. */
-export async function createLeadFromServiceRequest(requestId: string) {
-  const request = await prisma.serviceRequest.findUnique({
-    where: { id: requestId },
-    include: {
-      items: true,
-      user: { select: { id: true, email: true, phone: true, profile: { select: { firstName: true, lastName: true, companyName: true } } } },
-    },
-  });
-  if (!request || request.items.length === 0) return null;
-
-  const priced = request.items.reduce((sum, item) => sum + (item.unitPrice ? Number(item.unitPrice) : 0), 0);
-  const profile = request.user?.profile;
-  const contactName =
-    (profile && `${profile.firstName} ${profile.lastName}`.trim()) || request.user?.email || request.guestName || 'Contact du site';
-
-  const lead = await prisma.lead.create({
-    data: {
-      reference: await nextNumber('LD'),
-      title: requestLabel(request.items),
-      contactName,
-      email: request.user?.email ?? request.guestEmail,
-      phone: request.user?.phone ?? request.guestPhone,
-      companyName: profile?.companyName ?? request.guestCompany,
-      source: 'WEBSITE_QUOTE',
-      expectedAmount: priced > 0 ? priced : null,
-      notes: request.notes,
-      userId: request.userId,
-      serviceRequestId: request.id,
-    },
-  });
-  await logActivity(lead.id, {
-    content: `Lead créé automatiquement depuis la demande de devis du site (${request.items.length} ligne${request.items.length > 1 ? 's' : ''}).`,
-  });
-  await notifyManagers(lead, 'Nouveau lead à qualifier', `(${contactName}) vient d'arriver depuis le site.`);
-  return lead;
-}
-
-/**
- * Nouvelle inscription (« Devenir membre ») → lead « Inscription » pour l'équipe,
- * et rattachement des leads déjà ouverts avec la même adresse email.
- */
-export async function createLeadFromRegistration(userId: string) {
-  const existing = await prisma.lead.findFirst({ where: { userId, source: 'REGISTRATION' } });
-  if (existing) return existing;
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { profile: true, company: { select: { name: true, seatLimit: true } } },
-  });
-  if (!user) return null;
-
-  const contactName = user.profile ? `${user.profile.firstName} ${user.profile.lastName}`.trim() : user.email;
-  const companyName = user.company?.name ?? user.profile?.companyName ?? null;
-  const lead = await prisma.lead.create({
-    data: {
-      reference: await nextNumber('LD'),
-      title: user.company ? `Inscription entreprise — ${user.company.name}` : `Inscription — ${contactName}`,
-      contactName,
-      email: user.email,
-      phone: user.phone,
-      companyName,
-      source: 'REGISTRATION',
-      notes: user.company ? `Compte entreprise : ${user.company.seatLimit} poste(s) demandé(s).` : null,
-      userId,
-    },
-  });
-  await logActivity(lead.id, { content: 'Lead créé automatiquement à l\'inscription : compte en attente de validation.' });
-  await prisma.lead.updateMany({ where: { email: user.email, userId: null }, data: { userId } });
-  await notifyManagers(lead, 'Nouvelle inscription à qualifier', `— ${contactName}${companyName ? ` (${companyName})` : ''} vient de créer un compte, à valider.`);
-  return lead;
-}
-
-/** Formulaire /contact → lead « À qualifier ». */
-export async function createLeadFromContactMessage(messageId: string) {
-  const message = await prisma.contactMessage.findUnique({ where: { id: messageId } });
-  if (!message) return null;
-  const lead = await prisma.lead.create({
-    data: {
-      reference: await nextNumber('LD'),
-      title: `Message de contact — ${message.name}`,
-      contactName: message.name,
-      email: message.email,
-      source: 'CONTACT_FORM',
-      notes: message.message,
-      contactMessageId: message.id,
-    },
-  });
-  await logActivity(lead.id, { content: 'Lead créé automatiquement depuis le formulaire de contact.' });
-  await notifyManagers(lead, 'Nouveau lead à qualifier', `— message de ${message.name} reçu via le formulaire de contact.`);
-  return lead;
-}
-
-// --- Tableau de bord ------------------------------------------------------------
-
-export async function getDashboard(scope?: StaffScope) {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-  const in7Days = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
-  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dayEnd = new Date(dayStart.getTime() + 24 * 3600 * 1000);
-  // Un commercial ne voit que ses chiffres ; le responsable voit toute l'équipe.
-  const scoped = leadScopeWhere(scope);
-  const leadWhere = scoped ?? {};
-  // `lead: {}` exclurait les factures sans lead : on n'ajoute le filtre que si la portée est restreinte.
-  const viaLead = scoped ? { lead: scoped } : {};
-
-  const [byStage, bySource, openByAssignee, overdueActions, todayAppointments, weekAppointments, pendingQuotes, receivable, paidInvoices, leadsCreated, ninetyDay, toLaunch, staff] =
-    await Promise.all([
-      prisma.lead.groupBy({ by: ['stage'], where: leadWhere, _count: { _all: true }, _sum: { expectedAmount: true } }),
-      prisma.lead.groupBy({ by: ['source'], where: leadWhere, _count: { _all: true } }),
-      prisma.lead.groupBy({ by: ['assignedToId'], where: { ...leadWhere, stage: { in: OPEN_STAGES } }, _count: { _all: true } }),
-      prisma.lead.count({ where: { ...leadWhere, stage: { in: OPEN_STAGES }, nextActionAt: { lt: now } } }),
-      prisma.appointment.count({ where: { ...viaLead, status: 'SCHEDULED', startAt: { gte: dayStart, lt: dayEnd } } }),
-      prisma.appointment.count({ where: { ...viaLead, status: 'SCHEDULED', startAt: { gte: now, lt: in7Days } } }),
-      prisma.quote.aggregate({ where: { ...viaLead, status: 'SENT' }, _count: { _all: true }, _sum: { total: true } }),
-      prisma.invoice.findMany({ where: { ...viaLead, status: 'SENT' }, select: { total: true, dueDate: true } }),
-      prisma.invoice.findMany({ where: { ...viaLead, status: 'PAID', paidAt: { gte: sixMonthsAgo } }, select: { total: true, paidAt: true } }),
-      prisma.lead.findMany({ where: { ...leadWhere, createdAt: { gte: sixMonthsAgo } }, select: { createdAt: true } }),
-      prisma.lead.groupBy({
-        by: ['stage'],
-        where: { ...leadWhere, stage: { in: ['WON', 'LOST'] }, updatedAt: { gte: new Date(now.getTime() - 90 * 24 * 3600 * 1000) } },
-        _count: { _all: true },
-      }),
-      prisma.serviceOrder.count({ where: { status: 'TO_START', ...(scope && !scope.allLeads ? { OR: [{ assignedToId: scope.userId }, viaLead] } : {}) } }),
-      prisma.user.findMany({ where: { role: { in: ['SUPER_ADMIN', 'ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT'] } }, select: STAFF_SELECT }),
-    ]);
-
-  const stageMap = new Map(byStage.map((row) => [row.stage, row]));
-  const stages = STAGE_ORDER.map((stage) => ({
-    stage,
-    label: STAGE_LABEL[stage],
-    count: stageMap.get(stage)?._count._all ?? 0,
-    amount: Number(stageMap.get(stage)?._sum.expectedAmount ?? 0),
-  }));
-  const openLeads = stages.filter((s) => OPEN_STAGES.includes(s.stage));
-  const won90 = ninetyDay.find((row) => row.stage === 'WON')?._count._all ?? 0;
-  const lost90 = ninetyDay.find((row) => row.stage === 'LOST')?._count._all ?? 0;
-
-  const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-  const months = Array.from({ length: 6 }, (_, i) => new Date(now.getFullYear(), now.getMonth() - 5 + i, 1));
-  const series = months.map((date) => ({
-    month: date.toLocaleDateString('fr-FR', { month: 'short' }),
-    leads: leadsCreated.filter((l) => monthKey(l.createdAt) === monthKey(date)).length,
-    revenue: paidInvoices
-      .filter((inv) => inv.paidAt && monthKey(inv.paidAt) === monthKey(date))
-      .reduce((sum, inv) => sum + Number(inv.total), 0),
-  }));
-
-  const staffById = new Map(staff.map((u) => [u.id, u]));
-  const overdueInvoices = receivable.filter((inv) => inv.dueDate && inv.dueDate < now);
-
-  return {
-    scope: !scope || scope.allLeads ? ('team' as const) : ('mine' as const),
-    canManage: !scope || scope.manageLeads,
-    kpis: {
-      openLeads: openLeads.reduce((sum, s) => sum + s.count, 0),
-      pipelineAmount: openLeads.reduce((sum, s) => sum + s.amount, 0),
-      toQualify: stageMap.get('NEW')?._count._all ?? 0,
-      toAssign: stageMap.get('QUALIFIED')?._count._all ?? 0,
-      wonThisMonth: paidInvoices.filter((inv) => inv.paidAt && inv.paidAt >= monthStart).length,
-      revenueThisMonth: paidInvoices.filter((inv) => inv.paidAt && inv.paidAt >= monthStart).reduce((sum, inv) => sum + Number(inv.total), 0),
-      conversionRate: won90 + lost90 > 0 ? Math.round((won90 / (won90 + lost90)) * 100) : null,
-      overdueActions,
-      appointmentsToday: todayAppointments,
-      appointmentsWeek: weekAppointments,
-      pendingQuotes: pendingQuotes._count._all,
-      pendingQuotesAmount: Number(pendingQuotes._sum.total ?? 0),
-      receivableAmount: receivable.reduce((sum, inv) => sum + Number(inv.total), 0),
-      overdueInvoices: overdueInvoices.length,
-      servicesToLaunch: toLaunch,
-    },
-    stages,
-    sources: bySource.map((row) => ({ source: row.source, count: row._count._all })),
-    assignees: openByAssignee.map((row) => ({
-      id: row.assignedToId,
-      name: row.assignedToId ? staffName(staffById.get(row.assignedToId) ?? { displayName: null, email: 'Compte supprimé' }) : 'Non assignés',
-      count: row._count._all,
-    })),
-    series,
-  };
-}
-
 // --- Recherche globale (Ctrl+K) ---------------------------------------------------
 
 export async function globalSearch(query: string, scope?: StaffScope) {
   const q = query.trim();
   if (q.length < 2) return { leads: [], quotes: [], invoices: [] };
   const scoped = leadScopeWhere(scope);
-  const leadWhere = scoped ?? {};
   const viaLead = scoped ? { lead: scoped } : {};
   const [leads, quotes, invoices] = await Promise.all([
     prisma.lead.findMany({
-      where: { ...leadWhere, OR: [{ reference: { contains: q } }, { title: { contains: q } }, { contactName: { contains: q } }, { companyName: { contains: q } }, { email: { contains: q } }] },
-      select: { id: true, reference: true, title: true, contactName: true, stage: true },
+      where: {
+        AND: [scoped ?? {}, { OR: [{ reference: { contains: q } }, { title: { contains: q } }, { contactName: { contains: q } }, { companyName: { contains: q } }, { email: { contains: q } }, { phone: { contains: q } }] }],
+      },
+      select: { id: true, reference: true, title: true, contactName: true, stage: true, circuit: true },
       orderBy: { updatedAt: 'desc' },
       take: 6,
     }),
@@ -686,11 +527,13 @@ export async function globalSearch(query: string, scope?: StaffScope) {
       take: 5,
     }),
     prisma.invoice.findMany({
-      where: { ...viaLead, OR: [{ number: { contains: q } }, { customerName: { contains: q } }, { customerCompany: { contains: q } }] },
-      select: { id: true, number: true, status: true, total: true, customerName: true },
+      where: { ...viaLead, OR: [{ number: { contains: q } }, { proformaNumber: { contains: q } }, { customerName: { contains: q } }, { customerCompany: { contains: q } }] },
+      select: { id: true, number: true, proformaNumber: true, status: true, total: true, customerName: true },
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
   ]);
   return { leads, quotes, invoices };
 }
+
+export { STAGE_LABEL };

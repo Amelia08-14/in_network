@@ -25,11 +25,13 @@ export interface AdminNavItem {
 
 // Une teinte par section du menu (cf. lib/palette.ts).
 const SECTION_HUE: Record<string, Hue> = {
-  Pilotage: 'blue',
-  Commercial: 'orange',
-  'Sources des leads': 'violet',
-  Communauté: 'green',
-  'Catalogue & site': 'amber',
+  Accueil: 'ink',
+  Prospects: 'blue',
+  Ventes: 'orange',
+  Clients: 'green',
+  Commissions: 'amber',
+  Pilotage: 'violet',
+  'Communauté et site': 'gray',
   Système: 'gray',
 };
 
@@ -109,7 +111,7 @@ export function AdminShell({ children, navItems }: { children: React.ReactNode; 
   const [searchOpen, setSearchOpen] = useState(false);
   // La recherche globale porte sur les leads / devis / factures : réservée aux
   // comptes qui voient le bloc CRM.
-  const canSearch = navItems.some((item) => item.href === '/admin/crm');
+  const canSearch = navItems.some((item) => item.href === '/admin/crm/pipeline');
 
   useEffect(() => setOpen(false), [pathname]);
 

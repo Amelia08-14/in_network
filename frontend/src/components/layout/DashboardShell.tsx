@@ -15,9 +15,9 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  // Onglet visible mais inactif (compte pas encore validé) : rendu non cliquable.
+  // Onglet visible mais inactif (avant le premier paiement) : rendu non cliquable.
   locked?: boolean;
-  // Onglet mis en avant (ex. « Situation du compte » tant que le compte est en attente).
+  // Onglet mis en avant (ex. « Devis et factures » avant le premier paiement).
   highlight?: boolean;
   // Pastille de notification (ex. messages non lus).
   badge?: number;
@@ -72,7 +72,7 @@ export function DashboardShell({
                   key={item.href}
                   role="link"
                   aria-disabled="true"
-                  title="Disponible après validation de votre compte"
+                  title="Disponible dès votre premier paiement"
                   className="flex cursor-not-allowed select-none items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-400"
                 >
                   <item.icon className="h-4 w-4 shrink-0" strokeWidth={2} /> {item.label}

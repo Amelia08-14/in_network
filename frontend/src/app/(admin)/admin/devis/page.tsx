@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,8 +20,17 @@ import type { DocLine, QuoteListItem, QuoteStatus, QuoteTemplate } from '@/types
 type Tab = 'quotes' | 'templates';
 
 export default function QuotesPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-ink-500">Chargement…</p>}>
+      <Quotes />
+    </Suspense>
+  );
+}
+
+function Quotes() {
+  const initial = useSearchParams();
   const [tab, setTab] = useState<Tab>('quotes');
-  const [status, setStatus] = useState<QuoteStatus | ''>('');
+  const [status, setStatus] = useState<QuoteStatus | ''>((initial.get('status') as QuoteStatus | null) ?? '');
   const [search, setSearch] = useState('');
 
   const params = new URLSearchParams();
@@ -34,7 +44,7 @@ export default function QuotesPage() {
 
   return (
     <div className="space-y-6">
-      <PageTitle hue="amber" title="Devis" description="Créés depuis la fiche d’un lead : depuis un modèle, depuis la demande du site ou à partir de zéro." />
+      <PageTitle hue="amber" title="Devis" description="Créés depuis la fiche d’un lead (modèle, demande du client ou page blanche), ou automatiquement pour les demandes et renouvellements des membres. Les devis sur mesure passent par la validation avant l’envoi." />
 
       <div className="inline-flex rounded-xl border border-ink-900/10 bg-white p-1" role="tablist">
         {(['quotes', 'templates'] as const).map((t) => (
@@ -51,7 +61,7 @@ export default function QuotesPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Input aria-label="Rechercher un devis" className="h-10 w-64" placeholder="N° de devis, client…" value={search} onChange={(e) => setSearch(e.target.value)} />
             <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer par statut">
-              {(['', 'DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED'] as const).map((s) => (
+              {(['', 'DRAFT', 'PENDING_APPROVAL', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED'] as const).map((s) => (
                 <button key={s || 'all'} type="button" aria-pressed={status === s} onClick={() => setStatus(s)} className={cn('rounded-pill px-3.5 py-1.5 text-sm font-medium', status === s ? 'bg-ink-900 text-white' : 'bg-white text-ink-600 ring-1 ring-ink-900/10 hover:bg-ink-900/5')}>
                   {s ? QUOTE_STATUS[s].label : 'Tous'}
                 </button>

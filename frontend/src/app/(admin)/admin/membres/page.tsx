@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Eye, Search, Trash2 } from 'lucide-react';
-import { MemberDetailsPanel } from '@/components/features/MemberDetailsPanel';
+import { Search, Trash2 } from 'lucide-react';
+import { Pill } from '@/components/admin/crm-ui';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -17,14 +18,18 @@ interface AdminMember {
   email: string;
   isActive: boolean;
   createdAt: string;
-  profile: { firstName: string; lastName: string; memberType: string } | null;
+  profile: { firstName: string; lastName: string; memberType: string; isPublic: boolean } | null;
+  referent: { id: string; displayName: string | null; email: string } | null;
+  _count: { memberServiceOrders: number };
 }
+
+// Membres : la liste des fiches membre. Chaque fiche (panier de services,
+// historique, documents, référent) s'ouvre sur sa page.
 
 export default function AdminMembresPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-members', search, page],
@@ -49,7 +54,7 @@ export default function AdminMembresPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-heading text-2xl font-bold text-ink-900">Membres</h1>
-        <p className="mt-1 text-sm text-ink-500">{data?.meta.total ?? 0} membres inscrits.</p>
+        <p className="mt-1 text-sm text-ink-500">{data?.meta.total ?? 0} comptes membres. L’espace d’un membre s’active à son premier paiement.</p>
       </div>
 
       <div className="relative max-w-sm">
@@ -78,8 +83,10 @@ export default function AdminMembresPage() {
                   <tr>
                     <th className="px-5 py-3">Nom</th>
                     <th className="px-5 py-3">Email</th>
-                    <th className="px-5 py-3">Type</th>
-                    <th className="px-5 py-3">Statut</th>
+                    <th className="px-5 py-3">Espace</th>
+                    <th className="px-5 py-3">Services</th>
+                    <th className="px-5 py-3">Référent</th>
+                    <th className="px-5 py-3">Compte</th>
                     <th className="px-5 py-3">Inscrit le</th>
                     <th className="px-5 py-3" />
                   </tr>
@@ -88,10 +95,16 @@ export default function AdminMembresPage() {
                   {data.data.map((member) => (
                     <tr key={member.id}>
                       <td className="px-5 py-3 font-medium text-ink-800">
-                        {member.profile ? `${member.profile.firstName} ${member.profile.lastName}` : '—'}
+                        <Link href={`/admin/membres/${member.id}`} className="hover:underline">
+                          {member.profile ? `${member.profile.firstName} ${member.profile.lastName}` : '—'}
+                        </Link>
                       </td>
                       <td className="px-5 py-3 text-ink-600">{member.email}</td>
-                      <td className="px-5 py-3 text-ink-600">{member.profile?.memberType ?? '—'}</td>
+                      <td className="px-5 py-3">
+                        <Pill tone={member.profile?.isPublic ? 'green' : 'amber'}>{member.profile?.isPublic ? 'Actif' : 'Avant paiement'}</Pill>
+                      </td>
+                      <td className="px-5 py-3 tabular-nums text-ink-600">{member._count.memberServiceOrders}</td>
+                      <td className="px-5 py-3 text-ink-600">{member.referent ? member.referent.displayName || member.referent.email : '—'}</td>
                       <td className="px-5 py-3">
                         <Badge variant={member.isActive ? 'success' : 'startup'}>
                           {member.isActive ? 'Actif' : 'Désactivé'}
@@ -101,14 +114,9 @@ export default function AdminMembresPage() {
                         {new Date(member.createdAt).toLocaleDateString('fr-FR')}
                       </td>
                       <td className="px-5 py-3 text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="mr-2"
-                          onClick={() => setSelectedMemberId(member.id)}
-                        >
-                          <Eye className="h-4 w-4" /> Détails
-                        </Button>
+                        <Link href={`/admin/membres/${member.id}`} className="mr-3 text-sm font-medium text-brand-blue hover:underline">
+                          Fiche
+                        </Link>
                         <Button
                           size="sm"
                           variant="outline"
@@ -160,11 +168,6 @@ export default function AdminMembresPage() {
           </Button>
         </div>
       )}
-      <MemberDetailsPanel
-        memberId={selectedMemberId}
-        onClose={() => setSelectedMemberId(null)}
-        onStatusChanged={() => queryClient.invalidateQueries({ queryKey: ['admin-members'] })}
-      />
     </div>
   );
 }

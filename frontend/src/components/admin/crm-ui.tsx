@@ -6,9 +6,39 @@ import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { HUE, type Hue } from '@/lib/palette';
 import { api } from '@/lib/admin-api';
-import { initials, INVOICE_STATUS, ORDER_STATUS, PRIORITY, QUOTE_STATUS, SALES_ROLES, staffName, STAGE_BY_VALUE, TONE_CLASS, type Tone } from '@/lib/crm';
+import {
+  CIRCUIT,
+  COMMISSION_STATUS,
+  initials,
+  INVOICE_STATUS,
+  KIND,
+  MEMBER_SERVICE_STATUS,
+  ORDER_STATUS,
+  POLE,
+  PRIORITY,
+  QUOTE_STATUS,
+  SALES_PROFILE_LABEL,
+  SALES_ROLES,
+  stageLabel,
+  staffName,
+  STAGE_BY_VALUE,
+  TONE_CLASS,
+  type Tone,
+} from '@/lib/crm';
 import { useAdminAuthStore } from '@/store/admin-auth';
-import type { InvoiceStatus, LeadPriority, LeadStage, OrderStatus, QuoteStatus, StaffUser } from '@/types/crm';
+import type {
+  CommissionStatus,
+  DeliveryPole,
+  InvoiceStatus,
+  LeadCircuit,
+  LeadKind,
+  LeadPriority,
+  LeadStage,
+  MemberServiceStatus,
+  OrderStatus,
+  QuoteStatus,
+  StaffUser,
+} from '@/types/crm';
 
 export function Pill({ tone = 'gray', className, children }: { tone?: Tone; className?: string; children: React.ReactNode }) {
   return (
@@ -18,7 +48,15 @@ export function Pill({ tone = 'gray', className, children }: { tone?: Tone; clas
   );
 }
 
-export const StageBadge = ({ stage }: { stage: LeadStage }) => <Pill tone={STAGE_BY_VALUE[stage].tone}>{STAGE_BY_VALUE[stage].label}</Pill>;
+export const StageBadge = ({ stage, circuit }: { stage: LeadStage; circuit?: LeadCircuit | null }) => (
+  <Pill tone={stage === 'REGISTERED' && !circuit ? 'orange' : STAGE_BY_VALUE[stage].tone}>{stageLabel(stage, circuit)}</Pill>
+);
+export const CircuitBadge = ({ circuit }: { circuit: LeadCircuit | null | undefined }) =>
+  circuit ? <Pill tone={CIRCUIT[circuit].tone}>{CIRCUIT[circuit].short}</Pill> : <Pill tone="orange">À aiguiller</Pill>;
+export const KindBadge = ({ kind }: { kind: LeadKind }) => (kind === 'NEW_BUSINESS' ? null : <Pill tone={KIND[kind].tone}>{KIND[kind].label}</Pill>);
+export const PoleBadge = ({ pole }: { pole: DeliveryPole }) => <Pill tone={POLE[pole].tone}>{POLE[pole].label}</Pill>;
+export const MemberServiceBadge = ({ status }: { status: MemberServiceStatus }) => <Pill tone={MEMBER_SERVICE_STATUS[status].tone}>{MEMBER_SERVICE_STATUS[status].label}</Pill>;
+export const CommissionBadge = ({ status }: { status: CommissionStatus }) => <Pill tone={COMMISSION_STATUS[status].tone}>{COMMISSION_STATUS[status].label}</Pill>;
 export const PriorityBadge = ({ priority }: { priority: LeadPriority | null | undefined }) =>
   priority ? <Pill tone={PRIORITY[priority].tone}>{PRIORITY[priority].label}</Pill> : null;
 export const QuoteBadge = ({ status }: { status: QuoteStatus }) => <Pill tone={QUOTE_STATUS[status].tone}>{QUOTE_STATUS[status].label}</Pill>;
@@ -104,23 +142,71 @@ export function errorMessage(error: unknown, fallback = 'Une erreur est survenue
 }
 
 /**
- * Portée commerciale du compte connecté (calculée par l'API, appliquée aussi
- * côté serveur) : voit-il toute l'équipe ? peut-il qualifier / assigner ?
+ * Rôle du compte connecté dans le processus (calculé par l'API, appliqué aussi
+ * côté serveur) : sert à n'afficher que les actions qui lui reviennent.
  */
 export function useCrmAccess() {
-  const access = useAdminAuthStore((s) => s.user?.crmAccess);
-  return { allLeads: Boolean(access?.allLeads), manageLeads: Boolean(access?.manageLeads) };
+  const user = useAdminAuthStore((s) => s.user);
+  const access = user?.crmAccess;
+  return {
+    userId: user?.id ?? null,
+    role: user?.role ?? null,
+    allLeads: Boolean(access?.allLeads),
+    manageLeads: Boolean(access?.manageLeads),
+    salesManager: Boolean(access?.salesManager),
+    officeManager: Boolean(access?.officeManager),
+    direction: Boolean(access?.direction),
+  };
 }
 
-/** Options d'une liste d'assignation : l'équipe commerciale d'abord, puis les autres comptes. */
+const agentLabel = (u: StaffUser) =>
+  `${staffName(u)}${u.role === 'SALES_MANAGER' ? ' (responsable)' : u.salesProfile ? ` (${SALES_PROFILE_LABEL[u.salesProfile]})` : ''}${u.isExternal ? ' · prestataire' : ''}`;
+
+/** Options d'attribution d'un lead du circuit 1 : les commerciaux, sédentaires puis terrain. */
+export function SalesAgentOptions({ staff }: { staff: StaffUser[] | undefined }) {
+  const team = (staff ?? []).filter((u) => SALES_ROLES.includes(u.role ?? ''));
+  const group = (label: string, list: StaffUser[]) =>
+    list.length > 0 && (
+      <optgroup label={label}>
+        {list.map((u) => (
+          <option key={u.id} value={u.id}>
+            {agentLabel(u)}
+          </option>
+        ))}
+      </optgroup>
+    );
+  return (
+    <>
+      {group('Sédentaires (distance, digital, diaspora)', team.filter((u) => u.salesProfile === 'SEDENTARY'))}
+      {group('Terrain (entreprises, rendez-vous)', team.filter((u) => u.salesProfile === 'FIELD'))}
+      {group('Équipe commerciale', team.filter((u) => !u.salesProfile))}
+    </>
+  );
+}
+
+/** Office Managers (destinataires d'un dossier transmis ou d'un lead du circuit 2). */
+export function OfficeManagerOptions({ staff }: { staff: StaffUser[] | undefined }) {
+  return (
+    <>
+      {(staff ?? [])
+        .filter((u) => u.role === 'OFFICE_MANAGER')
+        .map((u) => (
+          <option key={u.id} value={u.id}>
+            {staffName(u)}
+          </option>
+        ))}
+    </>
+  );
+}
+
+/** Options d'une liste d'intervenants : l'équipe commerciale d'abord, puis les autres comptes. */
 export function AssigneeOptions({ staff }: { staff: StaffUser[] | undefined }) {
   const team = (staff ?? []).filter((u) => SALES_ROLES.includes(u.role ?? ''));
   const others = (staff ?? []).filter((u) => !SALES_ROLES.includes(u.role ?? ''));
   const render = (list: StaffUser[]) =>
     list.map((u) => (
       <option key={u.id} value={u.id}>
-        {staffName(u)}
-        {u.role === 'SALES_MANAGER' ? ' (responsable)' : ''}
+        {agentLabel(u)}
       </option>
     ));
   return (
@@ -128,5 +214,15 @@ export function AssigneeOptions({ staff }: { staff: StaffUser[] | undefined }) {
       {team.length > 0 && <optgroup label="Équipe commerciale">{render(team)}</optgroup>}
       {others.length > 0 && <optgroup label="Autres comptes">{render(others)}</optgroup>}
     </>
+  );
+}
+
+/** Bandeau d'erreur d'une action. */
+export function ErrorNote({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <p className="rounded-xl bg-brand-orange/10 px-4 py-2.5 text-sm text-brand-orange" role="alert">
+      {message}
+    </p>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Banknote, FileDown, Mail, Send, Trash2, Ban } from 'lucide-react';
+import { ArrowLeft, Banknote, FileDown, Mail, Send, Trash2, Ban, Undo2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { LineItemsEditor } from '@/components/admin/LineItemsEditor';
 import { errorMessage, Field, InvoiceBadge, OrderBadge, Pill } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
-import { dateFr, INVOICE_STATUS, money, openAdminPdf, PAYMENT_LABEL, toInputDate } from '@/lib/crm';
+import { dateFr, DIASPORA_CHANNELS, INVOICE_STATUS, invoiceNumber, money, openAdminPdf, PAYMENT_LABEL, toInputDate } from '@/lib/crm';
 import { HUE_ACCENT } from '@/lib/palette';
 import type { DocLine, InvoiceDetail, PaymentMethod } from '@/types/crm';
 
@@ -26,12 +26,18 @@ export default function InvoicePage() {
     queryFn: () => api.get<{ data: InvoiceDetail }>(`/api/admin/invoices/${id}`).then((r) => r.data),
   });
   if (isLoading) return <p className="text-sm text-ink-500">Chargement…</p>;
-  if (!invoice) return <EmptyState title="Facture introuvable" />;
+  if (!invoice) return <EmptyState title="Document introuvable" />;
   return <InvoiceEditor key={invoice.id} invoice={invoice} />;
 }
 
+// Facturation (processus v1.3, décision du 23/10/2026) : brouillon → facture
+// proforma envoyée (PF-…) → paiement enregistré par l'Office Manager (espèces
+// ou virement, virement pour la diaspora). Le paiement attribue le numéro de
+// facture définitive (FA-…), l'envoie au client, active son espace et ajoute
+// les services à son panier. Une facture payée se rembourse (commissions reprises).
 function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
   const router = useRouter();
+  const diaspora = Boolean(invoice.lead?.channel && DIASPORA_CHANNELS.includes(invoice.lead.channel));
   const queryClient = useQueryClient();
   const editable = invoice.status === 'DRAFT';
   const [form, setForm] = useState({
@@ -53,7 +59,8 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [payOpen, setPayOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [pay, setPay] = useState({ method: 'BANK_TRANSFER' as PaymentMethod, paidAt: toInputDate(new Date()), reference: '' });
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [pay, setPay] = useState({ method: (diaspora ? 'BANK_TRANSFER' : 'CASH') as PaymentMethod, paidAt: toInputDate(new Date()), reference: '' });
   const [reason, setReason] = useState('');
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -63,6 +70,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
     queryClient.invalidateQueries({ queryKey: ['crm-lead'] });
     queryClient.invalidateQueries({ queryKey: ['crm-dashboard'] });
     queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-home'] });
   };
   const fail = (e: unknown) => {
     setNotice(null);
@@ -81,7 +89,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
     dueDate: form.dueDate ? new Date(`${form.dueDate}T23:59:59`).toISOString() : null,
     vatRate: Number(form.vatRate) || 0,
     notes: form.notes,
-    lines: lines.map((l) => ({ description: l.description, quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, serviceId: l.serviceId, planId: l.planId, spaceId: l.spaceId, tierLabel: l.tierLabel })),
+    lines: lines.map((l) => ({ description: l.description, quantity: Number(l.quantity) || 0, unitPrice: Number(l.unitPrice) || 0, serviceId: l.serviceId, planId: l.planId, spaceId: l.spaceId, tierLabel: l.tierLabel, renewsOrderId: l.renewsOrderId })),
   });
 
   const save = useMutation({
@@ -101,7 +109,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
     onSuccess: (r) => {
       setError(null);
       set({ dueDate: toInputDate(r.invoice.dueDate) });
-      setNotice(`Facture ${r.invoice.number} émise${r.emailed ? ' et envoyée au client' : r.emailError && form.sendOnIssue ? ` (email non envoyé : ${r.emailError})` : ''}.`);
+      setNotice(`Proforma ${r.invoice.proformaNumber} prête${r.emailed ? ' et envoyée au client' : r.emailError && form.sendOnIssue ? ` (email non envoyé : ${r.emailError})` : ''}. Le client la retrouve dans son espace, avec le dépôt du justificatif.`);
       refresh();
     },
     onError: fail,
@@ -110,7 +118,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
     mutationFn: () => api.post<{ data: { emailed: boolean; emailError?: string } }>(`/api/admin/invoices/${invoice.id}/send`).then((r) => r.data),
     onSuccess: (r) => {
       setError(null);
-      setNotice(r.emailed ? `Facture envoyée à ${invoice.customerEmail}.` : `Envoi impossible : ${r.emailError}`);
+      setNotice(r.emailed ? `${invoiceNumber(invoice)} envoyée à ${invoice.customerEmail}.` : `Envoi impossible : ${r.emailError}`);
       refresh();
     },
     onError: fail,
@@ -125,7 +133,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
     onSuccess: (r) => {
       setPayOpen(false);
       setError(null);
-      setNotice(`Paiement enregistré : ${r.orders.length} service${r.orders.length > 1 ? 's' : ''} à lancer.`);
+      setNotice(`Paiement enregistré : facture définitive envoyée, espace du membre actif, ${r.orders.length} service${r.orders.length > 1 ? 's' : ''} ajouté${r.orders.length > 1 ? 's' : ''} à son panier.`);
       refresh();
     },
     onError: fail,
@@ -139,25 +147,35 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
     },
     onError: fail,
   });
+  const refund = useMutation({
+    mutationFn: () => api.post(`/api/admin/invoices/${invoice.id}/refund`, { reason }),
+    onSuccess: () => {
+      setRefundOpen(false);
+      setError(null);
+      setNotice('Remboursement enregistré : les commissions liées sont reprises.');
+      refresh();
+    },
+    onError: fail,
+  });
   const remove = useMutation({
     mutationFn: () => api.delete(`/api/admin/invoices/${invoice.id}`),
     onSuccess: () => router.push('/admin/factures'),
     onError: fail,
   });
 
-  const busy = save.isPending || issue.isPending || resend.isPending || recordPayment.isPending || cancel.isPending || remove.isPending;
+  const busy = save.isPending || issue.isPending || resend.isPending || recordPayment.isPending || cancel.isPending || remove.isPending || refund.isPending;
   const overdue = invoice.status === 'SENT' && invoice.dueDate && new Date(invoice.dueDate) < new Date();
 
   return (
     <div className="space-y-6">
       <div>
         <Link href="/admin/factures" className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-ink-900">
-          <ArrowLeft className="h-4 w-4" /> Factures
+          <ArrowLeft className="h-4 w-4" /> Proformas et factures
         </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="font-heading text-2xl font-bold text-ink-900">{invoice.number ?? 'Facture (brouillon)'}</h1>
+              <h1 className="font-heading text-2xl font-bold text-ink-900">{invoice.number ? `Facture ${invoice.number}` : invoice.proformaNumber ? `Proforma ${invoice.proformaNumber}` : 'Proforma (brouillon)'}</h1>
               <InvoiceBadge status={invoice.status} />
               {overdue && <Pill tone="red">En retard</Pill>}
             </div>
@@ -175,7 +193,8 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
                   </Link>
                 </>
               )}
-              {invoice.issueDate && ` · émise le ${dateFr(invoice.issueDate)}`}
+              {invoice.number && invoice.proformaNumber && ` · proforma ${invoice.proformaNumber}`}
+              {invoice.issueDate && ` · envoyée le ${dateFr(invoice.issueDate)}`}
               {invoice.dueDate && invoice.status === 'SENT' && ` · échéance ${dateFr(invoice.dueDate)}`}
             </p>
           </div>
@@ -189,7 +208,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
                   {save.isPending ? 'Enregistrement…' : 'Enregistrer'}
                 </Button>
                 <Button disabled={busy || lines.length === 0} onClick={() => issue.mutate()}>
-                  <Send className="h-4 w-4" /> Émettre la facture
+                  <Send className="h-4 w-4" /> Envoyer la proforma
                 </Button>
               </>
             )}
@@ -200,7 +219,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
             )}
             {(invoice.status === 'SENT' || invoice.status === 'PAID') && invoice.customerEmail && (
               <Button variant="outline" disabled={busy} onClick={() => resend.mutate()}>
-                <Mail className="h-4 w-4" /> Envoyer par email
+                <Mail className="h-4 w-4" /> Renvoyer par e-mail
               </Button>
             )}
           </div>
@@ -283,7 +302,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
       {invoice.status === 'PAID' && (
         <Card accent="green">
           <CardContent className="space-y-3">
-            <h2 className="font-heading text-base font-bold text-ink-900">Paiement et lancement des services</h2>
+            <h2 className="font-heading text-base font-bold text-ink-900">Paiement et services du membre</h2>
             <p className="text-sm text-ink-700">
               Payée le {dateFr(invoice.paidAt)} par {invoice.paymentMethod ? PAYMENT_LABEL[invoice.paymentMethod].toLowerCase() : '—'}
               {invoice.paymentRef ? ` (réf. ${invoice.paymentRef})` : ''}.
@@ -296,17 +315,33 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
                 </li>
               ))}
             </ul>
-            <Link href="/admin/lancements" className="text-sm font-medium text-brand-blue hover:underline">
-              Suivre les lancements →
-            </Link>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {invoice.lead?.userId ? (
+                <Link href={`/admin/membres/${invoice.lead.userId}`} className="text-sm font-medium text-brand-blue hover:underline">
+                  Ouvrir la fiche membre →
+                </Link>
+              ) : (
+                <Link href="/admin/lancements" className="text-sm font-medium text-brand-blue hover:underline">
+                  Suivre la livraison →
+                </Link>
+              )}
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => setRefundOpen(true)}>
+                <Undo2 className="h-4 w-4" /> Enregistrer un remboursement
+              </Button>
+            </div>
           </CardContent>
         </Card>
+      )}
+      {invoice.status === 'REFUNDED' && (
+        <p className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+          Remboursée le {dateFr(invoice.refundedAt)}{invoice.refundReason ? ` (${invoice.refundReason})` : ''} : les commissions liées ont été reprises.
+        </p>
       )}
 
       {invoice.status === 'SENT' && (
         <div className="flex justify-end">
           <Button variant="ghost" size="sm" disabled={busy} onClick={() => setCancelOpen(true)}>
-            <Ban className="h-4 w-4" /> Annuler cette facture
+            <Ban className="h-4 w-4" /> Annuler cette proforma
           </Button>
         </div>
       )}
@@ -330,7 +365,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
         <div className="space-y-4">
           <Field label="Mode de paiement" htmlFor="pay-method">
             <Select id="pay-method" value={pay.method} onChange={(e) => setPay({ ...pay, method: e.target.value as PaymentMethod })}>
-              {(Object.keys(PAYMENT_LABEL) as PaymentMethod[]).map((m) => (
+              {(diaspora ? (['BANK_TRANSFER'] as PaymentMethod[]) : (['CASH', 'BANK_TRANSFER', 'CHEQUE', 'CARD'] as PaymentMethod[])).map((m) => (
                 <option key={m} value={m}>
                   {PAYMENT_LABEL[m]}
                 </option>
@@ -343,14 +378,17 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
           <Field label="Référence (n° de virement, de chèque…)" htmlFor="pay-ref">
             <Input id="pay-ref" value={pay.reference} onChange={(e) => setPay({ ...pay, reference: e.target.value })} />
           </Field>
-          <p className="text-xs text-ink-500">Le paiement lance automatiquement les services facturés et active l’abonnement du membre rattaché.</p>
+          {diaspora && <p className="text-xs text-ink-500">Client de la diaspora : le paiement se fait par virement.</p>}
+          <p className="text-xs text-ink-500">
+            Le paiement attribue le numéro de facture définitive et l’envoie au client, active son espace membre (ou le crée et lui envoie ses accès), ajoute les services à son panier et calcule les commissions.
+          </p>
         </div>
       </Modal>
 
       <Modal
         open={cancelOpen}
         onClose={() => setCancelOpen(false)}
-        title="Annuler la facture"
+        title="Annuler la proforma"
         size="sm"
         footer={
           <>
@@ -358,7 +396,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
               Retour
             </Button>
             <Button disabled={cancel.isPending || reason.trim().length < 2} onClick={() => cancel.mutate()}>
-              Annuler la facture
+              Annuler la proforma
             </Button>
           </>
         }
@@ -366,6 +404,28 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
         <Field label="Motif" htmlFor="cancel-reason">
           <Textarea id="cancel-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
         </Field>
+      </Modal>
+
+      <Modal
+        open={refundOpen}
+        onClose={() => setRefundOpen(false)}
+        title="Enregistrer un remboursement"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRefundOpen(false)}>
+              Retour
+            </Button>
+            <Button disabled={refund.isPending || reason.trim().length < 2} onClick={() => refund.mutate()}>
+              Confirmer le remboursement
+            </Button>
+          </>
+        }
+      >
+        <Field label="Motif" htmlFor="refund-reason">
+          <Textarea id="refund-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
+        </Field>
+        <p className="mt-2 text-xs text-ink-500">Les commissions calculées sur cette facture sont reprises, y compris celles déjà versées (à déduire du prochain relevé).</p>
       </Modal>
     </div>
   );

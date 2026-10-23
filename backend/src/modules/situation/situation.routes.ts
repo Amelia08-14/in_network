@@ -107,7 +107,6 @@ paymentProofsAdminRouter.post(
       decision: z.enum(['ACCEPT', 'REJECT']),
       reviewNote: z.string().trim().max(1000).optional(),
       recordPayment: z.boolean().optional(),
-      validateAccount: z.boolean().optional(),
     }),
   }),
   asyncHandler(async (req, res) => ok(res, await situation.reviewProof(param(req, 'id'), req.body, req.user!.id))),

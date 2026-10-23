@@ -4,9 +4,12 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { ok } from '../../utils/apiResponse';
 import { param } from '../../utils/httpParams';
 import * as leads from './leads.service';
+import * as flow from './leadFlow.service';
 import * as quotes from './quotes.service';
 import * as invoices from './invoices.service';
 import * as fulfilment from './fulfilment.service';
+import * as commissions from './commissions.service';
+import { getCrmDashboard, getHome } from './home.service';
 import { AUTOMATION_RULES, runAutomations } from './automations.service';
 import { listStaff } from './staff';
 import { assertCanManage, assertLeadAccess, attachScope, requireScope } from './scope';
@@ -15,8 +18,8 @@ import { ApiError } from '../../utils/apiResponse';
 import * as s from './crm.schema';
 
 // Routes montées sous /api/admin (cf. admin.routes.ts) : l'accès est déjà
-// filtré par adminPermission — `crm`, `quotes`, `invoices` et `fulfilment` sont
-// les blocs de permissions de l'équipe commerciale.
+// filtré par adminPermission — `crm`, `quotes`, `invoices`, `fulfilment` et
+// `commissions` sont les blocs de permissions de la chaîne commerciale.
 
 function sendPdf(res: Response, file: { number: string; buffer: Buffer }) {
   res.setHeader('Content-Type', 'application/pdf');
@@ -24,29 +27,34 @@ function sendPdf(res: Response, file: { number: string; buffer: Buffer }) {
   res.send(file.buffer);
 }
 
-// Chaque routeur commercial charge d'abord la portée du compte (req.scope) :
-// un commercial n'accède qu'aux leads qui lui sont assignés et à ce qui s'y
-// rattache (devis, factures, rendez-vous, journal, commandes) — cf. scope.ts.
-// Pour les ressources désignées par un :id, `guard` vérifie le rattachement avant
-// toute autre route ; une ressource hors portée répond 404.
+// Chaque routeur commercial charge d'abord la portée du compte (req.scope),
+// cf. scope.ts. Pour les ressources désignées par un :id, `guard` vérifie le
+// rattachement au lead avant toute autre route (lecture pour un GET,
+// écriture sinon) ; une ressource hors portée répond 404.
 type Resolver = (id: string) => Promise<string | null | undefined>;
 const guard =
   (resolve: Resolver, skip: string[] = []) =>
   async (req: Request, _res: Response, next: NextFunction) => {
     try {
       const id = String(req.params.id ?? '');
-      if (id && !skip.includes(id)) await assertLeadAccess(req.scope, await resolve(id));
+      if (id && !skip.includes(id)) await assertLeadAccess(req.scope, await resolve(id), req.method === 'GET' ? 'read' : 'write');
       next();
     } catch (error) {
       next(error);
     }
   };
 
+// ============================ Accueil « Ma journée » ============================
+// Ouvert à tout le staff (ressource « home ») : chaque bloc est calculé selon les droits.
+export const homeRouter = Router();
+homeRouter.use(attachScope);
+homeRouter.get('/', asyncHandler(async (req, res) => ok(res, await getHome(requireScope(req)))));
+
 // ============================ CRM ============================
 export const crmRouter = Router();
 crmRouter.use(attachScope);
 
-crmRouter.get('/dashboard', asyncHandler(async (req, res) => ok(res, await leads.getDashboard(requireScope(req)))));
+crmRouter.get('/dashboard', asyncHandler(async (req, res) => ok(res, await getCrmDashboard(requireScope(req)))));
 crmRouter.get('/staff', asyncHandler(async (_req, res) => ok(res, await listStaff())));
 crmRouter.get(
   '/search',
@@ -57,9 +65,11 @@ crmRouter.get(
   '/leads',
   validate({ query: s.leadListQuerySchema }),
   asyncHandler(async (req, res) => {
-    const q = req.validatedQuery as { stage?: never; source?: never; assignee?: string; search?: string };
+    const q = req.validatedQuery as Omit<leads.LeadListFilter, 'assignedToId'> & { assignee?: string };
     const assignedToId = q.assignee === 'me' ? req.user!.id : q.assignee === 'none' ? null : q.assignee || undefined;
-    ok(res, await leads.listLeads({ stage: q.stage, source: q.source, search: q.search, assignedToId }, requireScope(req)));
+    const { assignee: _assignee, ...filter } = q;
+    void _assignee;
+    ok(res, await leads.listLeads({ ...filter, assignedToId }, requireScope(req)));
   }),
 );
 crmRouter.post(
@@ -73,33 +83,46 @@ crmRouter.patch(
   validate({ body: s.leadPatchSchema }),
   asyncHandler(async (req, res) => ok(res, await leads.updateLead(param(req, 'id'), req.body, req.user!.id, requireScope(req)))),
 );
+
+// Parcours (processus v1.3) : aiguillage → attribution / prise en charge →
+// qualification → relances → visite (transmission) ; passerelle ; clôture.
 crmRouter.post(
-  '/leads/:id/stage',
-  validate({ body: s.stageBodySchema }),
-  asyncHandler(async (req, res) =>
-    ok(res, await leads.changeStage(param(req, 'id'), req.body.stage, req.user!.id, req.body.lostReason, requireScope(req))),
-  ),
-);
-// Qualification → validation → assignation : réservées au responsable commercial
-// (droit crm_manage, cf. scope.ts).
-crmRouter.post(
-  '/leads/:id/qualify',
-  validate({ body: s.qualifyBodySchema }),
-  asyncHandler(async (req, res) => ok(res, await leads.qualifyLead(param(req, 'id'), req.body, req.user!.id, requireScope(req)))),
+  '/leads/:id/dispatch',
+  validate({ body: s.dispatchBodySchema }),
+  asyncHandler(async (req, res) => ok(res, await flow.dispatchLead(param(req, 'id'), req.body, req.user!.id, requireScope(req)))),
 );
 crmRouter.post(
   '/leads/:id/assign',
   validate({ body: s.assignBodySchema }),
-  asyncHandler(async (req, res) => ok(res, await leads.assignLead(param(req, 'id'), req.body.assignedToId, req.user!.id, requireScope(req)))),
+  asyncHandler(async (req, res) => ok(res, await flow.assignLead(param(req, 'id'), req.body.assignedToId, req.user!.id, requireScope(req)))),
 );
 crmRouter.post(
-  '/leads/:id/reject',
-  validate({ body: s.rejectBodySchema }),
-  asyncHandler(async (req, res) => {
-    assertCanManage(requireScope(req));
-    ok(res, await leads.changeStage(param(req, 'id'), 'LOST', req.user!.id, `Écarté à la qualification : ${req.body.reason}`, requireScope(req)));
-  }),
+  '/leads/:id/circuit',
+  validate({ body: s.circuitBodySchema }),
+  asyncHandler(async (req, res) => ok(res, await flow.changeCircuit(param(req, 'id'), req.body, req.user!.id, requireScope(req)))),
 );
+crmRouter.post(
+  '/leads/:id/qualify',
+  validate({ body: s.qualifyBodySchema }),
+  asyncHandler(async (req, res) => ok(res, await flow.qualifyLead(param(req, 'id'), req.body, req.user!.id, requireScope(req)))),
+);
+crmRouter.post(
+  '/leads/:id/follow-up',
+  validate({ body: s.followUpBodySchema }),
+  asyncHandler(async (req, res) => ok(res, await flow.recordFollowUp(param(req, 'id'), req.body, req.user!.id, requireScope(req)))),
+);
+crmRouter.post(
+  '/leads/:id/visit',
+  validate({ body: s.visitBodySchema }),
+  asyncHandler(async (req, res) => ok(res, await flow.confirmVisit(param(req, 'id'), req.body, req.user!.id, requireScope(req)))),
+);
+crmRouter.post(
+  '/leads/:id/lose',
+  validate({ body: s.loseBodySchema }),
+  asyncHandler(async (req, res) => ok(res, await flow.loseLead(param(req, 'id'), req.body.reason, req.user!.id, requireScope(req)))),
+);
+crmRouter.post('/leads/:id/reopen', asyncHandler(async (req, res) => ok(res, await flow.reopenLead(param(req, 'id'), req.user!.id, requireScope(req)))));
+
 crmRouter.post(
   '/leads/:id/activities',
   validate({ body: s.activityBodySchema }),
@@ -189,19 +212,32 @@ quotesRouter.post(
   validate({ body: s.quoteCreateSchema }),
   asyncHandler(async (req, res) => ok(res, await quotes.createQuote(req.body, req.user!.id, requireScope(req)), 201)),
 );
+// La validation d'une demande de devis revient à un responsable qui ne suit
+// pas forcément le lead : contrôle de portée en lecture, droits vérifiés par le service.
+quotesRouter.post('/:id/approve', asyncHandler(async (req, res) => ok(res, await quotes.approveQuote(param(req, 'id'), req.user!.id, requireScope(req)))));
+quotesRouter.post(
+  '/:id/return',
+  validate({ body: s.quoteReturnSchema }),
+  asyncHandler(async (req, res) => ok(res, await quotes.returnForChanges(param(req, 'id'), req.body.comment, req.user!.id, requireScope(req)))),
+);
 quotesRouter.use(
   '/:id',
   guard(async (id) => (await prisma.quote.findUnique({ where: { id }, select: { leadId: true } }))?.leadId, ['templates']),
 );
-quotesRouter.get('/:id', asyncHandler(async (req, res) => ok(res, await quotes.getQuote(param(req, 'id')))));
+quotesRouter.get('/:id', asyncHandler(async (req, res) => {
+  const quote = await quotes.getQuote(param(req, 'id'));
+  ok(res, { ...quote, approval: quote.status === 'DRAFT' || quote.status === 'PENDING_APPROVAL' ? await quotes.checkApproval(quote) : null });
+}));
 quotesRouter.patch(
   '/:id',
   validate({ body: s.quotePatchSchema }),
   asyncHandler(async (req, res) => ok(res, await quotes.updateQuote(param(req, 'id'), req.body))),
 );
+quotesRouter.post('/:id/submit', asyncHandler(async (req, res) => ok(res, await quotes.submitForApproval(param(req, 'id'), req.user!.id))));
 quotesRouter.post('/:id/send', asyncHandler(async (req, res) => ok(res, await quotes.sendQuote(param(req, 'id'), req.user!.id))));
-quotesRouter.post('/:id/accept', asyncHandler(async (req, res) => ok(res, await quotes.decideQuote(param(req, 'id'), 'ACCEPTED', req.user!.id))));
-quotesRouter.post('/:id/reject', asyncHandler(async (req, res) => ok(res, await quotes.decideQuote(param(req, 'id'), 'REJECTED', req.user!.id))));
+// Confirmation reçue par e-mail (ou refus), consignée par l'intervenant.
+quotesRouter.post('/:id/accept', asyncHandler(async (req, res) => ok(res, await quotes.decideQuote(param(req, 'id'), 'ACCEPTED', req.user!.id, 'EMAIL'))));
+quotesRouter.post('/:id/reject', asyncHandler(async (req, res) => ok(res, await quotes.decideQuote(param(req, 'id'), 'REJECTED', req.user!.id, 'EMAIL'))));
 quotesRouter.post('/:id/reopen', asyncHandler(async (req, res) => ok(res, await quotes.reopenQuote(param(req, 'id'), req.user!.id))));
 quotesRouter.get('/:id/pdf', asyncHandler(async (req, res) => sendPdf(res, await quotes.quotePdf(param(req, 'id')))));
 
@@ -218,7 +254,7 @@ invoicesRouter.post(
   '/',
   validate({ body: s.invoiceCreateSchema }),
   asyncHandler(async (req, res) => {
-    // Un commercial ne facture que ses propres leads / devis : pas de facture « libre ».
+    // Une facture se rattache à un lead visible du compte (pas de facture « libre » hors Direction).
     const scope = requireScope(req);
     if (!scope.allLeads) {
       const leadId =
@@ -262,9 +298,14 @@ invoicesRouter.post(
   validate({ body: s.invoiceCancelSchema }),
   asyncHandler(async (req, res) => ok(res, await invoices.cancelInvoice(param(req, 'id'), req.body.reason, req.user!.id))),
 );
+invoicesRouter.post(
+  '/:id/refund',
+  validate({ body: s.invoiceCancelSchema }),
+  asyncHandler(async (req, res) => ok(res, await invoices.refundInvoice(param(req, 'id'), req.body.reason, req.user!.id))),
+);
 invoicesRouter.get('/:id/pdf', asyncHandler(async (req, res) => sendPdf(res, await invoices.invoicePdf(param(req, 'id')))));
 
-// ============================ Lancement des services ============================
+// ============================ Services clients (livraison) ============================
 export const serviceOrdersRouter = Router();
 serviceOrdersRouter.use(attachScope);
 
@@ -273,19 +314,18 @@ serviceOrdersRouter.get(
   '/',
   validate({ query: s.orderListQuerySchema }),
   asyncHandler(async (req, res) => {
-    const q = req.validatedQuery as { status?: never; assignee?: string };
+    const q = req.validatedQuery as { status?: never; pole?: never; userId?: string; expiring?: string; assignee?: string };
     const assignedToId = q.assignee === 'me' ? req.user!.id : q.assignee || undefined;
-    ok(res, await fulfilment.listOrders({ status: q.status, assignedToId }, requireScope(req)));
+    ok(res, await fulfilment.listOrders({ status: q.status, pole: q.pole, userId: q.userId, expiring: Boolean(q.expiring), assignedToId }, requireScope(req)));
   }),
 );
-// Commande hors portée : ni assignée au compte, ni issue d'un de ses leads.
+// Service hors portée : ni assigné au compte, ni dans son pôle / ses dossiers.
 serviceOrdersRouter.use('/:id', async (req, _res, next) => {
   try {
+    if (req.params.id === 'staff') return next();
     const scope = requireScope(req);
-    if (scope.allLeads || req.params.id === 'staff') return next();
-    const order = await prisma.serviceOrder.findUnique({ where: { id: String(req.params.id) }, select: { assignedToId: true, leadId: true } });
-    if (!order) return next(ApiError.notFound('Introuvable'));
-    if (order.assignedToId !== scope.userId) await assertLeadAccess(scope, order.leadId);
+    const visible = await prisma.serviceOrder.findFirst({ where: { id: String(req.params.id), ...fulfilment.orderScopeWhere(scope) }, select: { id: true } });
+    if (!visible) return next(ApiError.notFound('Introuvable'));
     next();
   } catch (error) {
     next(error);
@@ -296,6 +336,20 @@ serviceOrdersRouter.patch(
   '/:id',
   validate({ body: s.orderPatchSchema }),
   asyncHandler(async (req, res) => ok(res, await fulfilment.updateOrder(param(req, 'id'), req.body))),
+);
+serviceOrdersRouter.post('/:id/start', asyncHandler(async (req, res) => ok(res, await fulfilment.startOrder(param(req, 'id'), req.user!.id))));
+serviceOrdersRouter.post('/:id/ready', asyncHandler(async (req, res) => ok(res, await fulfilment.markOrderReady(param(req, 'id'), req.user!.id))));
+// Validation pour le compte du membre (le référent confirme avec lui).
+serviceOrdersRouter.post('/:id/validate', asyncHandler(async (req, res) => ok(res, await fulfilment.validateOrder(param(req, 'id'), { id: req.user!.id, isMember: false }))));
+serviceOrdersRouter.post(
+  '/:id/adjustment',
+  validate({ body: s.orderNoteSchema }),
+  asyncHandler(async (req, res) => ok(res, await fulfilment.requestAdjustment(param(req, 'id'), req.body.note, { id: req.user!.id, isMember: false }))),
+);
+serviceOrdersRouter.post(
+  '/:id/cancel',
+  validate({ body: s.orderCancelSchema }),
+  asyncHandler(async (req, res) => ok(res, await fulfilment.cancelOrder(param(req, 'id'), req.body.reason, req.user!.id))),
 );
 serviceOrdersRouter.post(
   '/:id/tasks',
@@ -311,3 +365,36 @@ serviceOrdersRouter.delete(
   '/:id/tasks/:taskId',
   asyncHandler(async (req, res) => ok(res, await fulfilment.deleteTask(param(req, 'id'), param(req, 'taskId')))),
 );
+
+// ============================ Commissions ============================
+export const commissionsRouter = Router();
+commissionsRouter.use(attachScope);
+const directionOnly = (req: Request, _res: Response, next: NextFunction) => {
+  if (!requireScope(req).direction) return next(ApiError.forbidden('Le barème des commissions est géré par la Direction.'));
+  next();
+};
+
+commissionsRouter.get('/rules', asyncHandler(async (_req, res) => ok(res, await commissions.listRules())));
+commissionsRouter.post('/rules', directionOnly, validate({ body: s.commissionRuleSchema }), asyncHandler(async (req, res) => ok(res, await commissions.createRule(req.body), 201)));
+commissionsRouter.patch('/rules/:id', directionOnly, validate({ body: s.commissionRulePatchSchema }), asyncHandler(async (req, res) => ok(res, await commissions.updateRule(param(req, 'id'), req.body))));
+commissionsRouter.delete(
+  '/rules/:id',
+  directionOnly,
+  asyncHandler(async (req, res) => {
+    await commissions.deleteRule(param(req, 'id'));
+    res.status(204).send();
+  }),
+);
+commissionsRouter.get(
+  '/statement',
+  validate({ query: s.statementQuerySchema }),
+  asyncHandler(async (req, res) => ok(res, await commissions.monthlyStatement((req.validatedQuery as { month: string }).month, requireScope(req)))),
+);
+commissionsRouter.get(
+  '/',
+  validate({ query: s.commissionListQuerySchema }),
+  asyncHandler(async (req, res) => ok(res, await commissions.listCommissions(req.validatedQuery as never, requireScope(req)))),
+);
+commissionsRouter.post('/check', validate({ body: s.commissionIdsSchema }), asyncHandler(async (req, res) => ok(res, { count: await commissions.checkCommissions(req.body.ids, req.user!.id, requireScope(req)) })));
+commissionsRouter.post('/validate', validate({ body: s.commissionIdsSchema }), asyncHandler(async (req, res) => ok(res, { count: await commissions.validateCommissions(req.body.ids, req.user!.id, requireScope(req)) })));
+commissionsRouter.post('/pay', validate({ body: s.commissionIdsSchema }), asyncHandler(async (req, res) => ok(res, { count: await commissions.payCommissions(req.body.ids, requireScope(req)) })));

@@ -12,9 +12,11 @@ import { decideQuote } from '../crm/quotes.service';
 import { STAFF_SELECT, listStaffWith, notifyUsers } from '../crm/staff';
 import { isAccountValidated } from './accountState';
 
-// « Situation du compte » : ce que voit un membre tant que son compte n'est pas
-// validé — avancement de sa validation, ses devis, ses factures, et l'envoi de
-// son justificatif de paiement. Tout est borné à SES données (lead.userId).
+// « Devis et factures » de l'espace membre (ex « Situation du compte ») : ses
+// demandes, ses devis à confirmer, ses factures proforma à régler et ses
+// factures, et l'envoi de son justificatif de paiement. Accessible avant
+// l'activation du compte (décision du 23/10/2026 : c'est le paiement qui
+// déverrouille le reste de l'espace). Tout est borné à SES données (lead.userId).
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char] ?? char);
@@ -59,7 +61,7 @@ export async function getSituation(userId: string) {
         reviewNote: true,
         createdAt: true,
         quote: { select: { number: true } },
-        invoice: { select: { number: true } },
+        invoice: { select: { number: true, proformaNumber: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -93,7 +95,7 @@ export async function getSituation(userId: string) {
       notes: q.notes,
       lines: q.lines.map((l) => ({ id: l.id, description: l.description, quantity: l.quantity, unitPrice: l.unitPrice })),
     })),
-    invoices: invoices.map((i) => ({ id: i.id, number: i.number, status: i.status, total: i.total, dueDate: i.dueDate, paidAt: i.paidAt })),
+    invoices: invoices.map((i) => ({ id: i.id, number: i.number, proformaNumber: i.proformaNumber, status: i.status, total: i.total, dueDate: i.dueDate, paidAt: i.paidAt })),
     proofs,
     // Coordonnées de règlement : uniquement si l'entreprise les a renseignées (jamais inventées).
     paymentInstructions: { holder: env.company.name, rib: env.company.rib || null },
@@ -123,10 +125,13 @@ export async function ownedQuoteId(userId: string, quoteId: string) {
 
 export async function answerQuote(userId: string, quoteId: string, decision: 'ACCEPTED' | 'REJECTED') {
   const quote = await ownedQuote(userId, quoteId);
-  await decideQuote(quote.id, decision, userId);
-  const recipients = await listStaffWith('crm');
+  await decideQuote(quote.id, decision, userId, 'PLATFORM');
+  // L'intervenant du dossier est prévenu ; une confirmation lui crée déjà l'appel de paiement.
+  const lead = await prisma.lead.findUnique({ where: { id: quote.leadId }, select: { assignedToId: true } });
+  if (decision === 'ACCEPTED' && lead?.assignedToId) return quote.id;
+  const recipients = lead?.assignedToId ? [lead.assignedToId] : (await listStaffWith('crm_manage')).map((u) => u.id);
   await notifyUsers(
-    recipients.map((u) => u.id),
+    recipients,
     decision === 'ACCEPTED' ? 'quote_accepted' : 'quote_rejected',
     decision === 'ACCEPTED' ? 'Devis accepté par le client' : 'Devis refusé par le client',
     `${quote.number} (${formatAmount(Number(quote.total))} TTC) a été ${decision === 'ACCEPTED' ? 'accepté' : 'refusé'} par le client depuis son espace.`,
@@ -198,7 +203,7 @@ export async function listProofs(filter: { status?: PaymentProofStatus; userId?:
     include: {
       user: { select: { id: true, email: true, profile: { select: { firstName: true, lastName: true, isPublic: true } } } },
       quote: { select: { id: true, number: true, total: true, leadId: true } },
-      invoice: { select: { id: true, number: true, status: true, total: true, leadId: true } },
+      invoice: { select: { id: true, number: true, proformaNumber: true, status: true, total: true, leadId: true } },
       reviewedBy: { select: STAFF_SELECT },
     },
     orderBy: { createdAt: 'desc' },
@@ -212,26 +217,25 @@ export async function getProofForStaff(proofId: string) {
   return proof;
 }
 
-/** Validation d'un compte membre : débloque tout l'espace, prévient le membre. */
-export async function approveAccount(userId: string, actorId: string) {
+/**
+ * Déverrouille l'espace d'un membre. Appelé au paiement confirmé (le kit de
+ * bienvenue remplace alors l'e-mail : option silent), ou à la main par la
+ * Direction pour un cas particulier (membre historique, geste commercial).
+ */
+export async function approveAccount(userId: string, actorId: string, options: { silent?: boolean } = {}) {
   const profile = await prisma.memberProfile.findUnique({ where: { userId }, select: { isPublic: true, firstName: true } });
   if (!profile) throw ApiError.notFound('Profil introuvable');
   if (profile.isPublic) return { alreadyValidated: true };
 
   await prisma.memberProfile.update({ where: { userId }, data: { isPublic: true } });
-  await notifyUsers([userId], 'account_validated', 'Votre compte est validé', 'Bienvenue ! Toutes les fonctionnalités de votre espace membre sont maintenant disponibles.');
+  await notifyUsers([userId], 'account_validated', 'Votre espace est actif', 'Toutes les fonctionnalités de votre espace membre sont disponibles : complétez votre profil pour réserver et rejoindre l’annuaire.', '/dashboard/profil');
 
-  const leads = await prisma.lead.findMany({ where: { userId }, select: { id: true, stage: true, source: true } });
+  const leads = await prisma.lead.findMany({ where: { userId }, select: { id: true } });
   for (const lead of leads) {
-    await logActivity(lead.id, { content: 'Compte membre validé : l’espace du client est déverrouillé.', authorId: actorId });
-    // Valider le compte = qualifier l'inscription : le lead passe « À assigner » (prêt pour un commercial).
-    if (lead.source === 'REGISTRATION' && lead.stage === 'NEW') {
-      await prisma.lead.update({ where: { id: lead.id }, data: { stage: 'QUALIFIED', qualifiedAt: new Date(), qualifiedById: actorId } });
-      await logActivity(lead.id, { content: 'Inscription validée avec le compte : le lead passe « À assigner ».', authorId: actorId });
-    }
+    await logActivity(lead.id, { content: 'Espace membre déverrouillé.', authorId: actorId });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  const user = options.silent ? null : await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
   if (user) {
     sendEmail({
       to: user.email,
@@ -244,7 +248,7 @@ export async function approveAccount(userId: string, actorId: string) {
 
 export async function reviewProof(
   proofId: string,
-  input: { decision: 'ACCEPT' | 'REJECT'; reviewNote?: string; recordPayment?: boolean; validateAccount?: boolean },
+  input: { decision: 'ACCEPT' | 'REJECT'; reviewNote?: string; recordPayment?: boolean },
   actorId: string,
 ) {
   const proof = await prisma.paymentProof.findUnique({ where: { id: proofId }, include: { invoice: { select: { id: true, status: true, number: true } } } });
@@ -254,8 +258,9 @@ export async function reviewProof(
 
   // Le paiement se déclenche avant de clore le justificatif : en cas d'échec
   // (facture non émise…) rien n'est modifié et l'erreur est explicite.
-  if (input.decision === 'ACCEPT' && input.recordPayment) {
-    if (!proof.invoice) throw ApiError.badRequest('Aucune facture n’est rattachée à ce justificatif.');
+  // Accepter un justificatif rattaché à une proforma enregistre le paiement (et
+  // active le membre), sauf demande contraire.
+  if (input.decision === 'ACCEPT' && input.recordPayment !== false && proof.invoice) {
     if (proof.invoice.status === 'SENT') {
       await recordPayment(proof.invoice.id, { method: 'BANK_TRANSFER', reference: proof.reference ?? `justificatif ${proof.id.slice(-6)}` }, actorId);
     }
@@ -272,10 +277,9 @@ export async function reviewProof(
   });
 
   if (input.decision === 'ACCEPT') {
-    await notifyUsers([proof.userId], 'payment_proof_accepted', 'Justificatif accepté', 'Votre justificatif de paiement a été vérifié et accepté.');
-    if (input.validateAccount) await approveAccount(proof.userId, actorId);
+    await notifyUsers([proof.userId], 'payment_proof_accepted', 'Justificatif accepté', 'Votre justificatif de paiement a été vérifié et accepté.', '/dashboard/documents');
   } else {
-    await notifyUsers([proof.userId], 'payment_proof_rejected', 'Justificatif refusé', `Votre justificatif n’a pas pu être accepté : ${input.reviewNote!.trim()}. Vous pouvez en envoyer un nouveau depuis « Situation du compte ».`);
+    await notifyUsers([proof.userId], 'payment_proof_rejected', 'Justificatif refusé', `Votre justificatif n’a pas pu être accepté : ${input.reviewNote!.trim()}. Vous pouvez en envoyer un nouveau depuis « Devis et factures ».`, '/dashboard/documents');
   }
   return prisma.paymentProof.findUnique({ where: { id: proofId } });
 }

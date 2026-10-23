@@ -19,6 +19,54 @@ import { CATEGORY_LABEL } from '@/components/features/ServiceCard';
 import type { ApiListResponse, PricingTier, ServiceCatalogItem } from '@/types';
 
 const CATEGORIES = ['DOMICILIATION', 'CREATION_ENTREPRISE', 'ADMINISTRATION', 'COMPTABILITE', 'JURIDIQUE', 'MARKETING', 'SECRETARIAT', 'AUTRE'];
+const POLES = [
+  { value: 'SPACES', label: 'Espaces et domiciliation' },
+  { value: 'COMPANY_CREATION', label: 'Création d’entreprise' },
+  { value: 'IN_GROUP', label: 'Solutions IN Group' },
+] as const;
+
+/**
+ * Réglages de livraison d'un service (processus v1.3) : le pôle qui le livre
+ * et sa durée de validité, qui fixe l'échéance et les alertes de
+ * renouvellement des services vendus. Enregistrés à la volée.
+ */
+function DeliverySettings({ service, onSaved }: { service: ServiceCatalogItem; onSaved: () => void }) {
+  const [duration, setDuration] = useState(service.durationMonths ? String(service.durationMonths) : '');
+  const [error, setError] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.patch(`/api/admin/services/${service.id}`, body),
+    onSuccess: () => {
+      setError(null);
+      onSaved();
+    },
+    onError: (e) => setError(e instanceof ApiRequestError ? e.message : 'Enregistrement impossible'),
+  });
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Select aria-label={`Pôle de ${service.title}`} className="h-9 w-52" value={service.pole ?? 'SPACES'} onChange={(e) => save.mutate({ pole: e.target.value })}>
+        {POLES.map((p) => (
+          <option key={p.value} value={p.value}>
+            {p.label}
+          </option>
+        ))}
+      </Select>
+      <Input
+        aria-label={`Durée de ${service.title} en mois`}
+        type="number"
+        min="1"
+        className="h-9 w-24"
+        placeholder="Mois"
+        value={duration}
+        onChange={(e) => setDuration(e.target.value)}
+        onBlur={() => {
+          const value = duration.trim() === '' ? null : Number(duration);
+          if (value !== (service.durationMonths ?? null)) save.mutate({ durationMonths: value });
+        }}
+      />
+      {error && <span className="text-xs text-brand-orange">{error}</span>}
+    </div>
+  );
+}
 
 const EMPTY_FORM = {
   title: '',
@@ -77,7 +125,7 @@ export default function AdminServicesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-heading text-lg font-bold text-ink-900">Catalogue de services</h2>
-          <p className="mt-1 text-sm text-ink-500">Secrétariat, création juridique et autres prestations à la carte.</p>
+          <p className="mt-1 text-sm text-ink-500">Secrétariat, création juridique et autres prestations à la carte. Le pôle désigne qui livre le service ; la durée fixe son échéance (vide : sans échéance, comme une création d’entreprise).</p>
         </div>
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus className="h-4 w-4" /> Nouveau service
@@ -164,6 +212,7 @@ export default function AdminServicesPage() {
                     <th className="px-5 py-3">Titre</th>
                     <th className="px-5 py-3">Catégorie</th>
                     <th className="px-5 py-3">Tarif</th>
+                    <th className="px-5 py-3">Pôle · durée (mois)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-900/8">
@@ -181,6 +230,9 @@ export default function AdminServicesPage() {
                           : service.priceFrom
                             ? `à partir de ${service.priceFrom} DA`
                             : '—'}
+                      </td>
+                      <td className="px-5 py-3">
+                        <DeliverySettings service={service} onSaved={() => queryClient.invalidateQueries({ queryKey: ['admin-services'] })} />
                       </td>
                     </tr>
                   ))}

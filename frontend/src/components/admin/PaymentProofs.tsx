@@ -11,9 +11,10 @@ import { api } from '@/lib/admin-api';
 import { dateFr, money, openAdminPdf, type Tone } from '@/lib/crm';
 import type { PaymentProofStatus } from '@/types/situation';
 
-// Justificatifs de paiement envoyés par les membres depuis « Situation du
-// compte » : consultation du fichier, acceptation (avec enregistrement du
-// paiement et validation du compte en option) ou refus motivé.
+// Justificatifs de paiement envoyés par les membres depuis « Devis et
+// factures » : consultation du fichier, acceptation ou refus motivé. Accepter
+// un justificatif rattaché à une proforma enregistre le paiement : facture
+// définitive, espace du membre activé, services lancés (processus v1.3).
 
 export interface AdminProof {
   id: string;
@@ -25,8 +26,8 @@ export interface AdminProof {
   reviewNote: string | null;
   createdAt: string;
   quote: { number: string } | null;
-  invoice: { number: string | null; status?: string } | null;
-  // Présent dans la file globale (/admin/validations), absent sur la fiche lead.
+  invoice: { number: string | null; proformaNumber?: string | null; status?: string } | null;
+  // Présent dans la file globale (factures › justificatifs), absent sur la fiche lead.
   user?: { id: string; email: string; profile: { firstName: string; lastName: string; isPublic: boolean } | null };
 }
 
@@ -36,18 +37,7 @@ const STATUS: Record<PaymentProofStatus, { label: string; tone: Tone }> = {
   REJECTED: { label: 'Refusé', tone: 'red' },
 };
 
-export function ProofList({
-  proofs,
-  accountValidated,
-  onChanged,
-  showMember,
-}: {
-  proofs: AdminProof[];
-  /** Compte du membre déjà validé ? (masque l'option « Valider aussi le compte »). */
-  accountValidated?: boolean;
-  onChanged: () => void;
-  showMember?: boolean;
-}) {
+export function ProofList({ proofs, onChanged, showMember }: { proofs: AdminProof[]; onChanged: () => void; showMember?: boolean }) {
   const [review, setReview] = useState<{ proof: AdminProof; decision: 'ACCEPT' | 'REJECT' } | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
 
@@ -77,7 +67,7 @@ export function ProofList({
                   {dateFr(proof.createdAt)}
                   {proof.amount ? ` · ${money(proof.amount)}` : ''}
                   {proof.reference ? ` · réf. ${proof.reference}` : ''}
-                  {proof.invoice?.number ? ` · facture ${proof.invoice.number}` : proof.quote ? ` · devis ${proof.quote.number}` : ''}
+                  {proof.invoice ? ` · ${proof.invoice.number ?? proof.invoice.proformaNumber ?? 'proforma'}` : proof.quote ? ` · devis ${proof.quote.number}` : ''}
                 </span>
                 <Button size="sm" variant="ghost" className="ml-auto" onClick={() => openFile(proof.id)}>
                   <FileText className="h-4 w-4" /> Voir
@@ -105,7 +95,6 @@ export function ProofList({
           key={`${review.proof.id}-${review.decision}`}
           proof={review.proof}
           decision={review.decision}
-          accountValidated={accountValidated ?? review.proof.user?.profile?.isPublic ?? false}
           onClose={() => setReview(null)}
           onDone={() => {
             setReview(null);
@@ -120,19 +109,16 @@ export function ProofList({
 function ReviewModal({
   proof,
   decision,
-  accountValidated,
   onClose,
   onDone,
 }: {
   proof: AdminProof;
   decision: 'ACCEPT' | 'REJECT';
-  accountValidated: boolean;
   onClose: () => void;
   onDone: () => void;
 }) {
-  const canRecordPayment = Boolean(proof.invoice) && proof.invoice?.status !== 'PAID';
+  const canRecordPayment = Boolean(proof.invoice) && proof.invoice?.status === 'SENT';
   const [recordPayment, setRecordPayment] = useState(canRecordPayment);
-  const [validateAccount, setValidateAccount] = useState(!accountValidated);
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -140,7 +126,7 @@ function ReviewModal({
     mutationFn: () =>
       api.post(`/api/admin/payment-proofs/${proof.id}/review`, {
         decision,
-        ...(decision === 'REJECT' ? { reviewNote: reason } : { recordPayment: canRecordPayment && recordPayment, validateAccount: !accountValidated && validateAccount }),
+        ...(decision === 'REJECT' ? { reviewNote: reason } : { recordPayment: canRecordPayment && recordPayment }),
       }),
     onSuccess: onDone,
     onError: (e) => setError(errorMessage(e)),
@@ -169,24 +155,15 @@ function ReviewModal({
           <p>
             Le client sera prévenu. {proof.amount ? `Montant indiqué : ${money(proof.amount)}.` : ''}
           </p>
-          {canRecordPayment && (
+          {canRecordPayment ? (
             <label className="flex items-start gap-2.5">
               <input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-orange" checked={recordPayment} onChange={(e) => setRecordPayment(e.target.checked)} />
               <span>
-                <span className="font-medium text-ink-900">Enregistrer le paiement</span> de la facture {proof.invoice?.number} (virement) et lancer les services associés.
+                <span className="font-medium text-ink-900">Enregistrer le paiement</span> de la proforma {proof.invoice?.proformaNumber} (virement) : la facture définitive part au client, son espace s’active et ses services sont lancés.
               </span>
             </label>
-          )}
-          {!accountValidated && (
-            <label className="flex items-start gap-2.5">
-              <input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-orange" checked={validateAccount} onChange={(e) => setValidateAccount(e.target.checked)} />
-              <span>
-                <span className="inline-flex items-center gap-1 font-medium text-ink-900">
-                  <ShieldCheck className="h-4 w-4 text-green-700" /> Valider aussi le compte
-                </span>{' '}
-                : déverrouille tout l’espace membre.
-              </span>
-            </label>
+          ) : (
+            !proof.invoice && <p className="rounded-xl bg-ink-900/[0.04] px-3 py-2 text-xs text-ink-600">Ce justificatif n’est rattaché à aucune proforma : envoyez d’abord la proforma, puis enregistrez le paiement depuis la facture.</p>
           )}
         </div>
       ) : (
@@ -202,7 +179,11 @@ function ReviewModal({
   );
 }
 
-/** Bouton « Valider le compte » (PATCH approve) — sans justificatif. */
+/**
+ * Ouvre l'espace d'un membre sans paiement (cas particulier décidé par la
+ * Direction : membre historique, geste commercial). En temps normal, c'est le
+ * paiement qui l'active.
+ */
 export function ApproveAccountButton({ userId, onDone, size = 'sm' }: { userId: string; onDone: () => void; size?: 'sm' | 'md' }) {
   const [error, setError] = useState<string | null>(null);
   const approve = useMutation({
@@ -213,7 +194,7 @@ export function ApproveAccountButton({ userId, onDone, size = 'sm' }: { userId: 
   return (
     <span className="inline-flex flex-col items-start gap-1">
       <Button size={size} disabled={approve.isPending} onClick={() => approve.mutate()}>
-        {approve.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Valider le compte
+        {approve.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Ouvrir l’espace sans paiement
       </Button>
       {error && <span role="alert" className="text-xs text-red-600">{error}</span>}
     </span>

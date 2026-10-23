@@ -1,7 +1,7 @@
 import type { InvoiceStatus, QuoteStatus } from './crm';
 
-// « Situation du compte » (GET /api/member/situation) — ce que voit un membre
-// tant que son compte n'a pas été validé par l'équipe. Les montants (Decimal)
+// « Devis et factures » (GET /api/member/situation) : demandes, devis,
+// proformas, factures et justificatifs du membre. Les montants (Decimal)
 // arrivent sérialisés en chaînes.
 
 export type PaymentProofStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
@@ -28,7 +28,10 @@ export interface SituationQuote {
 
 export interface SituationInvoice {
   id: string;
-  number: string;
+  /** Numéro de facture définitive, attribué au paiement. */
+  number: string | null;
+  /** Numéro de la proforma (avant paiement). */
+  proformaNumber: string | null;
   status: InvoiceStatus;
   total: string;
   dueDate: string | null;
@@ -53,7 +56,7 @@ export interface SituationProof {
   reviewNote: string | null;
   createdAt: string;
   quote: { number: string } | null;
-  invoice: { number: string } | null;
+  invoice: { number: string | null; proformaNumber: string | null } | null;
 }
 
 export interface Situation {

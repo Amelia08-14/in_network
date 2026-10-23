@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronDown, Crown, KeyRound, ShieldCheck, Target, Trash2, UserCog, UserPlus, UserRound, X } from 'lucide-react';
+import { Check, ChevronDown, Crown, FileCheck2, KeyRound, ShieldCheck, Target, Trash2, UserCog, UserPlus, UserRound, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,9 @@ import {
 } from '@/types';
 
 // Rôles à droits bornés : l'administrateur décide, par compte, ce qu'ils voient et modifient.
-const BOUND_ROLES = ['OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT'];
+const BOUND_ROLES = ['OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT', 'ADMIN_SUPPORT'];
+const PROFILE_LABEL = { SEDENTARY: 'Sédentaire', FIELD: 'Terrain' } as const;
+type SalesProfile = keyof typeof PROFILE_LABEL;
 const LABEL_BY_KEY = Object.fromEntries(DASHBOARD_RESOURCES.map((r) => [r.key, r.label]));
 
 interface RoleInfo {
@@ -34,36 +36,61 @@ interface RoleInfo {
   points: string[];
 }
 
+// Rôles du processus commercial v1.3.
 const ROLE_INFO: Record<string, RoleInfo> = {
   SALES_MANAGER: {
     icon: Target,
     title: 'Responsable commercial',
-    tagline: 'Pilote l’équipe commerciale',
+    tagline: 'Pilote la Sales Team (circuit 1)',
     tone: 'text-violet-700 bg-violet-600/10 border-violet-600/30',
-    points: ['Qualifie et valide les leads entrants', 'Assigne les leads à ses commerciaux', 'Voit tous les leads, devis et rendez-vous'],
+    points: ['Filtre les leads et les attribue à un sédentaire ou un terrain', 'Valide les devis sur mesure du circuit 1', 'Contrôle les commissions de la Sales Team'],
   },
   SALES_AGENT: {
     icon: UserRound,
     title: 'Commercial',
-    tagline: 'Traite ses propres leads',
+    tagline: 'Sédentaire ou terrain, souvent prestataire',
     tone: 'text-brand-blue bg-brand-blue/10 border-brand-blue/30',
-    points: ['Ne voit que les leads qui lui sont assignés', 'Crée ses devis, rendez-vous et notes de suivi', 'Ne valide ni n’assigne les leads'],
+    points: ['Qualifie, relance et obtient la visite ou la visio', 'Transmet le dossier à l’Office Manager', 'Suit ses dossiers et ses commissions'],
   },
   OFFICE_MANAGER: {
     icon: UserCog,
     title: 'Office Manager',
-    tagline: 'Gestion administrative',
+    tagline: 'Circuit 2, paiement et activation',
     tone: 'text-amber-700 bg-accent-yellow/20 border-accent-yellow/60',
-    points: ['Accède uniquement aux blocs que vous cochez', 'Voit tous les leads du CRM et peut les assigner', 'Pas d’accès aux utilisateurs système'],
+    points: ['Prend en charge les leads du circuit 2 et les dossiers transmis', 'Encaisse, active les membres, livre le pôle Espaces', 'Référent membre par défaut'],
+  },
+  ADMIN_SUPPORT: {
+    icon: FileCheck2,
+    title: 'Support administratif',
+    tagline: 'Pôle Création d’entreprise',
+    tone: 'text-green-800 bg-accent-green/20 border-accent-green/50',
+    points: ['Voit uniquement les dossiers de création et de domiciliation', 'Coche les démarches (CNRC, DGI, CASNOS…)', 'Signale le livrable prêt'],
   },
   ADMIN: {
     icon: Crown,
-    title: 'Administrateur',
+    title: 'Direction',
     tagline: 'Accès total',
     tone: 'text-brand-orange bg-brand-orange/10 border-brand-orange/30',
-    points: ['Tous les blocs, sans restriction', 'Gère les utilisateurs système et leurs droits'],
+    points: ['Voit les deux circuits, valide les devis du circuit 2', 'Valide et verse les commissions', 'Gère les utilisateurs système et les paramètres'],
   },
 };
+
+/** Profil d'un commercial : sédentaire ou terrain, prestataire externe ou non. */
+function SalesProfileFields({ profile, external, onChange }: { profile: SalesProfile | null; external: boolean; onChange: (patch: { salesProfile?: SalesProfile; isExternal?: boolean }) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-4 rounded-xl bg-ink-900/[0.04] px-4 py-3 text-sm">
+      <span className="font-medium text-ink-800">Profil :</span>
+      {(Object.keys(PROFILE_LABEL) as SalesProfile[]).map((p) => (
+        <label key={p} className="inline-flex items-center gap-2">
+          <input type="radio" name="sales-profile" checked={profile === p} onChange={() => onChange({ salesProfile: p })} /> {PROFILE_LABEL[p]}
+        </label>
+      ))}
+      <label className="inline-flex items-center gap-2">
+        <input type="checkbox" checked={external} onChange={(e) => onChange({ isExternal: e.target.checked })} /> Prestataire externe
+      </label>
+    </div>
+  );
+}
 
 function errorText(e: unknown) {
   return e instanceof ApiRequestError ? e.message : 'Une erreur est survenue.';
@@ -260,11 +287,11 @@ function StepTitle({ n, title, hint }: { n: number; title: string; hint?: string
 /* -------------------------------------------------------------------------- */
 function CreateSystemUserForm({ canCreateAdmin, onClose }: { canCreateAdmin: boolean; onClose: () => void }) {
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({ email: '', displayName: '', phone: '', role: 'SALES_AGENT' });
+  const [form, setForm] = useState({ email: '', displayName: '', phone: '', role: 'SALES_AGENT', salesProfile: 'SEDENTARY' as SalesProfile, isExternal: true });
   const [permissions, setPermissions] = useState<DashboardPermissions>({ ...ROLE_PRESETS.SALES_AGENT });
   const [message, setMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
 
-  const roles = ['SALES_MANAGER', 'SALES_AGENT', 'OFFICE_MANAGER', ...(canCreateAdmin ? ['ADMIN'] : [])];
+  const roles = ['SALES_MANAGER', 'SALES_AGENT', 'OFFICE_MANAGER', 'ADMIN_SUPPORT', ...(canCreateAdmin ? ['ADMIN'] : [])];
   const bound = BOUND_ROLES.includes(form.role);
 
   const create = useMutation({
@@ -275,11 +302,12 @@ function CreateSystemUserForm({ canCreateAdmin, onClose }: { canCreateAdmin: boo
         phone: form.phone.trim() || undefined,
         role: form.role,
         permissions: bound ? permissions : undefined,
+        ...(form.role === 'SALES_AGENT' ? { salesProfile: form.salesProfile, isExternal: form.isExternal } : {}),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-system-users'] });
       setMessage({ text: `Compte créé : les accès ont été envoyés à ${form.email.trim()}.`, kind: 'success' });
-      setForm({ email: '', displayName: '', phone: '', role: 'SALES_AGENT' });
+      setForm({ email: '', displayName: '', phone: '', role: 'SALES_AGENT', salesProfile: 'SEDENTARY', isExternal: true });
       setPermissions({ ...ROLE_PRESETS.SALES_AGENT });
     },
     onError: (e) => setMessage({ text: errorText(e), kind: 'error' }),
@@ -329,6 +357,11 @@ function CreateSystemUserForm({ canCreateAdmin, onClose }: { canCreateAdmin: boo
               setPermissions({ ...(ROLE_PRESETS[role] ?? {}) });
             }}
           />
+          {form.role === 'SALES_AGENT' && (
+            <div className="mt-3">
+              <SalesProfileFields profile={form.salesProfile} external={form.isExternal} onChange={(patch) => setForm({ ...form, ...patch })} />
+            </div>
+          )}
         </section>
 
         <section>
@@ -421,6 +454,8 @@ function SystemUserRow({ user, currentUserId }: { user: SystemUser; currentUserI
             <span className={cn('inline-flex items-center gap-1 rounded-pill border px-2 py-0.5 text-xs font-semibold', info?.tone ?? 'border-ink-900/15 bg-ink-900/5 text-ink-700')}>
               {info && <info.icon className="h-3 w-3" />} {ROLE_LABEL[user.role] ?? user.role}
             </span>
+            {user.role === 'SALES_AGENT' && user.salesProfile && <span className="rounded-pill bg-ink-900/6 px-2 py-0.5 text-xs font-semibold text-ink-700">{PROFILE_LABEL[user.salesProfile]}</span>}
+            {user.isExternal && <span className="rounded-pill bg-ink-900/6 px-2 py-0.5 text-xs font-semibold text-ink-700">Prestataire</span>}
             {!user.isActive && <span className="rounded-pill bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Désactivé</span>}
           </p>
           <p className="text-sm text-ink-500">
@@ -467,7 +502,7 @@ function SystemUserRow({ user, currentUserId }: { user: SystemUser; currentUserI
           <div>
             <p className="mb-2 text-sm font-semibold text-ink-900">Rôle</p>
             <RoleCards
-              roles={['SALES_MANAGER', 'SALES_AGENT', 'OFFICE_MANAGER']}
+              roles={['SALES_MANAGER', 'SALES_AGENT', 'OFFICE_MANAGER', 'ADMIN_SUPPORT']}
               value={user.role}
               onChange={(role) => {
                 if (role === user.role) return;
@@ -476,6 +511,11 @@ function SystemUserRow({ user, currentUserId }: { user: SystemUser; currentUserI
                 update.mutate({ role, permissions: ROLE_PRESETS[role] ?? {} });
               }}
             />
+            {user.role === 'SALES_AGENT' && (
+              <div className="mt-3">
+                <SalesProfileFields profile={user.salesProfile ?? null} external={Boolean(user.isExternal)} onChange={(patch) => update.mutate(patch)} />
+              </div>
+            )}
           </div>
           <div>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">

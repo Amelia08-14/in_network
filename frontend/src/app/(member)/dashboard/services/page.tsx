@@ -1,189 +1,285 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
-import { Check, ClipboardList, Search, ShoppingBasket } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CalendarClock, CheckCircle2, FileText, Loader2, PackageCheck, Plus, RefreshCw, UserRound, Wrench } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Input } from '@/components/ui/input';
-import { AddToCartButton } from '@/components/features/AddToCartButton';
-import { CATEGORY_LABEL, ServiceCard } from '@/components/features/ServiceCard';
-import { api } from '@/lib/api';
-import { itemLabel, requestSummary, type QuoteItem } from '@/lib/quote';
-import { sortServices } from '@/lib/services-order';
+import { api, openMemberFile } from '@/lib/api';
+import { dateFr, MEMBER_SERVICE_STATUS, money, TONE_CLASS } from '@/lib/crm';
+import { HUE } from '@/lib/palette';
 import { cn } from '@/lib/utils';
-import { useCart } from '@/store/cart';
-import type { MembershipPlan, ServiceCatalogItem } from '@/types';
+import type { MemberServiceStatus } from '@/types/crm';
 
-interface ServiceRequest {
+// « Mes services » : le panier de services du membre (processus v1.3, phase 7).
+// Chaque service vendu y figure avec son offre, son montant, son statut, ses
+// dates et son intervenant. Le membre y suit l'activation, valide la mise en
+// service (ou demande un ajustement), voit ses échéances et renouvelle en un clic.
+
+interface MyService {
   id: string;
-  createdAt: string;
-  status: string;
-  notes: string | null;
-  adminDetails: string | null;
-  quotedAmount: string | null;
-  quotedCurrency: string;
-  confirmedAt: string | null;
-  items: QuoteItem[];
+  title: string;
+  poleLabel: string;
+  subsidiary: string | null;
+  amount: string | null;
+  status: MemberServiceStatus;
+  deliveryLabel: string;
+  progress: number | null;
+  startsAt: string | null;
+  expiresAt: string | null;
+  daysLeft: number | null;
+  readyAt: string | null;
+  completedAt: string | null;
+  adjustmentNote: string | null;
+  intervenant: string | null;
+  renewedFrom: { id: string; title: string } | null;
+  renewalStatus: string | null;
+  canRenew: boolean;
+  documents: { id: string; title: string; kindLabel: string; createdAt: string }[];
 }
 
-const REQUEST_STATUS_VARIANT: Record<string, 'success' | 'neutral' | 'startup'> = { NEW: 'neutral', IN_PROGRESS: 'success', DONE: 'success', CANCELLED: 'startup' };
-const REQUEST_STATUS_LABEL: Record<string, string> = { NEW: 'Reçue', IN_PROGRESS: 'En cours de traitement', DONE: 'Traitée', CANCELLED: 'Annulée' };
-const CYCLE: Record<string, string> = { DAY_PASS: '/ jour', MONTHLY: '/ mois', ANNUAL: '/ an' };
+const GROUPS: { title: string; statuses: MemberServiceStatus[] }[] = [
+  { title: 'À votre attention', statuses: ['AWAITING_VALIDATION', 'TO_RENEW', 'EXPIRED'] },
+  { title: 'En cours d’activation', statuses: ['ACTIVATING', 'ADJUSTMENT_REQUESTED'] },
+  { title: 'Actifs', statuses: ['ACTIVE'] },
+  { title: 'Historique', statuses: ['RENEWED', 'CANCELLED'] },
+];
 
-const normalize = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function StatusPill({ status }: { status: MemberServiceStatus }) {
+  const meta = MEMBER_SERVICE_STATUS[status];
+  return <span className={cn('inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-semibold', TONE_CLASS[meta.tone])}>{meta.label}</span>;
+}
 
-// Commande de services depuis l'espace membre : le même catalogue que le site public
-// (offres, services, formules), le même panier de devis — sans quitter son compte.
-// Une demande envoyée devient un lead que l'équipe commerciale traite (devis → facture).
-export default function MemberServicesPage() {
-  const { items: cart } = useCart();
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('ALL');
+function ServiceCard({ service }: { service: MyService }) {
+  const queryClient = useQueryClient();
+  const [adjusting, setAdjusting] = useState(false);
+  const [note, setNote] = useState('');
+  const [confirmRenew, setConfirmRenew] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const tone = HUE[MEMBER_SERVICE_STATUS[service.status].tone];
 
-  const { data: services, isLoading } = useQuery({
-    queryKey: ['catalogue-services'],
-    queryFn: () => api.get<{ data: ServiceCatalogItem[] }>('/api/services').then((r) => r.data),
-    staleTime: 10 * 60 * 1000,
+  const act = useMutation({
+    mutationFn: (input: { path: 'validate' | 'adjustment' | 'renew'; body?: Record<string, unknown> }) =>
+      api.post<{ data: MyService[] }>(`/api/member/services/${service.id}/${input.path}`, input.body).then((r) => r.data),
+    onSuccess: (services, input) => {
+      setError(null);
+      setAdjusting(false);
+      setConfirmRenew(false);
+      setNotice(input.path === 'renew' ? 'Demande de renouvellement envoyée : votre devis arrive dans « Devis et factures ».' : input.path === 'adjustment' ? 'Votre demande d’ajustement est transmise à l’équipe.' : null);
+      queryClient.setQueryData(['my-services'], services);
+      queryClient.invalidateQueries({ queryKey: ['member-overview'] });
+    },
+    onError: (e: Error) => setError(e.message),
   });
-  const { data: plans } = useQuery({
-    queryKey: ['catalogue-plans'],
-    queryFn: () => api.get<{ data: MembershipPlan[] }>('/api/plans').then((r) => r.data),
-    staleTime: 10 * 60 * 1000,
-  });
-  const { data: requests } = useQuery({
-    queryKey: ['my-service-requests'],
-    queryFn: () => api.get<{ data: ServiceRequest[] }>('/api/services/requests/mine').then((r) => r.data),
+
+  async function openDocument(id: string) {
+    try {
+      await openMemberFile(`/api/member/documents/${id}/file`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible d’ouvrir le document.');
+    }
+  }
+
+  return (
+    <article className="relative overflow-hidden rounded-2xl border border-ink-900/[0.07] bg-white p-5 shadow-soft">
+      <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1.5', tone.solid)} />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="font-heading text-base font-bold text-ink-900">{service.title}</h3>
+          <p className="mt-0.5 text-xs text-ink-500">
+            {service.poleLabel}
+            {service.subsidiary ? ` · ${service.subsidiary}` : ''}
+            {service.amount ? ` · ${money(service.amount)} HT` : ''}
+          </p>
+        </div>
+        <StatusPill status={service.status} />
+      </div>
+
+      {service.status === 'ACTIVATING' && service.progress !== null && (
+        <div className="mt-4">
+          <div className="h-1.5 overflow-hidden rounded-full bg-ink-900/8" role="progressbar" aria-valuenow={service.progress} aria-valuemin={0} aria-valuemax={100} aria-label="Avancement de la mise en place">
+            <div className="h-full rounded-full bg-brand-orange" style={{ width: `${service.progress}%` }} />
+          </div>
+          <p className="mt-1.5 text-xs text-ink-500">Mise en place : {service.progress} %</p>
+        </div>
+      )}
+      {service.status === 'ADJUSTMENT_REQUESTED' && service.adjustmentNote && <p className="mt-3 rounded-xl bg-brand-orange/10 px-3 py-2 text-sm text-brand-orange">Ajustement en cours : {service.adjustmentNote}</p>}
+
+      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+        <div>
+          <dt className="text-xs text-ink-500">Début</dt>
+          <dd className="font-medium text-ink-800">{service.startsAt ? dateFr(service.startsAt) : 'À l’activation'}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-ink-500">Échéance</dt>
+          <dd className={cn('font-medium', service.daysLeft !== null && service.daysLeft <= 30 ? 'text-brand-orange' : 'text-ink-800')}>
+            {service.expiresAt ? (
+              <>
+                {dateFr(service.expiresAt)}
+                {service.daysLeft !== null && service.daysLeft >= 0 && service.status !== 'RENEWED' && <span className="text-xs font-normal text-ink-500"> · dans {service.daysLeft} j</span>}
+              </>
+            ) : (
+              'Sans échéance'
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-ink-500">Intervenant</dt>
+          <dd className="flex items-center gap-1.5 font-medium text-ink-800">
+            <UserRound className="h-3.5 w-3.5 text-ink-400" /> {service.intervenant ?? 'L’équipe IN NETWORK'}
+          </dd>
+        </div>
+      </dl>
+
+      {service.documents.length > 0 && (
+        <ul className="mt-4 flex flex-wrap gap-2">
+          {service.documents.map((d) => (
+            <li key={d.id}>
+              <button type="button" onClick={() => openDocument(d.id)} className="inline-flex items-center gap-1.5 rounded-pill bg-ink-900/[0.05] px-3 py-1 text-xs font-medium text-ink-700 hover:bg-ink-900/10">
+                <FileText className="h-3.5 w-3.5" /> {d.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {service.status === 'AWAITING_VALIDATION' && (
+        <div className="mt-4 space-y-3 rounded-xl bg-violet-600/[0.05] p-4">
+          <p className="text-sm text-ink-700">Votre service est prêt. Vérifiez-le (accès, attestation, documents) puis confirmez la mise en service.</p>
+          {adjusting ? (
+            <div className="space-y-2">
+              <Textarea aria-label="Ce qui doit être corrigé" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Décrivez ce qui doit être corrigé" autoFocus />
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" disabled={act.isPending || note.trim().length < 3} onClick={() => act.mutate({ path: 'adjustment', body: { note } })}>
+                  Envoyer la demande
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setAdjusting(false)}>
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" disabled={act.isPending} onClick={() => act.mutate({ path: 'validate' })}>
+                {act.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Tout est conforme
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setAdjusting(true)}>
+                <Wrench className="h-4 w-4" /> Demander un ajustement
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {service.renewalStatus && (
+        <p className="mt-4 flex items-center gap-2 text-sm text-ink-700">
+          <RefreshCw className="h-4 w-4 text-brand-blue" /> Renouvellement en cours : retrouvez votre devis dans{' '}
+          <Link href="/dashboard/documents" className="font-semibold text-brand-blue hover:underline">
+            Devis et factures
+          </Link>
+          .
+        </p>
+      )}
+      {service.canRenew && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {confirmRenew ? (
+            <>
+              <span className="text-sm text-ink-700">Nous vous envoyons un devis de renouvellement au tarif en vigueur.</span>
+              <Button size="sm" disabled={act.isPending} onClick={() => act.mutate({ path: 'renew' })}>
+                {act.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Confirmer
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmRenew(false)}>
+                Annuler
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" variant={service.status === 'ACTIVE' ? 'outline' : 'primary'} onClick={() => setConfirmRenew(true)}>
+              <RefreshCw className="h-4 w-4" /> Renouveler
+            </Button>
+          )}
+        </div>
+      )}
+
+      {notice && <p className="mt-3 text-sm text-green-700">{notice}</p>}
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-red-600">
+          {error}
+        </p>
+      )}
+    </article>
+  );
+}
+
+export default function MyServicesPage() {
+  const { data: services, isLoading, isError } = useQuery({
+    queryKey: ['my-services'],
+    queryFn: () => api.get<{ data: MyService[] }>('/api/member/services').then((r) => r.data),
+    refetchInterval: 60_000,
   });
 
-  const q = normalize(search.trim());
-  const sortedServices = useMemo(() => sortServices(services ?? []), [services]);
-  const categories = useMemo(() => {
-    const present = new Set(sortedServices.map((s) => s.category));
-    return [...present].map((value) => ({ value, label: CATEGORY_LABEL[value] ?? value }));
-  }, [sortedServices]);
-
-  const visibleServices = sortedServices.filter((s) => (category === 'ALL' || s.category === category) && (!q || normalize(`${s.title} ${s.description}`).includes(q)));
-  const visiblePlans = (plans ?? []).filter((p) => (category === 'ALL' || category === 'PLAN') && (!q || normalize(`${p.name} ${p.features.join(' ')}`).includes(q)));
+  const all = services ?? [];
+  const count = (statuses: MemberServiceStatus[]) => all.filter((s) => statuses.includes(s.status)).length;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-orange">Services</p>
-          <h1 className="mt-1 font-heading text-2xl font-bold text-ink-900">Commander un service</h1>
-          <p className="mt-1 max-w-2xl text-sm text-ink-500">
-            Ajoutez à votre demande tout ce qui vous intéresse — offres, services, abonnements — puis envoyez-la en une fois : l&apos;équipe commerciale vous répond avec un devis unique.
-          </p>
+          <h1 className="font-heading text-2xl font-bold text-ink-900">Mes services</h1>
+          <p className="mt-1 max-w-2xl text-sm text-ink-500">L’avancement de chaque service, ses dates et ses documents. Vous êtes prévenu à chaque changement et avant chaque échéance.</p>
         </div>
-        <Link href="/devis" className={cn(buttonVariants({ variant: cart.length ? 'primary' : 'outline', size: 'lg' }), 'gap-2')}>
-          <ShoppingBasket className="h-4 w-4" />
-          Ma demande{cart.length > 0 && ` (${cart.length})`}
+        <Link href="/dashboard/catalogue" className={cn(buttonVariants({ variant: 'primary' }), 'gap-2')}>
+          <Plus className="h-4 w-4" /> Demander un service
         </Link>
       </div>
 
-      <div className="space-y-4">
-        <div className="relative max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
-          <Input aria-label="Rechercher un service" className="pl-9" placeholder="Rechercher (domiciliation, création, secrétariat…)" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Catégories">
-          {[{ value: 'ALL', label: 'Tout' }, ...categories, ...(plans?.length ? [{ value: 'PLAN', label: 'Formules & abonnements' }] : [])].map((c) => (
-            <button key={c.value} type="button" aria-pressed={category === c.value} onClick={() => setCategory(c.value)} className={cn('rounded-pill border px-4 py-2 text-sm font-semibold transition-colors', category === c.value ? 'border-transparent bg-ink-900 text-white' : 'border-ink-900/10 bg-white text-ink-700 hover:bg-ink-900/5')}>
-              {c.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {isLoading ? (
-        <p className="text-sm text-ink-500">Chargement du catalogue…</p>
-      ) : visibleServices.length === 0 && visiblePlans.length === 0 ? (
-        <EmptyState title="Aucun résultat" description="Essayez un autre mot-clé ou une autre catégorie." />
+        <p className="flex items-center gap-2 text-sm text-ink-500">
+          <Loader2 className="h-4 w-4 animate-spin" /> Chargement…
+        </p>
+      ) : isError ? (
+        <p role="alert" className="text-sm text-red-600">
+          Vos services n’ont pas pu être chargés. Réessayez dans un instant.
+        </p>
+      ) : all.length === 0 ? (
+        <EmptyState icon={PackageCheck} title="Aucun service pour l’instant" description="Vos services apparaissent ici dès leur paiement, avec leur avancement et leur échéance." />
       ) : (
         <>
-          {visibleServices.length > 0 && (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {visibleServices.map((service) => (
-                <ServiceCard key={service.id} service={service} />
-              ))}
-            </div>
-          )}
-
-          {visiblePlans.length > 0 && (
-            <section aria-labelledby="plans-title" className="space-y-4">
-              <h2 id="plans-title" className="font-heading text-lg font-bold text-ink-900">Formules & abonnements</h2>
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {visiblePlans.map((plan) => (
-                  <Card key={plan.id} accent="blue">
-                    <CardContent className="flex h-full flex-col gap-4">
-                      <div>
-                        <h3 className="font-heading text-lg font-bold text-ink-900">{plan.name}</h3>
-                        <p className="mt-1 flex items-baseline gap-1.5">
-                          <span className="font-heading text-2xl font-bold text-ink-900">{Number(plan.price).toLocaleString('fr-FR')}</span>
-                          <span className="text-xs font-semibold text-ink-500">{plan.currency} {CYCLE[plan.billingCycle]}</span>
-                        </p>
-                      </div>
-                      <ul className="space-y-1.5 text-sm text-ink-600">
-                        {plan.features.slice(0, 5).map((f) => (
-                          <li key={f} className="flex items-start gap-2">
-                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" /> {f}
-                          </li>
-                        ))}
-                      </ul>
-                      <AddToCartButton
-                        className="mt-auto w-full"
-                        variant="outline"
-                        item={{ targetType: 'PLAN', targetId: plan.id, title: plan.name, price: Number(plan.price), priceUnit: plan.billingCycle, category: 'PLAN' }}
-                      />
-                    </CardContent>
-                  </Card>
-                ))}
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { label: 'Actifs', value: count(['ACTIVE', 'TO_RENEW']), icon: CheckCircle2, hue: HUE.green },
+              { label: 'En cours d’activation', value: count(['ACTIVATING', 'AWAITING_VALIDATION', 'ADJUSTMENT_REQUESTED']), icon: Loader2, hue: HUE.blue },
+              { label: 'À renouveler', value: count(['TO_RENEW', 'EXPIRED']), icon: CalendarClock, hue: HUE.amber },
+            ].map((k) => (
+              <div key={k.label} className="flex items-center gap-3 rounded-2xl border border-ink-900/[0.07] bg-white p-4 shadow-soft">
+                <span className={cn('inline-flex h-9 w-9 items-center justify-center rounded-lg', k.hue.soft, k.hue.text)}>
+                  <k.icon className="h-4 w-4" />
+                </span>
+                <span>
+                  <span className="block font-heading text-xl font-bold tabular-nums text-ink-900">{k.value}</span>
+                  <span className="block text-xs text-ink-500">{k.label}</span>
+                </span>
               </div>
-            </section>
-          )}
+            ))}
+          </div>
+          {GROUPS.map((group) => {
+            const items = all.filter((s) => group.statuses.includes(s.status));
+            if (items.length === 0) return null;
+            return (
+              <section key={group.title} className="space-y-3">
+                <h2 className="font-heading text-lg font-bold text-ink-900">{group.title}</h2>
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {items.map((s) => (
+                    <ServiceCard key={s.id} service={s} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </>
       )}
-
-      <section aria-labelledby="requests-title" className="space-y-4">
-        <h2 id="requests-title" className="flex items-center gap-2 font-heading text-lg font-bold text-ink-900">
-          <ClipboardList className="h-5 w-5 text-ink-500" /> Mes demandes de devis
-        </h2>
-        {!requests || requests.length === 0 ? (
-          <EmptyState icon={ClipboardList} title="Aucune demande envoyée" description="Vos demandes apparaissent ici avec leur avancement et le montant du devis une fois chiffré." className="py-10" />
-        ) : (
-          <Card>
-            <CardContent className="p-0">
-              <ul className="divide-y divide-ink-900/8">
-                {requests.map((r) => (
-                  <li key={r.id} className="flex flex-wrap items-start justify-between gap-3 px-5 py-4 text-sm">
-                    <div className="min-w-0">
-                      <p className="font-medium text-ink-800">{requestSummary(r.items)}</p>
-                      {r.items.length > 1 && (
-                        <ul className="mt-1 list-inside list-disc text-xs text-ink-500">
-                          {r.items.map((item) => (
-                            <li key={item.id}>{itemLabel(item)}</li>
-                          ))}
-                        </ul>
-                      )}
-                      <p className="mt-1 text-xs text-ink-500">Envoyée le {new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}</p>
-                      {r.quotedAmount != null && (
-                        <p className="mt-1 text-xs font-semibold text-ink-900">Devis : {Number(r.quotedAmount).toLocaleString('fr-FR')} {r.quotedCurrency}</p>
-                      )}
-                      {r.confirmedAt && r.adminDetails && <p className="mt-1 whitespace-pre-line text-xs text-ink-500">{r.adminDetails}</p>}
-                    </div>
-                    <Badge variant={REQUEST_STATUS_VARIANT[r.status] ?? 'neutral'}>{REQUEST_STATUS_LABEL[r.status] ?? r.status}</Badge>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-        <p className="text-xs text-ink-500">Le devis détaillé, la facture et le suivi de votre dossier sont aussi disponibles dans « Situation du compte » tant que votre compte n&apos;est pas validé.</p>
-      </section>
     </div>
   );
 }

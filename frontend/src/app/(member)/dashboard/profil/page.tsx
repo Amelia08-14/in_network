@@ -291,7 +291,7 @@ function ProfilForm({ profile }: { profile: MemberProfileSummary }) {
           <CardContent className="space-y-1.5">
             <h2 className="mb-2 font-heading text-base font-bold text-ink-900">Depuis votre espace</h2>
             {[
-              { href: '/dashboard/services', icon: ShoppingBag, label: 'Commander un service', hint: 'Catalogue, offres et abonnements' },
+              { href: '/dashboard/catalogue', icon: ShoppingBag, label: 'Demander un service', hint: 'Catalogue, offres et abonnements' },
               { href: '/dashboard/networking', icon: Handshake, label: 'Mes mises en relation', hint: 'Suggestions et demandes' },
               { href: `/annuaire/${profile.id}`, icon: BadgeCheck, label: 'Voir ma fiche annuaire', hint: 'Ce que voient les autres membres' },
             ].map((link) => (

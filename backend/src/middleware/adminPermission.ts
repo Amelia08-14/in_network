@@ -26,6 +26,12 @@ export async function adminPermission(req: Request, _res: Response, next: NextFu
   const subPath = req.path.replace(/^\/api\/admin/, '');
   const { resource, level } = resolveRequiredPermission(req.method, subPath);
 
+  // « Ma journée » : chaque bloc est filtré par le service selon les droits.
+  if (resource === 'home') {
+    next();
+    return;
+  }
+
   if (!resource || resource === 'system_users') {
     throw new ApiError(403, 'FORBIDDEN', 'Cette section est réservée aux administrateurs.');
   }

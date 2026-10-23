@@ -35,7 +35,19 @@ enum Role {
   // que les leads qui lui sont assignés (cf. crm/scope.ts).
   SALES_MANAGER
   SALES_AGENT
+  // Support administratif (processus v1.3) : réalise les démarches de création
+  // d'entreprise et de domiciliation. Ne voit que les services du pôle
+  // « Création d'entreprise » (cf. crm/fulfilment.service.ts).
+  ADMIN_SUPPORT
   MEMBER
+}
+
+// Commercial de la Sales Team (processus v1.3) : le sédentaire traite à
+// distance (digital, entrants, diaspora, offres simples), le terrain les
+// entreprises et comptes à fort potentiel. Sert à l'attribution des leads.
+enum SalesProfile {
+  SEDENTARY
+  FIELD
 }
 
 enum MemberType {
@@ -185,8 +197,8 @@ enum InquiryTargetType {
 // ============================================
 
 model User {
-  id                   String    @id @default(cuid())
-  email                String    @unique
+  id                   String        @id @default(cuid())
+  email                String        @unique
   emailVerified        DateTime?
   emailVerifyToken     String?
   emailVerifyExpires   DateTime?
@@ -194,26 +206,35 @@ model User {
   passwordResetExpires DateTime?
   passwordHash         String
   phone                String?
-  role                 Role      @default(MEMBER)
+  role                 Role          @default(MEMBER)
   // Permissions backoffice granulaires pour les rôles staff restreints
   // (OFFICE_MANAGER) : { "<bloc>": "read" | "write" }. Ignoré pour
   // SUPER_ADMIN / ADMIN (accès total) et MEMBER (pas de backoffice).
   permissions          Json?
   // Nom affiché pour les comptes staff (qui n'ont pas de MemberProfile).
   displayName          String?
-  isActive             Boolean   @default(true)
+  // Commerciaux (SALES_AGENT) : sédentaire ou terrain ; isExternal = prestataire
+  // de la Sales Team externe (processus v1.3).
+  salesProfile         SalesProfile?
+  isExternal           Boolean       @default(false)
+  // Membre : interlocuteur unique de l'équipe, de l'activation au
+  // renouvellement (processus v1.3, « référent membre »). Désigné à l'activation.
+  referentId           String?
+  isActive             Boolean       @default(true)
   // Rattachement à un compte entreprise (demande client 07/09/2026) : un
   // collaborateur invité depuis le dashboard d'une entreprise porte le
   // companyId de celle-ci. Le représentant qui a inscrit l'entreprise est
   // lui aussi rattaché (il occupe le poste n°1) ET propriétaire via
   // Company.ownerId. null pour un membre individuel (freelance / startup).
   companyId            String?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   profile                    MemberProfile?
   expertProfile              ExpertProfile?
   company                    Company?                  @relation("CompanyMembers", fields: [companyId], references: [id])
+  referent                   User?                     @relation("MemberReferent", fields: [referentId], references: [id], onDelete: SetNull)
+  referredMembers            User[]                    @relation("MemberReferent")
   ownedCompany               Company?                  @relation("CompanyOwner")
   subscriptions              Subscription[]
   bookings                   Booking[]
@@ -229,6 +250,14 @@ model User {
   suggestionsAs              ConnectionSuggestion[]    @relation("SuggestedMember")
   expertConnectionRequests   ExpertConnectionRequest[]
   assignedLeads              Lead[]                    @relation("LeadAssignee")
+  salesLeads                 Lead[]                    @relation("LeadSalesAgent")
+  referredLeads              Lead[]                    @relation("LeadReferrer")
+  circuitChanges             LeadCircuitChange[]       @relation("CircuitChangeAuthor")
+  approvedQuotes             Quote[]                   @relation("QuoteApprover")
+  validatedServiceOrders     ServiceOrder[]            @relation("OrderValidator")
+  memberDocuments            MemberDocument[]          @relation("DocumentOwner")
+  uploadedDocuments          MemberDocument[]          @relation("DocumentUploader")
+  commissions                Commission[]              @relation("CommissionBeneficiary")
   qualifiedLeads             Lead[]                    @relation("LeadQualifier")
   memberLeads                Lead[]                    @relation("LeadMember")
   leadActivities             LeadActivity[]            @relation("ActivityAuthor")
@@ -243,6 +272,7 @@ model User {
   @@index([email])
   @@index([role])
   @@index([companyId])
+  @@index([referentId])
   @@map("users")
 }
 
@@ -423,8 +453,9 @@ model MembershipPlan {
   features             Json // liste de features affichées
   isActive             Boolean          @default(true)
 
-  subscriptions Subscription[]
-  requestItems  ServiceRequestItem[]
+  subscriptions   Subscription[]
+  requestItems    ServiceRequestItem[]
+  commissionRules CommissionRule[]
 
   @@map("membership_plans")
 }
@@ -501,16 +532,24 @@ model Payment {
 // ============================================
 
 model ServiceCatalogItem {
-  id           String          @id @default(cuid())
-  title        String
-  slug         String          @unique
-  category     ServiceCategory
-  description  String          @db.Text
-  priceFrom    Decimal?        @db.Decimal(10, 2)
-  pricingTiers Json? // [{ label: string, price: number }] pour les grilles à paliers
-  isActive     Boolean         @default(true)
+  id             String          @id @default(cuid())
+  title          String
+  slug           String          @unique
+  category       ServiceCategory
+  description    String          @db.Text
+  priceFrom      Decimal?        @db.Decimal(10, 2)
+  pricingTiers   Json? // [{ label: string, price: number }] pour les grilles à paliers
+  // Processus v1.3 : pôle qui livre le service, filiale IN Group concernée
+  // (pôle IN_GROUP) et durée de validité (null = service sans échéance, comme
+  // une création d'entreprise). « Tarif défini » vs « sur devis » se déduit
+  // des prix (priceFrom / pricingTiers), sans champ dédié.
+  pole           DeliveryPole    @default(SPACES)
+  subsidiary     String?
+  durationMonths Int?
+  isActive       Boolean         @default(true)
 
-  requestItems ServiceRequestItem[]
+  requestItems    ServiceRequestItem[]
+  commissionRules CommissionRule[]
 
   @@map("service_catalog_items")
 }
@@ -795,23 +834,80 @@ model ContactMessage {
 // `crm`, `quotes`, `invoices`, `fulfilment` (comptes OFFICE_MANAGER).
 // ============================================
 
-// Parcours d'un lead (demande client 19/10/2026) — un seul flux, sans doublon :
-//   NEW        À qualifier  : lead entrant, en attente de qualification
-//   QUALIFIED  À assigner   : qualifié et validé par le responsable commercial
-//   ASSIGNED   Assigné      : confié à un commercial, à contacter
-//   CONTACTED  Contacté     : premier échange passé
-//   QUOTE_SENT Devis envoyé
-//   WON / LOST
-// L'assignation fait passer QUALIFIED → ASSIGNED (et l'inverse si on retire le
-// commercial) ; un lead NEW ne peut pas être assigné avant d'être qualifié.
+// Parcours d'un lead — processus commercial v1.3 (23/10/2026). Une seule fiche
+// du premier contact au paiement ; la suite (activation, livraison, échéance)
+// vit sur les services du membre (ServiceOrder).
+//   REGISTERED      Lead enregistré : en attente d'aiguillage (circuit null) ou
+//                   d'attribution à un commercial (circuit 1)
+//   ASSIGNED        Attribué (Sales, circuit 1) / Pris en charge (Office Manager, circuit 2)
+//   QUALIFIED       Qualifié : besoin compris, offre pressentie
+//   FOLLOW_UP       Relance en cours (pas encore de visite / visio)
+//   VISIT_CONFIRMED Visite / visio confirmée : en circuit 1, le dossier passe à l'Office Manager
+//   QUOTE_SENT      Devis envoyé
+//   CONFIRMED       Devis confirmé par le client : l'Office Manager organise le paiement
+//   PAID            Paiement confirmé : client gagné, la fiche devient fiche membre
+//   LOST            Perdu / clôturé
+// Les transitions autorisées par profil sont décrites dans crm/workflow.ts.
 enum LeadStage {
-  NEW
-  QUALIFIED
+  REGISTERED
   ASSIGNED
-  CONTACTED
+  QUALIFIED
+  FOLLOW_UP
+  VISIT_CONFIRMED
   QUOTE_SENT
-  WON
+  CONFIRMED
+  PAID
   LOST
+}
+
+// Circuit 1 : par la Sales Team (responsable commercial → commercial) jusqu'à
+// la visite confirmée, puis l'Office Manager. Circuit 2 : direct Office Manager.
+// null = lead à aiguiller. Figé une fois choisi : le changer passe par une
+// passerelle consignée (LeadCircuitChange).
+enum LeadCircuit {
+  SALES_TEAM
+  OFFICE_MANAGER
+}
+
+// Les quatre pipelines d'entrée du processus v1.3.
+enum LeadPipeline {
+  DIGITAL // Digital et entrant
+  COMMUNITY // Événements et communauté
+  PARTNERS // Partenaires et recommandations
+  DIASPORA_DIRECT // Diaspora et contacts directs
+}
+
+// Canal précis, rattaché à un pipeline (cf. crm/workflow.ts CHANNEL_PIPELINE).
+enum LeadChannel {
+  LINKEDIN
+  SOCIAL_MEDIA
+  WEBSITE
+  ADVERTISING
+  COLD_MAILING
+  WORKSHOP
+  OPEN_DAY
+  IN_TALK
+  MEMBER_REFERRAL
+  ACCOUNTANT
+  LAWYER
+  SCHOOL
+  INCUBATOR
+  LMIG_SUBSIDIARY
+  DIASPORA_FRANCE
+  DIASPORA_CANADA
+  DIASPORA_UAE
+  WHATSAPP
+  DIRECT_MESSAGE
+  WALK_IN
+  PHONE
+}
+
+// Nature de l'affaire : nouveau client, service supplémentaire demandé par un
+// membre, ou renouvellement d'un service arrivant à échéance.
+enum LeadKind {
+  NEW_BUSINESS
+  EXTENSION
+  RENEWAL
 }
 
 // Température du lead, posée à la qualification.
@@ -821,15 +917,15 @@ enum LeadPriority {
   HOT
 }
 
+// Comment la fiche a été créée (origine technique). Le canal marketing est
+// porté par pipeline / channel.
 enum LeadSource {
-  REGISTRATION
-  WEBSITE_QUOTE
-  CONTACT_FORM
-  PHONE
-  VISIT
-  REFERRAL
-  EVENT
-  OTHER
+  REGISTRATION // inscription sur le site
+  WEBSITE_QUOTE // demande de devis du site
+  CONTACT_FORM // formulaire de contact
+  MEMBER_SPACE // demande ou renouvellement depuis l'espace membre
+  MEMBER_REFERRAL // recommandation envoyée par un membre depuis son espace
+  MANUAL // saisie par l'équipe
 }
 
 enum ActivityType {
@@ -844,6 +940,8 @@ enum ActivityType {
 enum AppointmentType {
   CALL
   VISIT
+  VIDEO
+  TRIAL_DAY
   MEETING
 }
 
@@ -855,17 +953,29 @@ enum AppointmentStatus {
 
 enum QuoteStatus {
   DRAFT
+  // Devis sur mesure soumis à validation (responsable commercial ou Direction)
+  // avant de pouvoir être envoyé.
+  PENDING_APPROVAL
   SENT
   ACCEPTED
   REJECTED
   EXPIRED
 }
 
+// SENT = facture proforma envoyée (numéro PF-…), à payer. PAID = facture
+// définitive (numéro FA-… attribué au paiement). REFUNDED = payée puis
+// remboursée (les commissions sont reprises).
 enum InvoiceStatus {
   DRAFT
   SENT
   PAID
   CANCELLED
+  REFUNDED
+}
+
+enum QuoteConfirmation {
+  PLATFORM
+  EMAIL
 }
 
 enum InvoicePaymentMethod {
@@ -875,11 +985,23 @@ enum InvoicePaymentMethod {
   CARD
 }
 
+// Service vendu (panier du membre) : À lancer → Activation en cours → En
+// attente de validation (livrable prêt) ⇄ Ajustement demandé → Livré / Actif
+// (DONE). « À renouveler », « Expiré », « Renouvelé » se déduisent des dates.
 enum ServiceOrderStatus {
   TO_START
   IN_PROGRESS
+  AWAITING_VALIDATION
+  ADJUSTMENT_REQUESTED
   DONE
   CANCELLED
+}
+
+// Pôles de livraison du processus v1.3.
+enum DeliveryPole {
+  SPACES // Espaces et domiciliation (Office Manager)
+  COMPANY_CREATION // Création d'entreprise (Support administratif)
+  IN_GROUP // Solutions IN Group (filiales)
 }
 
 // Compteurs de numérotation séquentielle (LD-2026-0001, DV-…, FA-…), un par
@@ -891,58 +1013,112 @@ model DocumentSequence {
   @@map("document_sequences")
 }
 
-// Un lead devient une opportunité en avançant dans le pipeline (même fiche,
-// seule l'étape change). Sources automatiques : demande de devis du site
-// (serviceRequestId) et formulaire de contact (contactMessageId).
+// Fiche lead unique (processus v1.3) : source, canal, circuit et intervenants
+// tracés de l'entrée au paiement ; au paiement elle devient la fiche membre
+// (userId), sans perdre cet historique. Sources automatiques : inscription,
+// demande de devis du site (serviceRequestId), formulaire de contact
+// (contactMessageId), demandes et renouvellements depuis l'espace membre.
 model Lead {
-  id                  String     @id @default(cuid())
-  reference           String     @unique
+  id                  String        @id @default(cuid())
+  reference           String        @unique
   title               String
   contactName         String
   email               String?
   phone               String?
   companyName         String?
-  source              LeadSource @default(OTHER)
-  stage               LeadStage  @default(NEW)
-  expectedAmount      Decimal?   @db.Decimal(12, 2)
-  notes               String?    @db.Text
+  source              LeadSource    @default(MANUAL)
+  kind                LeadKind      @default(NEW_BUSINESS)
+  pipeline            LeadPipeline?
+  channel             LeadChannel?
+  // Précision libre sur le canal (nom de l'événement, du cabinet partenaire…).
+  channelDetail       String?
+  circuit             LeadCircuit?
+  stage               LeadStage     @default(REGISTERED)
+  expectedAmount      Decimal?      @db.Decimal(12, 2)
+  notes               String?       @db.Text
   lostReason          String?
-  // Qualification (responsable commercial) : besoin, budget, décideur, délai,
-  // température. validatedAt/validatedById = validation du lead.
+  // Qualification (phase 2) : profil, projet, étape, besoin réel, offre
+  // pressentie, température.
   priority            LeadPriority?
   qualification       Json?
+  offerInterest       String?
   qualifiedAt         DateTime?
   qualifiedById       String?
+  // Intervenant en charge du dossier à cet instant (commercial, puis Office
+  // Manager après la transmission ; Office Manager en circuit 2).
+  assignedToId        String?
   assignedAt          DateTime?
+  // Commercial de la Sales Team (circuit 1). Figé à la transmission : c'est
+  // le « closer » pour la commission ; il garde un accès en lecture au dossier.
+  salesAgentId        String?
+  dispatchedAt        DateTime?
+  handedOverAt        DateTime?
+  followUpCount       Int           @default(0)
+  followUpReturnedAt  DateTime?
   nextActionAt        DateTime?
   // Automatisations : horodatage de la dernière alerte envoyée, pour ne pas
   // notifier en boucle (cf. crm/automations.service.ts).
   nextActionAlertedAt DateTime?
   dormantAlertedAt    DateTime?
-  assignedToId        String?
   userId              String?
-  serviceRequestId    String?    @unique
-  contactMessageId    String?    @unique
+  // Extension / renouvellement : rattaché à la fiche d'origine du membre.
+  parentLeadId        String?
+  // Membre qui a recommandé ce contact (parrainage).
+  referrerUserId      String?
+  serviceRequestId    String?       @unique
+  contactMessageId    String?       @unique
+  confirmedAt         DateTime?
+  // Paiement confirmé (client gagné).
   wonAt               DateTime?
   lostAt              DateTime?
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
-  assignedTo     User?           @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-  qualifiedBy    User?           @relation("LeadQualifier", fields: [qualifiedById], references: [id], onDelete: SetNull)
-  user           User?           @relation("LeadMember", fields: [userId], references: [id], onDelete: SetNull)
-  serviceRequest ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: SetNull)
-  contactMessage ContactMessage? @relation(fields: [contactMessageId], references: [id], onDelete: SetNull)
+  assignedTo     User?               @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  salesAgent     User?               @relation("LeadSalesAgent", fields: [salesAgentId], references: [id], onDelete: SetNull)
+  qualifiedBy    User?               @relation("LeadQualifier", fields: [qualifiedById], references: [id], onDelete: SetNull)
+  user           User?               @relation("LeadMember", fields: [userId], references: [id], onDelete: SetNull)
+  referrer       User?               @relation("LeadReferrer", fields: [referrerUserId], references: [id], onDelete: SetNull)
+  parentLead     Lead?               @relation("LeadParent", fields: [parentLeadId], references: [id], onDelete: SetNull)
+  childLeads     Lead[]              @relation("LeadParent")
+  serviceRequest ServiceRequest?     @relation(fields: [serviceRequestId], references: [id], onDelete: SetNull)
+  contactMessage ContactMessage?     @relation(fields: [contactMessageId], references: [id], onDelete: SetNull)
   activities     LeadActivity[]
   appointments   Appointment[]
   quotes         Quote[]
   invoices       Invoice[]
   serviceOrders  ServiceOrder[]
+  circuitChanges LeadCircuitChange[]
+  commissions    Commission[]
 
   @@index([stage])
+  @@index([circuit, stage])
   @@index([assignedToId])
+  @@index([salesAgentId])
+  @@index([email])
+  @@index([phone])
+  @@index([userId])
   @@index([createdAt])
   @@map("leads")
+}
+
+// Passerelle entre circuits (processus v1.3) : tout changement de circuit
+// après l'aiguillage est consigné avec son motif — c'est ce qui évite les
+// doubles commissions.
+model LeadCircuitChange {
+  id          String       @id @default(cuid())
+  leadId      String
+  fromCircuit LeadCircuit?
+  toCircuit   LeadCircuit
+  reason      String       @db.Text
+  authorId    String?
+  createdAt   DateTime     @default(now())
+
+  lead   Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author User? @relation("CircuitChangeAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+  @@map("lead_circuit_changes")
 }
 
 // Journal de la fiche : notes, appels, emails, visites, événements système
@@ -987,29 +1163,37 @@ model Appointment {
 }
 
 model Quote {
-  id             String      @id @default(cuid())
-  number         String      @unique
+  id             String             @id @default(cuid())
+  number         String             @unique
   leadId         String
-  status         QuoteStatus @default(DRAFT)
+  status         QuoteStatus        @default(DRAFT)
   validUntil     DateTime?
-  notes          String?     @db.Text
-  vatRate        Decimal     @default(19) @db.Decimal(5, 2)
-  subtotal       Decimal     @default(0) @db.Decimal(12, 2)
-  total          Decimal     @default(0) @db.Decimal(12, 2)
+  notes          String?            @db.Text
+  vatRate        Decimal            @default(19) @db.Decimal(5, 2)
+  subtotal       Decimal            @default(0) @db.Decimal(12, 2)
+  total          Decimal            @default(0) @db.Decimal(12, 2)
   sentAt         DateTime?
   acceptedAt     DateTime?
   rejectedAt     DateTime?
   lastReminderAt DateTime?
-  reminderCount  Int         @default(0)
+  reminderCount  Int                @default(0)
+  // Devis sur mesure (processus v1.3) : validé par le responsable commercial
+  // ou la Direction avant l'envoi. Modifier les lignes annule la validation.
+  approvedAt     DateTime?
+  approvedById   String?
+  // Comment le client a confirmé : depuis son espace, ou par e-mail (consigné
+  // par l'intervenant).
+  confirmedVia   QuoteConfirmation?
   createdById    String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
-  lead      Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  createdBy User?          @relation("QuoteCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  lines     QuoteLine[]
-  invoices  Invoice[]
-  proofs    PaymentProof[]
+  lead       Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdBy  User?          @relation("QuoteCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  approvedBy User?          @relation("QuoteApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  lines      QuoteLine[]
+  invoices   Invoice[]
+  proofs     PaymentProof[]
 
   @@index([leadId])
   @@index([status])
@@ -1020,16 +1204,18 @@ model Quote {
 // spaceId ne sont que des repères vers le catalogue (pas de clé étrangère —
 // le catalogue peut évoluer sans réécrire un devis déjà envoyé).
 model QuoteLine {
-  id          String  @id @default(cuid())
-  quoteId     String
-  position    Int     @default(0)
-  description String  @db.Text
-  quantity    Decimal @default(1) @db.Decimal(10, 2)
-  unitPrice   Decimal @default(0) @db.Decimal(12, 2)
-  serviceId   String?
-  planId      String?
-  spaceId     String?
-  tierLabel   String?
+  id            String  @id @default(cuid())
+  quoteId       String
+  position      Int     @default(0)
+  description   String  @db.Text
+  quantity      Decimal @default(1) @db.Decimal(10, 2)
+  unitPrice     Decimal @default(0) @db.Decimal(12, 2)
+  serviceId     String?
+  planId        String?
+  spaceId       String?
+  tierLabel     String?
+  // Renouvellement : service du panier que cette ligne prolonge.
+  renewsOrderId String?
 
   quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
 
@@ -1052,11 +1238,14 @@ model QuoteTemplate {
   @@map("quote_templates")
 }
 
-// Le numéro n'est attribué qu'à l'émission (statut DRAFT → SENT) : une
-// numérotation continue sans trous, y compris si un brouillon est supprimé.
+// Brouillon → proforma envoyée (proformaNumber PF-…, statut SENT) → payée :
+// le numéro de facture définitive (FA-…) n'est attribué qu'au paiement, pour
+// une suite continue sans trous (processus v1.3, décision du 23/10/2026).
+// Les factures émises avant ce changement gardent leur numéro FA-… d'émission.
 model Invoice {
   id              String                @id @default(cuid())
   number          String?               @unique
+  proformaNumber  String?               @unique
   leadId          String?
   quoteId         String?
   status          InvoiceStatus         @default(DRAFT)
@@ -1079,6 +1268,8 @@ model Invoice {
   paidAt          DateTime?
   paymentMethod   InvoicePaymentMethod?
   paymentRef      String?
+  refundedAt      DateTime?
+  refundReason    String?
   lastReminderAt  DateTime?
   reminderCount   Int                   @default(0)
   createdById     String?
@@ -1091,6 +1282,7 @@ model Invoice {
   lines         InvoiceLine[]
   serviceOrders ServiceOrder[]
   proofs        PaymentProof[]
+  commissions   Commission[]
 
   @@index([status])
   @@index([leadId])
@@ -1098,16 +1290,18 @@ model Invoice {
 }
 
 model InvoiceLine {
-  id          String  @id @default(cuid())
-  invoiceId   String
-  position    Int     @default(0)
-  description String  @db.Text
-  quantity    Decimal @default(1) @db.Decimal(10, 2)
-  unitPrice   Decimal @default(0) @db.Decimal(12, 2)
-  serviceId   String?
-  planId      String?
-  spaceId     String?
-  tierLabel   String?
+  id            String  @id @default(cuid())
+  invoiceId     String
+  position      Int     @default(0)
+  description   String  @db.Text
+  quantity      Decimal @default(1) @db.Decimal(10, 2)
+  unitPrice     Decimal @default(0) @db.Decimal(12, 2)
+  serviceId     String?
+  planId        String?
+  spaceId       String?
+  tierLabel     String?
+  // Renouvellement : service du panier que cette ligne prolonge.
+  renewsOrderId String?
 
   invoice       Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   serviceOrders ServiceOrder[]
@@ -1116,9 +1310,11 @@ model InvoiceLine {
   @@map("invoice_lines")
 }
 
-// Lancement du service : une commande de service par ligne de facture payée,
-// avec sa checklist. Une ligne « formule d'abonnement » active en plus
-// l'abonnement du membre rattaché (subscriptionId).
+// Service vendu = une ligne du panier de services du membre (processus v1.3).
+// Créé au paiement (une commande par ligne de facture payée, avec sa
+// checklist), livré par son pôle, validé par le membre, puis suivi jusqu'à son
+// échéance et son renouvellement. Une ligne « formule d'abonnement » active en
+// plus l'abonnement du membre rattaché (subscriptionId).
 model ServiceOrder {
   id             String             @id @default(cuid())
   invoiceId      String
@@ -1126,11 +1322,31 @@ model ServiceOrder {
   leadId         String?
   userId         String?
   title          String
+  pole           DeliveryPole       @default(SPACES)
+  // Filiale IN Group concernée (pôle IN_GROUP) : IN COM, IN Academy…
+  subsidiary     String?
+  // Montant HT de la ligne vendue (instantané).
+  amount         Decimal?           @db.Decimal(12, 2)
   status         ServiceOrderStatus @default(TO_START)
   assignedToId   String?
   dueAt          DateTime?
   startedAt      DateTime?
+  // Livrable prêt : en attente de la validation du membre.
+  readyAt        DateTime?
+  adjustmentNote String?            @db.Text
+  // Livré / Actif : validé par le membre (ou par le référent pour lui).
   completedAt    DateTime?
+  validatedById  String?
+  // Période couverte : début (activation) et échéance (null = sans échéance).
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  // Alertes d'échéance déjà envoyées (J-60, J-30, J-7) et passage « Expiré ».
+  alert60At      DateTime?
+  alert30At      DateTime?
+  alert7At       DateTime?
+  expiredAt      DateTime?
+  // Renouvellement : le nouveau service pointe vers celui qu'il prolonge.
+  renewedFromId  String?            @unique
   notes          String?            @db.Text
   subscriptionId String?            @unique
   createdAt      DateTime           @default(now())
@@ -1141,11 +1357,19 @@ model ServiceOrder {
   lead         Lead?              @relation(fields: [leadId], references: [id], onDelete: SetNull)
   user         User?              @relation("OrderMember", fields: [userId], references: [id], onDelete: SetNull)
   assignedTo   User?              @relation("OrderAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  validatedBy  User?              @relation("OrderValidator", fields: [validatedById], references: [id], onDelete: SetNull)
   subscription Subscription?      @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  renewedFrom  ServiceOrder?      @relation("OrderRenewal", fields: [renewedFromId], references: [id], onDelete: SetNull)
+  renewedBy    ServiceOrder?      @relation("OrderRenewal")
   tasks        ServiceOrderTask[]
+  documents    MemberDocument[]
+  commissions  Commission[]
 
   @@index([status])
   @@index([invoiceId])
+  @@index([userId, status])
+  @@index([pole, status])
+  @@index([expiresAt])
   @@map("service_orders")
 }
 
@@ -1204,4 +1428,134 @@ model PaymentProof {
   @@index([status])
   @@index([userId])
   @@map("payment_proofs")
+}
+
+// ============================================
+// PROCESSUS COMMERCIAL v1.3 (23/10/2026)
+// Documents remis au membre, commissions, paramètres réglables.
+// ============================================
+
+enum MemberDocumentKind {
+  CONTRACT // contrat signé
+  DOMICILIATION_CERTIFICATE // attestation de domiciliation
+  OFFICIAL_DOCUMENT // documents officiels (RC, NIF, statuts…)
+  RECEIPT // reçu de paiement
+  OTHER
+}
+
+// Documents remis au membre (contrat, attestation, documents officiels…),
+// déposés par l'équipe et consultables dans l'historique de l'espace membre.
+// Stockés hors du dossier public, comme les justificatifs de paiement.
+model MemberDocument {
+  id           String             @id @default(cuid())
+  userId       String
+  orderId      String?
+  kind         MemberDocumentKind @default(OTHER)
+  title        String
+  filePath     String
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  uploadedById String?
+  createdAt    DateTime           @default(now())
+
+  user       User          @relation("DocumentOwner", fields: [userId], references: [id], onDelete: Cascade)
+  order      ServiceOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  uploadedBy User?         @relation("DocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("member_documents")
+}
+
+enum CommissionBeneficiary {
+  CLOSER // commercial de la Sales Team qui a transmis le dossier (circuit 1)
+  OFFICE_MANAGER // Office Manager (circuits 1 et 2)
+}
+
+enum CommissionMode {
+  RATE // pourcentage du montant HT
+  FIXED // montant fixe par ligne vendue
+}
+
+// Calculée au paiement → éligible quand le service est livré → contrôlée par
+// le responsable commercial (circuit 1) → validée par la Direction → versée.
+// Reprise (CANCELLED) si la facture est remboursée.
+enum CommissionStatus {
+  PENDING
+  ELIGIBLE
+  CHECKED
+  VALIDATED
+  PAID
+  CANCELLED
+}
+
+// Barème saisi par IN NETWORK. La règle la plus précise l'emporte : service
+// (ou formule) > catégorie > règle générale. leadKind / circuit null = toutes
+// les affaires. Aucune commission n'est calculée sans règle applicable.
+model CommissionRule {
+  id          String                @id @default(cuid())
+  beneficiary CommissionBeneficiary
+  serviceId   String?
+  planId      String?
+  category    ServiceCategory?
+  leadKind    LeadKind?
+  circuit     LeadCircuit?
+  mode        CommissionMode
+  value       Decimal               @db.Decimal(12, 2)
+  isActive    Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  service ServiceCatalogItem? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  plan    MembershipPlan?     @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([beneficiary, isActive])
+  @@map("commission_rules")
+}
+
+// Une ligne par bénéficiaire et par ligne de facture payée.
+model Commission {
+  id            String                @id @default(cuid())
+  leadId        String?
+  invoiceId     String
+  invoiceLineId String?
+  orderId       String?
+  beneficiaryId String
+  role          CommissionBeneficiary
+  ruleId        String?
+  description   String
+  baseAmount    Decimal               @db.Decimal(12, 2)
+  amount        Decimal               @db.Decimal(12, 2)
+  status        CommissionStatus      @default(PENDING)
+  checkedById   String?
+  checkedAt     DateTime?
+  validatedById String?
+  validatedAt   DateTime?
+  paidAt        DateTime?
+  cancelledAt   DateTime?
+  note          String?               @db.Text
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  lead        Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  invoice     Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  order       ServiceOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  beneficiary User          @relation("CommissionBeneficiary", fields: [beneficiaryId], references: [id], onDelete: Cascade)
+
+  @@unique([invoiceLineId, role])
+  @@index([beneficiaryId, status])
+  @@index([status])
+  @@map("commissions")
+}
+
+// Paramètres du processus réglables par l'administrateur sans développement
+// (délais de relance, seuil de validation des devis, délai de grâce…).
+// Valeurs par défaut et validation : cf. src/modules/settings/settings.service.ts.
+model AppSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("app_settings")
 }

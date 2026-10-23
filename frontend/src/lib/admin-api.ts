@@ -109,3 +109,26 @@ export { setAdminAccessTokenCookie, clearAdminAccessTokenCookie };
 // toucher aux appels `api.get(...)` / `apiUpload(...)` eux-mêmes.
 export const api = adminApi;
 export const apiUpload = adminApiUpload;
+
+/** Envoi multipart vers une route admin (documents remis aux membres…) : le fichier dans `file`, les autres champs à côté. */
+export async function adminApiPostForm<T>(path: string, file: File, fields: Record<string, string | undefined>): Promise<T> {
+  const send = () => {
+    const formData = new FormData();
+    formData.append('file', file);
+    for (const [key, value] of Object.entries(fields)) if (value) formData.append(key, value);
+    const accessToken = getAdminAccessTokenCookie();
+    return fetch(`${getClientApiUrl()}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      body: formData,
+    });
+  };
+  let response = await send();
+  if (response.status === 401 && (await tryRefreshAdminAccessToken().catch(() => false))) response = await send();
+  if (!response.ok) {
+    const errorBody = (await response.json().catch(() => null)) as ApiErrorBody | null;
+    throw new ApiRequestError(response.status, errorBody?.error.code ?? 'UNKNOWN_ERROR', errorBody?.error.message ?? "Échec de l'envoi du fichier");
+  }
+  return response.json();
+}
