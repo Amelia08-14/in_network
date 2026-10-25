@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { errorMessage, Field, OfficeManagerOptions, SalesAgentOptions, useCrmAccess, useStaff } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
+import { usePlatformOptions } from '@/lib/options';
 import { APPOINTMENT_LABEL, CIRCUIT, suggestCircuit, toInputDateTime } from '@/lib/crm';
 import { cn } from '@/lib/utils';
 import type { LeadChannel, LeadCircuit, LeadPipeline, StaffUser } from '@/types/crm';
@@ -328,6 +329,8 @@ export function CircuitModal({ leadId, circuit, open, onClose }: { leadId: strin
 /** Clôture d'un lead (perdu, sans suite) avec son motif. */
 export function LoseModal({ leadId, open, onClose }: { leadId: string; open: boolean; onClose: () => void }) {
   const refresh = useLeadRefresh(leadId);
+  // Motifs suggérés, réglés par le super administrateur (Paramètres).
+  const suggestions = usePlatformOptions().data?.lists.lostReasons ?? [];
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const save = useMutation({
@@ -355,6 +358,15 @@ export function LoseModal({ leadId, open, onClose }: { leadId: string; open: boo
         </>
       }
     >
+      {suggestions.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {suggestions.map((s) => (
+            <button key={s} type="button" onClick={() => setReason(s)} className={cn('rounded-full border px-3 py-1 text-xs font-medium', reason === s ? 'border-ink-900 bg-ink-900 text-white' : 'border-ink-900/15 text-ink-700 hover:bg-ink-900/5')}>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
       <Field label="Motif" htmlFor="lost-reason">
         <Textarea id="lost-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Prix, concurrent, injoignable, hors périmètre, doublon…" autoFocus />
       </Field>

@@ -18,7 +18,7 @@ import { api } from '@/lib/admin-api';
 
 // Palette recharts alignée sur la charte graphique (violet profond, orange, bleu,
 // vert — cf. globals.css) : pas de couleurs recharts par défaut.
-const NAVY = '#47295C';
+const NAVY = '#001042';
 const ORANGE = '#D44835';
 const BLUE = '#235BA8';
 const GREEN = '#73B866';

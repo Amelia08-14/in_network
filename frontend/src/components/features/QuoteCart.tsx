@@ -59,7 +59,7 @@ export function QuoteCart() {
       if (err instanceof ApiRequestError) {
         setError({ message: err.message, profileIncomplete: err.code === 'PROFILE_INCOMPLETE' });
       } else {
-        setError({ message: "Impossible d'envoyer la demande, réessaie.", profileIncomplete: false });
+        setError({ message: "Impossible d'envoyer la demande, réessayez.", profileIncomplete: false });
       }
     } finally {
       setIsSubmitting(false);
@@ -67,7 +67,7 @@ export function QuoteCart() {
   }
 
   if (!mounted) {
-    return <p className="text-sm text-ink-500">Chargement de ta demande…</p>;
+    return <p className="text-sm text-ink-500">Chargement de votre demande…</p>;
   }
 
   if (sentCount !== null) {
@@ -79,8 +79,8 @@ export function QuoteCart() {
             <p className="font-heading text-xl font-bold text-ink-900">Demande envoyée</p>
           </div>
           <p className="text-ink-600">
-            Ta demande de devis ({sentCount} ligne{sentCount > 1 ? 's' : ''}) est bien arrivée. L’équipe IN NETWORK la
-            chiffre et te recontacte rapidement — tu retrouves son suivi dans ton espace.
+            Votre demande de devis ({sentCount} ligne{sentCount > 1 ? 's' : ''}) est bien arrivée. L’équipe IN NETWORK la
+            chiffre et vous recontacte rapidement — vous retrouvez son suivi dans votre espace.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href="/dashboard/reservations" className={buttonVariants({ variant: 'primary', size: 'md' })}>
@@ -99,8 +99,8 @@ export function QuoteCart() {
     return (
       <EmptyState
         icon={ShoppingBasket}
-        title="Ta demande de devis est vide"
-        description="Ajoute des services, des formules ou des salles : tu pourras tout envoyer en une seule demande."
+        title="Votre demande de devis est vide"
+        description="Ajoutez des services, des formules ou des salles : vous pourrez tout envoyer en une seule demande."
         action={
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/services#services" className={buttonVariants({ variant: 'primary', size: 'md' })}>
@@ -192,7 +192,7 @@ export function QuoteCart() {
                 </p>
               )}
               <p className="mt-3 text-xs leading-relaxed text-ink-500">
-                Montants indicatifs : le devis définitif t’est envoyé par l’équipe IN NETWORK après étude de ta demande.
+                Les montants affichés sont indicatifs. Un devis personnalisé vous sera transmis par l’équipe IN NETWORK après étude de votre demande.
               </p>
             </div>
 
@@ -202,7 +202,7 @@ export function QuoteCart() {
                 id="quote-notes"
                 rows={4}
                 maxLength={2000}
-                placeholder="Ton activité, tes délais, tes questions…"
+                placeholder="Votre activité, vos délais, vos questions…"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -226,7 +226,7 @@ export function QuoteCart() {
             ) : status === 'unauthenticated' ? (
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-ink-600">
-                  Connecte-toi pour envoyer ta demande — ton panier est conservé.
+                  Connectez-vous pour envoyer votre demande — votre sélection est conservée.
                 </p>
                 <Link
                   href="/login?redirect=/devis"

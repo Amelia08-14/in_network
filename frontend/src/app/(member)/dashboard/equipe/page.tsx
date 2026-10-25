@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -10,7 +10,6 @@ import {
   Mail,
   MinusCircle,
   PlusCircle,
-  ShieldCheck,
   Trash2,
   UserPlus,
 } from 'lucide-react';
@@ -19,13 +18,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { MemberImageUploader } from '@/components/features/upload/MemberImageUploader';
 import { groupTagOptions, useTagOptions } from '@/components/features/TagPicker';
 import { api, ApiRequestError } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
-import type { CompanyDashboard } from '@/types';
+import { CompanySeats, memberName } from '@/components/features/CompanySeats';
+import type { CompanyDashboard, CompanyMember } from '@/types';
 
 function errText(e: unknown) {
   return e instanceof ApiRequestError ? e.message : 'Une erreur est survenue.';
@@ -39,15 +38,15 @@ export default function TeamDashboardPage() {
     if (status === 'idle') hydrate();
   }, [status, hydrate]);
 
-  // Réservé au représentant qui a inscrit l'entreprise.
+  // Chaque collaborateur rattaché consulte son entreprise ; le représentant la gère.
   useEffect(() => {
-    if (status === 'authenticated' && !user?.company?.isOwner) router.replace('/dashboard');
+    if (status === 'authenticated' && !user?.company) router.replace('/dashboard');
   }, [status, user, router]);
 
   const { data: company, isLoading } = useQuery({
     queryKey: ['my-company'],
     queryFn: () => api.get<{ data: CompanyDashboard }>('/api/companies/mine').then((r) => r.data),
-    enabled: status === 'authenticated' && Boolean(user?.company?.isOwner),
+    enabled: status === 'authenticated' && Boolean(user?.company),
   });
 
   if (isLoading || !company) {
@@ -57,6 +56,8 @@ export default function TeamDashboardPage() {
       </div>
     );
   }
+
+  if (!company.canManage) return <CompanyView company={company} />;
 
   return (
     <div className="space-y-8">
@@ -333,36 +334,64 @@ function InviteCard({ company }: { company: CompanyDashboard }) {
 }
 
 function MembersCard({ company }: { company: CompanyDashboard }) {
-  const sorted = useMemo(
-    () => [...company.members].sort((a, b) => Number(b.isOwner) - Number(a.isOwner)),
-    [company.members],
-  );
-
   return (
     <Card>
       <CardContent className="p-0">
-        {sorted.length === 0 ? (
+        <div className="border-b border-ink-900/8 px-5 py-4">
+          <h2 className="font-heading text-base font-bold text-ink-900">Postes et accès</h2>
+          <p className="mt-0.5 text-sm text-ink-500">Chaque collaborateur se connecte avec son propre e-mail et son mot de passe.</p>
+        </div>
+        {company.members.length === 0 ? (
           <EmptyState title="Aucun collaborateur" />
         ) : (
-          <div className="divide-y divide-ink-900/8">
-            {sorted.map((m) => (
-              <MemberRow key={m.id} member={m} />
-            ))}
-          </div>
+          <CompanySeats members={company.members} seatLimit={company.seatLimit} actions={(m) => (m.isOwner ? null : <MemberActions member={m} />)} />
         )}
       </CardContent>
     </Card>
   );
 }
 
-function MemberRow({ member }: { member: CompanyDashboard['members'][number] }) {
+/** Vue d'un collaborateur : son entreprise et ses collègues, sans gestion. */
+function CompanyView({ company }: { company: CompanyDashboard }) {
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center gap-4">
+        {company.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={company.logoUrl} alt="" className="h-14 w-14 rounded-2xl border border-ink-900/10 object-contain" />
+        ) : (
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-ink-900/5 text-ink-500">
+            <Building2 className="h-6 w-6" />
+          </span>
+        )}
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-ink-900">{company.name}</h1>
+          <p className="mt-1 text-sm text-ink-500">
+            {[company.sector, `${company.usedSeats} poste${company.usedSeats > 1 ? 's' : ''} occupé${company.usedSeats > 1 ? 's' : ''} sur ${company.seatLimit}`].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+      </div>
+      <Card>
+        <CardContent className="p-0">
+          <div className="border-b border-ink-900/8 px-5 py-4">
+            <h2 className="font-heading text-base font-bold text-ink-900">L’équipe</h2>
+            <p className="mt-0.5 text-sm text-ink-500">Vous accédez à l’espace avec votre propre compte. Le représentant de l’entreprise gère les postes et les accès.</p>
+          </div>
+          <CompanySeats members={company.members} seatLimit={company.seatLimit} showAccess={false} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function MemberActions({ member }: { member: CompanyMember }) {
   const queryClient = useQueryClient();
   const [msg, setMsg] = useState<string | null>(null);
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['my-company'] });
 
   const resend = useMutation({
     mutationFn: () => api.post(`/api/companies/mine/members/${member.id}/resend`),
-    onSuccess: () => setMsg('Nouveaux accès envoyés par email.'),
+    onSuccess: () => setMsg('Nouveaux accès envoyés par e-mail.'),
     onError: (e) => setMsg(errText(e)),
   });
   const setActive = useMutation({
@@ -375,70 +404,31 @@ function MemberRow({ member }: { member: CompanyDashboard['members'][number] }) 
     onSuccess: invalidate,
     onError: (e) => setMsg(errText(e)),
   });
-
-  const name = [member.firstName, member.lastName].filter(Boolean).join(' ') || member.email;
+  const name = memberName(member);
 
   return (
-    <div className="p-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 font-medium text-ink-800">
-            {name}
-            {member.isOwner && (
-              <span className="inline-flex items-center gap-1 text-xs font-normal text-ink-400">
-                <ShieldCheck className="h-3.5 w-3.5" /> Responsable
-              </span>
-            )}
-          </p>
-          <p className="truncate text-sm text-ink-500">
-            {member.email}
-            {member.jobTitle ? ` · ${member.jobTitle}` : ''}
-          </p>
-        </div>
-
-        <Badge variant={member.isActive ? 'success' : 'neutral'}>
-          {member.isActive ? 'Actif' : 'Désactivé'}
-        </Badge>
-        {member.isActive && (
-          <Badge variant={member.isPublic ? 'entreprise' : 'neutral'}>
-            {member.isPublic ? "Publié à l'annuaire" : 'Annuaire en attente'}
-          </Badge>
-        )}
-
-        {!member.isOwner && (
-          <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={resend.isPending}
-              onClick={() => resend.mutate()}
-              title="Renvoyer les accès par email"
-            >
-              <KeyRound className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={setActive.isPending}
-              onClick={() => setActive.mutate(!member.isActive)}
-            >
-              {member.isActive ? 'Désactiver' : 'Réactiver'}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={remove.isPending}
-              onClick={() => {
-                if (window.confirm(`Retirer ${name} de l'équipe ? Son poste sera libéré.`)) remove.mutate();
-              }}
-              title="Retirer de l'équipe"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="ghost" disabled={resend.isPending} onClick={() => resend.mutate()} title="Renvoyer les accès par e-mail" aria-label={`Renvoyer les accès de ${name}`}>
+          <KeyRound className="h-4 w-4" />
+        </Button>
+        <Button size="sm" variant="outline" disabled={setActive.isPending} onClick={() => setActive.mutate(!member.isActive)}>
+          {member.isActive ? 'Couper l’accès' : 'Rouvrir l’accès'}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={remove.isPending}
+          onClick={() => {
+            if (window.confirm(`Retirer ${name} de l'équipe ? Son poste sera libéré.`)) remove.mutate();
+          }}
+          title="Retirer de l'équipe"
+          aria-label={`Retirer ${name} de l'équipe`}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
       </div>
-      {msg && <p className="mt-2 text-xs text-ink-500">{msg}</p>}
+      {msg && <p className="text-xs text-ink-500">{msg}</p>}
     </div>
   );
 }

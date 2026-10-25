@@ -3,6 +3,7 @@ import { prisma } from '../../lib/prisma';
 import { sendEmail } from '../../lib/email';
 import { ApiError } from '../../utils/apiResponse';
 import { activateMember, ensureMemberAccount } from './activation.service';
+import { lockLinesToCatalogue } from './catalogueLines';
 import { cancelCommissionsForInvoice, createCommissionsForInvoice } from './commissions.service';
 import { discountLabel, renderDocumentPdf, type PdfDocumentInput } from './documentPdf';
 import { launchServicesForInvoice } from './fulfilment.service';
@@ -71,6 +72,7 @@ export interface CustomerInput {
 export async function createInvoice(
   input: { leadId?: string; quoteId?: string; lines?: DocLineInput[] } & CustomerInput,
   actorId: string,
+  scope?: StaffScope,
 ) {
   let leadId = input.leadId;
   let quoteId = input.quoteId;
@@ -104,6 +106,8 @@ export async function createInvoice(
     }));
   }
 
+  // Les lignes reprises d'un devis sont déjà conformes au catalogue.
+  if (!quoteId) lines = await lockLinesToCatalogue(lines, scope);
   const lead = leadId ? await prisma.lead.findUnique({ where: { id: leadId } }) : null;
   if (leadId && !lead) throw ApiError.notFound('Lead introuvable');
 
@@ -139,9 +143,11 @@ export async function createInvoice(
 export async function updateInvoice(
   id: string,
   patch: CustomerInput & { vatRate?: number; dueDate?: Date | null; notes?: string | null; lines?: DocLineInput[] } & DiscountPatch,
+  scope?: StaffScope,
 ) {
   const existing = await getInvoice(id);
   if (existing.status !== 'DRAFT') throw ApiError.conflict('Une proforma envoyée ne peut plus être modifiée.');
+  if (patch.lines) patch = { ...patch, lines: await lockLinesToCatalogue(patch.lines, scope) };
 
   const { lines, discountType: _type, discountValue: _value, ...rest } = patch;
   const vatRate = patch.vatRate ?? Number(existing.vatRate);

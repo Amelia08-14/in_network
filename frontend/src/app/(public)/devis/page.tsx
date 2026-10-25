@@ -14,7 +14,7 @@ export default function QuotePage() {
             Ma demande de <span className="text-brand-orange">devis</span>
           </>
         }
-        description="Réunis tout ce dont tu as besoin — services, formules, salles — dans une seule demande. L’équipe IN NETWORK te répond avec un devis unique."
+        description="Réunissez tout ce dont vous avez besoin — services, formules, salles — dans une seule demande. L’équipe IN NETWORK vous répond avec un devis unique."
       />
       <QuoteCart />
     </Container>

@@ -28,9 +28,9 @@ const SECTION_HUE: Record<string, Hue> = {
   Accueil: 'ink',
   Prospects: 'blue',
   Ventes: 'orange',
-  Clients: 'green',
+  Clients: 'ink',
   Commissions: 'amber',
-  Pilotage: 'violet',
+  Pilotage: 'blue',
   'Communauté et site': 'gray',
   Système: 'gray',
 };
@@ -128,7 +128,7 @@ export function AdminShell({ children, navItems }: { children: React.ReactNode; 
   }, [canSearch]);
 
   return (
-    <div className="flex min-h-screen bg-brand-paper">
+    <div className="flex min-h-screen">
       {/* Sidebar desktop */}
       <aside className="sticky top-0 z-40 hidden h-screen w-64 shrink-0 flex-col border-r border-ink-900/8 bg-white md:flex">
         <div className="flex h-16 items-center justify-between border-b border-ink-900/8 pl-6 pr-3">
@@ -147,7 +147,8 @@ export function AdminShell({ children, navItems }: { children: React.ReactNode; 
         </div>
       </aside>
 
-      <div className="min-w-0 flex-1">
+      {/* Écran de travail : le papier peint reste à peine perceptible sous un voile beige. */}
+      <div className="min-h-screen min-w-0 flex-1 bg-brand-paper/85">
         {/* Header mobile */}
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-ink-900/8 bg-white/90 px-4 backdrop-blur-sm md:hidden">
           <Logo />

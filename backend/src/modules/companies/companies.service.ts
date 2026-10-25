@@ -15,6 +15,9 @@ const MEMBER_SELECT = {
   phone: true,
   isActive: true,
   createdAt: true,
+  emailVerified: true,
+  // Dernière connexion = dernier jeton de session émis (login ou rafraîchissement).
+  refreshTokens: { select: { createdAt: true }, orderBy: { createdAt: 'desc' }, take: 1 },
   profile: {
     select: {
       firstName: true,
@@ -41,6 +44,8 @@ function serializeMember(row: MemberRow, ownerId: string) {
     avatarUrl: row.profile?.avatarUrl ?? null,
     isPublic: row.profile?.isPublic ?? false,
     isOwner: row.id === ownerId,
+    emailVerified: Boolean(row.emailVerified),
+    lastLoginAt: row.refreshTokens[0]?.createdAt ?? null,
   };
 }
 
@@ -84,7 +89,30 @@ async function requireOwnedCompany(ownerId: string) {
 }
 
 export async function getMyCompany(ownerId: string) {
-  return serializeCompany(await requireOwnedCompany(ownerId));
+  return { ...serializeCompany(await requireOwnedCompany(ownerId)), canManage: true };
+}
+
+/**
+ * « Mon entreprise » pour tout collaborateur rattaché (demande client
+ * 25/10/2026 : chaque poste a son propre accès à l'entreprise). Le
+ * représentant gère l'équipe ; les autres la consultent (sans téléphone).
+ */
+export async function getCompanyForMember(userId: string) {
+  const owned = await prisma.company.findUnique({ where: { ownerId: userId }, select: { id: true } });
+  if (owned) return getMyCompany(userId);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { company: { include: { members: { select: MEMBER_SELECT, orderBy: { createdAt: 'asc' } } } } },
+  });
+  if (!user?.company) throw ApiError.notFound('Vous n’êtes rattaché à aucune entreprise.');
+  const company = serializeCompany(user.company);
+  return {
+    ...company,
+    canManage: false,
+    members: company.members
+      .filter((m) => m.isActive)
+      .map((m) => ({ ...m, phone: null, lastLoginAt: null, emailVerified: false })),
+  };
 }
 
 export async function updateMyCompany(ownerId: string, input: UpdateMyCompanyInput) {
@@ -339,8 +367,9 @@ export async function listCompaniesForAdmin() {
   const companies = await prisma.company.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
-      owner: { select: { id: true, email: true, profile: { select: { firstName: true, lastName: true } } } },
+      owner: { select: { id: true, email: true, profile: { select: { firstName: true, lastName: true, isPublic: true } } } },
       _count: { select: { members: true } },
+      members: { select: MEMBER_SELECT, orderBy: { createdAt: 'asc' } },
     },
   });
   return companies.map((c) => ({
@@ -356,7 +385,51 @@ export async function listCompaniesForAdmin() {
     createdAt: c.createdAt,
     ownerEmail: c.owner.email,
     ownerName: `${c.owner.profile?.firstName ?? ''} ${c.owner.profile?.lastName ?? ''}`.trim() || null,
+    // La validation du représentant vaut pour tous les postes (cf. accountState.ts).
+    validated: Boolean(c.owner.profile?.isPublic),
+    members: c.members.map((m) => serializeMember(m, c.ownerId)),
   }));
+}
+
+async function findCompanyMember(companyId: string, memberId: string) {
+  const member = await prisma.user.findFirst({
+    where: { id: memberId, companyId },
+    select: { id: true, email: true, profile: { select: { firstName: true, lastName: true } } },
+  });
+  if (!member) throw ApiError.notFound('Ce collaborateur n’occupe pas de poste dans cette entreprise.');
+  return member;
+}
+
+/** Équipe IN NETWORK : renvoie au collaborateur un nouveau mot de passe par e-mail. */
+export async function adminResendMemberAccess(companyId: string, memberId: string) {
+  const member = await findCompanyMember(companyId, memberId);
+  const password = generatePassword();
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: member.id }, data: { passwordHash: await hashPassword(password) } }),
+    prisma.refreshToken.updateMany({ where: { userId: member.id, revokedAt: null }, data: { revokedAt: new Date() } }),
+  ]);
+  sendCredentialsEmail({
+    to: member.email,
+    name: `${member.profile?.firstName ?? ''} ${member.profile?.lastName ?? ''}`.trim() || member.email,
+    password,
+    loginPath: '/login',
+    subject: 'IN NETWORK — Vos accès',
+    intro: 'Voici vos accès à l’espace membre IN NETWORK de votre entreprise.',
+  });
+}
+
+/** Équipe IN NETWORK : ouvre ou coupe l'accès d'un poste (le poste reste occupé). */
+export async function adminSetMemberActive(companyId: string, memberId: string, isActive: boolean) {
+  const member = await findCompanyMember(companyId, memberId);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: member.id }, data: { isActive } }),
+    ...(isActive
+      ? []
+      : [
+          prisma.memberProfile.updateMany({ where: { userId: member.id }, data: { isPublic: false } }),
+          prisma.refreshToken.updateMany({ where: { userId: member.id, revokedAt: null }, data: { revokedAt: new Date() } }),
+        ]),
+  ]);
 }
 
 export async function adminUpdateCompany(

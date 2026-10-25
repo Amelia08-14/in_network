@@ -17,6 +17,8 @@ interface AdminContactMessage {
   name: string;
   email: string;
   message: string;
+  subject: string | null;
+  phone: string | null;
   isRead: boolean;
   replyText: string | null;
   repliedAt: string | null;
@@ -91,6 +93,8 @@ export default function AdminContactPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold text-ink-900">{message.name}</p>
                         <a href={`mailto:${message.email}`} className="text-xs text-brand-blue hover:underline">{message.email}</a>
+                        {message.phone && <a href={`tel:${message.phone}`} className="text-xs text-ink-600 hover:underline">{message.phone}</a>}
+                        {message.subject && <Badge variant="neutral">{message.subject}</Badge>}
                         {!message.isRead && <Badge variant="startup">Non lu</Badge>}
                         {message.repliedAt && <Badge variant="success">Répondu</Badge>}
                         {message.lead && (

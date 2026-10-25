@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Briefcase, Building2 } from 'lucide-react';
+import { Briefcase, Building2, Lock } from 'lucide-react';
 import { useAdminAuthStore } from '@/store/admin-auth';
 import { HUE } from '@/lib/palette';
 import { cn } from '@/lib/utils';
@@ -11,12 +11,18 @@ const TABS = [
   { key: 'tarifs', href: '/admin/tarifs', label: 'Formules, espaces & salles', hint: 'Abonnements et tarifs des salles', icon: Building2, hue: 'blue' as const, resources: ['plans', 'spaces'] },
 ];
 
+/** Le catalogue (services, formules, tarifs) se crée et se modifie par la Direction seulement. */
+export function useCanEditCatalogue() {
+  const role = useAdminAuthStore((s) => s.user?.role);
+  return role === 'ADMIN' || role === 'SUPER_ADMIN';
+}
+
 // Services et tarifs forment une seule offre (cf. la page publique
 // /services) : un seul onglet du menu, deux vues qui se répondent. Un compte
 // restreint ne voit que la vue pour laquelle il a un droit.
 export function ServicesTarifsHeader({ active }: { active: 'catalogue' | 'tarifs' }) {
   const user = useAdminAuthStore((s) => s.user);
-  const full = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+  const full = useCanEditCatalogue();
   const permissions = (user?.permissions ?? {}) as Record<string, string>;
   const visible = TABS.filter((tab) => full || tab.resources.some((r) => Boolean(permissions[r])));
 
@@ -26,6 +32,11 @@ export function ServicesTarifsHeader({ active }: { active: 'catalogue' | 'tarifs
         <span aria-hidden className="mb-2 block h-1 w-10 rounded-full bg-brand-orange" />
         <h1 className="font-heading text-2xl font-bold text-ink-900">Services & tarifs</h1>
         <p className="mt-1 text-sm text-ink-500">Le catalogue de services et la grille tarifaire des entreprises : une seule offre, présentée telle quelle sur le site.</p>
+        {!full && (
+          <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-ink-900/[0.05] px-3 py-2 text-sm text-ink-700">
+            <Lock className="h-4 w-4 text-ink-500" /> Consultation seule : le catalogue et les tarifs sont créés et modifiés par la Direction.
+          </p>
+        )}
       </div>
       {visible.length > 1 && (
         <nav aria-label="Vues Services et tarifs" className="flex flex-wrap gap-3">

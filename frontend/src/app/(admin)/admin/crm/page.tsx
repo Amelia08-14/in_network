@@ -99,7 +99,7 @@ export default function CrmDashboardPage() {
             <div className="h-64" role="img" aria-label="Nombre de leads par étape du pipeline">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={funnel} layout="vertical" margin={{ left: 8, right: 16 }}>
-                  <CartesianGrid horizontal={false} stroke="#47295C14" />
+                  <CartesianGrid horizontal={false} stroke="#00104214" />
                   <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
                   <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(value, _n, item) => [`${value} lead(s) · ${money((item.payload as { amount: number }).amount)}`, '']} />
@@ -120,7 +120,7 @@ export default function CrmDashboardPage() {
             <div className="h-64" role="img" aria-label="Chiffre d’affaires encaissé et nombre de leads créés par mois">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.series} margin={{ left: 8, right: 8 }}>
-                  <CartesianGrid vertical={false} stroke="#47295C14" />
+                  <CartesianGrid vertical={false} stroke="#00104214" />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                   <YAxis yAxisId="rev" tick={{ fontSize: 12 }} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)} k` : String(v))} />
                   <YAxis yAxisId="leads" orientation="right" allowDecimals={false} tick={{ fontSize: 12 }} />
@@ -142,7 +142,7 @@ export default function CrmDashboardPage() {
               <div className="h-64" role="img" aria-label="Nombre de leads par pipeline d’entrée">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={sources} layout="vertical" margin={{ left: 8, right: 16 }}>
-                    <CartesianGrid horizontal={false} stroke="#47295C14" />
+                    <CartesianGrid horizontal={false} stroke="#00104214" />
                     <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
                     <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 12 }} />
                     <Tooltip />

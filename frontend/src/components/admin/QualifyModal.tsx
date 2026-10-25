@@ -10,7 +10,8 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { errorMessage, Field } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
-import { OFFER_OPTIONS, originLabel, PRIORITY, TONE_CLASS } from '@/lib/crm';
+import { originLabel, PRIORITY, TONE_CLASS } from '@/lib/crm';
+import { useLeadOffers } from '@/lib/options';
 import { cn } from '@/lib/utils';
 import type { LeadDetail, LeadPriority } from '@/types/crm';
 
@@ -23,6 +24,7 @@ export type QualifiableLead = Pick<LeadDetail, 'id' | 'reference' | 'title' | 'c
 // 1. comprendre le profil, le projet, son étape et le besoin réel ;
 // 2. orienter vers l'offre adaptée.
 export function QualifyModal({ lead, onClose, onDone }: { lead: QualifiableLead | null; onClose: () => void; onDone?: () => void }) {
+  const offers = useLeadOffers();
   const queryClient = useQueryClient();
   const q = lead?.qualification ?? {};
   const [form, setForm] = useState({
@@ -113,7 +115,7 @@ export function QualifyModal({ lead, onClose, onDone }: { lead: QualifiableLead 
               <Field label="Offre pressentie" htmlFor="q-offer">
                 <Select id="q-offer" value={form.offerInterest} onChange={(e) => set({ offerInterest: e.target.value })}>
                   <option value="">À déterminer</option>
-                  {OFFER_OPTIONS.map((offer) => (
+                  {[...new Set([...offers, ...(form.offerInterest ? [form.offerInterest] : [])])].map((offer) => (
                     <option key={offer} value={offer}>
                       {offer}
                     </option>

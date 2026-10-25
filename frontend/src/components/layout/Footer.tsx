@@ -3,6 +3,7 @@ import { Mail, MapPin, Phone } from 'lucide-react';
 import { Container } from '@/components/ui/container';
 import { Logo } from './Logo';
 import { NetworkMotif } from '@/components/ui/network-motif';
+import { BrandTexture } from '@/components/ui/brand-texture';
 
 // Mêmes regroupements que le menu principal : l'offre, le réseau, puis
 // l'entreprise et le légal.
@@ -11,7 +12,8 @@ const COLUMNS = [
     title: 'Services & tarifs',
     links: [
       { href: '/services#offres', label: 'Nos offres' },
-      { href: '/services#espaces', label: 'Espaces & abonnements' },
+      { href: '/services#abonnements', label: 'Abonnement annuel' },
+      { href: '/services#espaces', label: 'Espaces au mois' },
       { href: '/services#salles', label: 'Salles de réunion' },
       { href: '/services#services', label: 'Services aux entreprises' },
       { href: '/services#etranger', label: 'Depuis l’étranger' },
@@ -41,6 +43,7 @@ const COLUMNS = [
 export function Footer() {
   return (
     <footer className="relative overflow-hidden bg-ink-900 text-white/80">
+      <BrandTexture />
       <NetworkMotif
         tone="white"
         className="pointer-events-none absolute -right-16 -top-16 h-[420px] w-[560px] opacity-60"
@@ -54,14 +57,14 @@ export function Footer() {
           </p>
           <ul className="mt-5 space-y-2 text-sm text-white/70">
             <li className="flex items-center gap-2.5">
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-accent-yellow" /> Hydra, Alger, Algérie
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-orange" /> Hydra, Alger, Algérie
             </li>
             <li className="flex items-center gap-2.5">
-              <Phone className="h-3.5 w-3.5 shrink-0 text-accent-yellow" />
+              <Phone className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
               <a href="tel:+213560067486" className="hover:text-white">+213 5 60 06 74 86</a>
             </li>
             <li className="flex items-center gap-2.5">
-              <Mail className="h-3.5 w-3.5 shrink-0 text-accent-yellow" />
+              <Mail className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
               <a href="mailto:Contact@in-network.dz" className="hover:text-white">Contact@in-network.dz</a>
             </li>
           </ul>

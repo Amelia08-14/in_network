@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/ui/modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LineItemsEditor } from '@/components/admin/LineItemsEditor';
-import { errorMessage, Field, InvoiceBadge, OrderBadge, Pill } from '@/components/admin/crm-ui';
+import { errorMessage, Field, InvoiceBadge, OrderBadge, Pill, useCrmAccess } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
 import { dateFr, DIASPORA_CHANNELS, INVOICE_STATUS, invoiceNumber, money, openAdminPdf, PAYMENT_LABEL, toInputDate, type DocDiscountInput } from '@/lib/crm';
 import { HUE_ACCENT } from '@/lib/palette';
@@ -37,6 +37,7 @@ export default function InvoicePage() {
 // les services à son panier. Une facture payée se rembourse (commissions reprises).
 function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
   const router = useRouter();
+  const access = useCrmAccess();
   const diaspora = Boolean(invoice.lead?.channel && DIASPORA_CHANNELS.includes(invoice.lead.channel));
   const queryClient = useQueryClient();
   const editable = invoice.status === 'DRAFT';
@@ -283,7 +284,7 @@ function InvoiceEditor({ invoice }: { invoice: InvoiceDetail }) {
               <Input id="i-vat" type="number" min="0" max="100" step="0.01" disabled={!editable} value={form.vatRate} onChange={(e) => set({ vatRate: e.target.value })} />
             </Field>
           </div>
-          <LineItemsEditor lines={lines} onChange={setLines} vatRate={Number(form.vatRate) || 0} readOnly={!editable} discount={discount} onDiscountChange={setDiscount} />
+          <LineItemsEditor lines={lines} onChange={setLines} vatRate={Number(form.vatRate) || 0} readOnly={!editable} discount={discount} onDiscountChange={setDiscount} catalogue locked={!access.direction} />
           <Field label="Notes (reprises sur le PDF)" htmlFor="i-notes">
             <Textarea id="i-notes" rows={2} disabled={!editable} value={form.notes} onChange={(e) => set({ notes: e.target.value })} />
           </Field>

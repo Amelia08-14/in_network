@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { Container } from '@/components/ui/container';
@@ -20,8 +21,19 @@ const MEMBER_TYPES = [
   { value: 'ENTREPRISE', label: 'Entreprise' },
 ];
 
+// useSearchParams exige une frontière Suspense pour le rendu statique.
 export default function AnnuairePage() {
-  const [search, setSearch] = useState('');
+  return (
+    <Suspense>
+      <Annuaire />
+    </Suspense>
+  );
+}
+
+function Annuaire() {
+  // Recherche lancée depuis l'accueil : /annuaire?q=…
+  const initialSearch = useSearchParams().get('q') ?? '';
+  const [search, setSearch] = useState(initialSearch);
   const [memberType, setMemberType] = useState('');
   const [sector, setSector] = useState('');
   const [skill, setSkill] = useState('');
@@ -46,7 +58,7 @@ export default function AnnuairePage() {
       <PageHeader
         eyebrow="Annuaire"
         title={<>Annuaire des <span className="text-brand-orange">membres</span></>}
-        description="Découvre les entrepreneurs, freelances, startups et PME du réseau IN NETWORK. Connecte-toi pour accéder aux profils complets et envoyer des demandes de mise en relation."
+        description="Découvrez les entrepreneurs, freelances, startups et PME du réseau IN NETWORK, et envoyez vos demandes de mise en relation."
       />
 
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -112,7 +124,7 @@ export default function AnnuairePage() {
           ))}
         </div>
       ) : !data || data.data.length === 0 ? (
-        <EmptyState title="Aucun membre ne correspond à ta recherche" />
+        <EmptyState title="Aucun membre ne correspond à votre recherche" />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {data.data.map((profile) => (

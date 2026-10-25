@@ -247,7 +247,7 @@ export async function createLeadFromContactMessage(messageId: string, attributio
 
   const existing = await findOpenDuplicate({ email: message.email });
   if (existing) {
-    await logActivity(existing.id, { type: 'EMAIL', content: `Nouveau message via le formulaire de contact : ${message.message.slice(0, 500)}` });
+    await logActivity(existing.id, { type: 'EMAIL', content: `Nouveau message via le formulaire de contact${message.subject ? ` (${message.subject})` : ''} : ${message.message.slice(0, 500)}` });
     const linked = await prisma.lead.findUnique({ where: { id: existing.id }, select: { contactMessageId: true } });
     if (!linked?.contactMessageId) await prisma.lead.update({ where: { id: existing.id }, data: { contactMessageId: message.id } });
     await refineOrigin(existing.id, attribution);
@@ -258,9 +258,10 @@ export async function createLeadFromContactMessage(messageId: string, attributio
   const lead = await prisma.lead.create({
     data: {
       reference: await nextNumber('LD'),
-      title: `Message de contact — ${message.name}`,
+      title: message.subject ? `${message.subject} — ${message.name}` : `Message de contact — ${message.name}`,
       contactName: message.name,
       email: message.email,
+      phone: message.phone,
       source: 'CONTACT_FORM',
       ...leadOriginFields(attribution),
       notes: message.message,

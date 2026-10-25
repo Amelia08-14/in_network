@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 export const ACCENT_MAP = {
   orange: 'bg-brand-orange',
   blue: 'bg-brand-blue',
-  ink: 'bg-ink-700',
+  ink: 'bg-ink-900',
   green: 'bg-accent-green',
   yellow: 'bg-accent-yellow',
   violet: 'bg-violet-600',

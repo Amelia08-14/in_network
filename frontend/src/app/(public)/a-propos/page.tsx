@@ -1,83 +1,83 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import {
+  Armchair,
+  BarChart3,
+  Flower2,
   Building2,
+  Code2,
   Compass,
-  FileCheck2,
-  Globe2,
-  Handshake,
-  LifeBuoy,
-  MapPin,
+  GraduationCap,
+  Shirt,
+  Megaphone,
   Network,
+  Palette,
   Quote,
   Rocket,
-  Sparkles,
+  Settings2,
+  Smile,
   Users2,
 } from 'lucide-react';
 import { Container } from '@/components/ui/container';
 import { Card, CardContent } from '@/components/ui/card';
-import { PageHeader } from '@/components/layout/PageHeader';
 import { ScrollReveal } from '@/components/ui/scroll-motion';
 import { NetworkMotif } from '@/components/ui/network-motif';
 import { BrandTexture } from '@/components/ui/brand-texture';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
 
 export const metadata = {
-  title: 'À propos — présentation d’IN NETWORK',
+  title: 'À propos — IN NETWORK',
   description:
-    'IN NETWORK, infrastructure entrepreneuriale hybride à Hydra, Alger : espaces de travail, services intégrés, accompagnement structuré et communauté active. La Maison IN Groupe.',
+    'Née à Hydra, Alger, IN NETWORK associe un lieu de travail, une communauté professionnelle et des services pour accompagner les ambitions entrepreneuriales. La Maison IN Groupe.',
 };
 
-// Présentation de l'entreprise : reprend, section par section, le document
-// « À propos de IN NETWORK » (présentation projet) fourni par le client, complété
-// par les chiffres clés et le parcours d'accompagnement du catalogue des services.
+// Présentation de l'entreprise, restructurée d'après l'audit du site
+// (25/10/2026) : un message institutionnel, les trois piliers (lieu, réseau,
+// services), l'ambition, la vision en trois horizons et l'écosystème du groupe.
+// Seuls les engagements et chiffres justifiables sont conservés.
 
-const LEVERS = [
-  { icon: Building2, title: 'Travailler', description: 'Des espaces flexibles, des bureaux privatifs et des infrastructures adaptées aux nouvelles formes de travail.' },
-  { icon: FileCheck2, title: 'Structurer', description: 'Domiciliation, création d’entreprise, assistance administrative : les fondations de chaque projet.' },
-  { icon: LifeBuoy, title: 'Accompagner', description: 'Un accès direct à des expertises en comptabilité, droit, marketing, communication et stratégie.' },
-  { icon: Handshake, title: 'Connecter', description: 'Une communauté entrepreneuriale vivante, fondée sur le partage, l’entraide et les synergies.' },
-  { icon: Rocket, title: 'Accélérer', description: 'Un environnement dédié à l’incubation et à l’accélération des startups et PME digitales.' },
+const PILLARS = [
+  { icon: Armchair, title: 'Un lieu pour travailler', text: 'Des espaces conçus pour la concentration, les échanges et la collaboration.' },
+  { icon: Users2, title: 'Un réseau pour avancer', text: 'Des professionnels aux compétences complémentaires.' },
+  { icon: Settings2, title: 'Des services pour entreprendre', text: 'Des solutions utiles à chaque étape du développement.' },
+];
+
+const HORIZONS: { n: string; kicker: string; title: string; text: string; tags: string[]; photo: VenuePhoto; icon: typeof Users2 }[] = [
+  {
+    n: '01',
+    kicker: 'Un lieu pour travailler',
+    title: 'Des espaces qui inspirent et font avancer.',
+    text: 'Des espaces de travail modernes, flexibles et équipés, pensés pour la concentration, les échanges et la collaboration. Un environnement professionnel qui favorise la créativité et la performance.',
+    tags: ['Coworking', 'Bureaux privés', 'Salles de réunion'],
+    photo: VENUE_PHOTOS.openSpaceVue,
+    icon: Building2,
+  },
+  {
+    n: '02',
+    kicker: 'Un réseau pour avancer',
+    title: 'Une communauté de professionnels engagés.',
+    text: 'Entrepreneurs, freelances, startups, PME, experts et partenaires : un réseau qualifié qui facilite les rencontres, les synergies et les opportunités de développement.',
+    tags: ['Mise en relation', 'Événements', 'Partenariats'],
+    photo: VENUE_PHOTOS.terrasse,
+    icon: Users2,
+  },
+  {
+    n: '03',
+    kicker: 'Des services pour entreprendre',
+    title: 'Des solutions à chaque étape du parcours.',
+    text: 'Un accompagnement concret pour structurer, développer et pérenniser les projets : conseil, formation, mise en relation, événements et accès à des opportunités en Algérie et à l’international.',
+    tags: ['Conseil', 'Formation', 'Accompagnement'],
+    photo: VENUE_PHOTOS.grandeSalle,
+    icon: BarChart3,
+  },
 ];
 
 const DIFFERENTIATORS = [
-  'Un positionnement hybride unique en Algérie : coworking, services, accompagnement et communauté dans un seul modèle cohérent.',
-  'Un adossement à La Maison IN Groupe, qui apporte des ressources, des filiales et un réseau d’experts que les espaces indépendants ne peuvent pas offrir.',
-  'Un modèle à revenus multiples qui garantit la durabilité du projet et la qualité de l’expérience membre.',
+  'Un positionnement hybride : coworking, services, accompagnement et communauté réunis dans un seul modèle cohérent.',
+  'Un adossement à La Maison IN Groupe, qui apporte des ressources, des filiales et un réseau d’experts.',
   'Une vision nationale dès le départ : chaque membre intègre un réseau, pas seulement un espace.',
-];
-
-const OBJECTIVES = [
-  {
-    icon: MapPin,
-    label: 'À court terme',
-    title: 'Faire référence à Hydra',
-    points: [
-      'Faire du site pilote de Hydra la référence entrepreneuriale d’Alger.',
-      'Constituer une communauté active de 100+ membres.',
-      'Valider un modèle économique hybride et documenté.',
-    ],
-  },
-  {
-    icon: Sparkles,
-    label: 'À moyen terme',
-    title: 'Un réseau national',
-    points: [
-      'Déployer un réseau national : Alger, Oran, Constantine, Annaba et le Sud.',
-      'Lancer la plateforme digitale de matching membres-experts.',
-      'Fédérer 500+ entrepreneurs, startups et PME connectés.',
-    ],
-  },
-  {
-    icon: Globe2,
-    label: 'À long terme',
-    title: 'Rayonner en Afrique du Nord',
-    points: [
-      'Devenir le premier réseau entrepreneurial intelligent d’Afrique du Nord.',
-      'Connecter la diaspora algérienne aux opportunités locales.',
-      'Étendre vers la région MENA.',
-    ],
-  },
 ];
 
 const MISSION = [
@@ -96,23 +96,6 @@ const JOURNEY = [
   { title: 'Connecter', description: 'Proposer, lorsque pertinent, des interlocuteurs ou expertises complémentaires au sein du réseau du groupe.' },
 ];
 
-const GROUP_BRANDS = [
-  { name: 'IN COM', role: 'Communication digitale, réseaux sociaux, branding et contenu' },
-  { name: 'IN Academy', role: 'Formation professionnelle et développement des compétences' },
-  { name: 'IN DEV', role: 'Développement web, mobile, CRM et solutions digitales' },
-  { name: 'IN-CUBATOR', role: 'Incubation et accélération de startups' },
-];
-
-// « Notre valeur ajoutée » (catalogue des services, §08).
-const VALUE_POINTS = [
-  { title: 'Approche centrée sur les besoins', text: 'Chaque service est activé selon le besoin réel identifié — pas de package standardisé imposé.' },
-  { title: 'Portes d’entrée multiples', text: 'Quelle que soit la demande initiale (bureau, domiciliation, création, réseau), elle ouvre l’accès à l’ensemble de l’écosystème.' },
-  { title: 'Complémentarité du groupe', text: 'Un seul groupe, plusieurs expertises : IN NETWORK oriente vers IN COM, IN Academy, IN DEV, IN-CUBATOR selon les besoins.' },
-  { title: 'Réseau actif et qualitatif', text: 'Une communauté d’entrepreneurs, d’experts et de partenaires qui génère des connexions utiles et des opportunités réelles.' },
-  { title: 'Lisibilité du parcours entrepreneurial', text: 'IN NETWORK simplifie un parcours souvent dispersé : un environnement structuré et un interlocuteur de référence.' },
-  { title: 'Relation évolutive', text: 'L’accompagnement s’adapte à l’évolution du client : de la création à la croissance, IN NETWORK reste un partenaire de référence.' },
-];
-
 const COMMUNITY = [
   'Entrepreneurs en création',
   'Freelances et indépendants',
@@ -123,124 +106,141 @@ const COMMUNITY = [
   'Membres de la diaspora algérienne',
 ];
 
+// La Maison IN Groupe — filiales et expertises (proposition de l'audit du site).
+const GROUP_BRANDS: { name: string; role: string; icon: typeof Users2 }[] = [
+  { name: 'IN CAPITAL', role: 'Finance & investissement', icon: BarChart3 },
+  { name: 'IN DEV', role: 'Développement digital', icon: Code2 },
+  { name: 'IN COM', role: 'Communication 360°', icon: Megaphone },
+  { name: 'IN NETWORK', role: 'Coworking & incubation', icon: Network },
+  { name: 'IN ACADEMY', role: 'Formation certifiée', icon: GraduationCap },
+  { name: 'IN DENTAL CARE', role: 'Soins dentaires', icon: Smile },
+  { name: 'IN BEAUTY & HEALTH', role: 'Beauté & bien-être', icon: Flower2 },
+  { name: 'IN CUBATOR', role: 'Incubation & startups', icon: Rocket },
+  { name: 'IN ARTS', role: 'Art & culture', icon: Palette },
+  { name: 'IN TEXTILE', role: 'Couture & broderie', icon: Shirt },
+];
+
 export default function AProposPage() {
   return (
     <>
-      <Container className="section-padding max-w-4xl">
-        <PageHeader
-          eyebrow="À propos · IN NETWORK"
-          title={
-            <>
-              Le coworking nous rassemble. Le <span className="text-brand-orange">réseau</span> nous fait grandir.
-            </>
-          }
-          description="Un écosystème entrepreneurial qui connecte les talents, les expertises et les opportunités. La Maison IN Groupe · Hydra, Alger."
-        />
-
-        <div className="space-y-5 text-ink-600 sm:max-w-3xl">
-          <h2 className="font-heading text-2xl font-bold text-ink-900 md:text-3xl">Bien plus qu&apos;un espace. Un écosystème.</h2>
-          <p>
-            IN NETWORK est une infrastructure entrepreneuriale hybride. Nous combinons des espaces de travail
-            professionnels, des services intégrés, un accompagnement structuré et une communauté active
-            d&apos;entrepreneurs, de freelances et d&apos;entreprises.
-          </p>
-          <p className="font-semibold text-ink-900">Notre raison d&apos;être : transformer chaque connexion en opportunité réelle.</p>
-        </div>
-
-        <ScrollReveal stagger={90} className="mt-10 grid gap-4 sm:grid-cols-3">
-          {[
-            ['+250', 'entreprises nous ont déjà fait confiance'],
-            ['+20', 'startups accompagnées'],
-            ['Hydra', 'site pilote, au cœur d’Alger'],
-          ].map(([figure, label]) => (
-            <div key={figure} className="rounded-3xl border border-ink-900/8 bg-white p-6 shadow-soft">
-              <p className="font-heading text-4xl font-bold text-ink-900">{figure}</p>
-              <p className="mt-1 text-sm text-ink-500">{label}</p>
+      <section className="relative -mt-24 overflow-hidden md:-mt-28">
+        <div className="mx-auto max-w-[74rem] px-4 pb-16 pt-32 md:pt-36">
+          <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_1fr] lg:gap-14">
+            <div>
+              <div className="flex items-center gap-3">
+                <span className="h-px w-10 bg-brand-orange" />
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink-600">À propos</p>
+              </div>
+              <h1 className="mt-6 font-heading text-[clamp(2.4rem,4.6vw,3.6rem)] font-extrabold leading-[1.04] tracking-[-0.02em] text-ink-900">
+                Faire grandir les entreprises par la force du <span className="text-brand-orange">réseau.</span>
+              </h1>
+              <p className="mt-6 max-w-xl text-lg leading-8 text-ink-600">
+                Née à Hydra, Alger, IN NETWORK associe un lieu de travail, une communauté professionnelle et des services pour accompagner les ambitions entrepreneuriales.
+              </p>
+              <ul className="mt-10 grid gap-6 sm:grid-cols-3">
+                {PILLARS.map((pillar) => (
+                  <li key={pillar.title} className="border-ink-900/10 sm:border-l sm:pl-5 first:sm:border-l-0 first:sm:pl-0">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-orange/10 text-brand-orange">
+                      <pillar.icon className="h-5 w-5" strokeWidth={1.75} />
+                    </span>
+                    <p className="mt-3 font-heading text-base font-bold text-ink-900">{pillar.title}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-ink-500">{pillar.text}</p>
+                  </li>
+                ))}
+              </ul>
             </div>
-          ))}
-        </ScrollReveal>
-      </Container>
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] shadow-soft-lg sm:aspect-[4/3] lg:aspect-[4/5]">
+              <Image src={VENUE_PHOTOS.postes.src} alt={VENUE_PHOTOS.postes.alt} fill priority sizes="(min-width: 1024px) 480px, 100vw" className="object-cover" />
+            </div>
+          </div>
 
-      {/* Vision — bandeau violet de la charte */}
+          <div className="mt-14 grid gap-6 rounded-[2rem] border border-ink-900/8 bg-white p-6 shadow-soft md:p-10 lg:grid-cols-[1.3fr_1fr] lg:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-orange">Notre ambition</p>
+              <p className="mt-3 font-heading text-[clamp(1.4rem,2.4vw,1.9rem)] font-bold leading-snug text-ink-900">
+                Créer les conditions des rencontres qui deviennent des <span className="text-brand-orange">collaborations</span>, et des collaborations qui font avancer les projets.
+              </p>
+            </div>
+            <p className="border-ink-900/10 text-ink-600 lg:border-l lg:pl-8">
+              IN NETWORK est plus qu’un espace de coworking : c’est un écosystème où entrepreneurs, freelances, startups, entreprises, experts et partenaires se rencontrent, partagent leurs expériences et construisent ensemble des opportunités concrètes.
+            </p>
+          </div>
+
+          <ScrollReveal stagger={90} className="mt-6 grid gap-4 sm:grid-cols-3">
+            {[
+              ['+250', 'entreprises nous ont déjà fait confiance'],
+              ['+20', 'startups accompagnées'],
+              ['Hydra', 'site pilote, au cœur d’Alger'],
+            ].map(([figure, label]) => (
+              <div key={figure} className="rounded-3xl border border-ink-900/8 bg-white/70 p-6">
+                <p className="font-heading text-3xl font-bold text-ink-900">{figure}</p>
+                <p className="mt-1 text-sm text-ink-500">{label}</p>
+              </div>
+            ))}
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* Vision — bandeau bleu nuit de la charte */}
       <section className="relative overflow-hidden bg-ink-900 py-20 text-white md:py-28">
         <BrandTexture />
         <NetworkMotif tone="white" variant="sparse" className="pointer-events-none absolute -right-16 -top-16 h-[380px] w-[480px] opacity-30" />
-        <Container className="relative max-w-3xl">
-          <span className="eyebrow-light mb-5">Notre vision</span>
-          <Quote className="h-8 w-8 text-accent-yellow" strokeWidth={2} />
-          <p className="mt-5 font-heading text-2xl font-medium leading-snug text-white md:text-3xl">Connecter pour faire grandir.</p>
-          <p className="mt-5 text-lg leading-relaxed text-white/80">
-            Nous croyons que l&apos;entrepreneur algérien mérite plus qu&apos;un bureau. Il mérite un environnement où
-            les ressources sont accessibles, les expertises sont proches, et les connexions humaines créent de la valeur.
-          </p>
-          <p className="mt-4 text-lg leading-relaxed text-white/80">
-            Notre vision : bâtir le premier réseau entrepreneurial intelligent d&apos;Algérie — ancré localement,
-            connecté nationalement, ouvert sur le monde.
-          </p>
+        <Container className="relative max-w-4xl">
+          <span className="eyebrow-light mb-6">Notre vision</span>
+          <blockquote className="flex gap-5">
+            <Quote className="mt-1 h-9 w-9 shrink-0 text-brand-orange" strokeWidth={2} />
+            <p className="font-heading text-[clamp(1.6rem,3.4vw,2.6rem)] font-medium leading-snug text-white">
+              Une idée devient un projet, un projet devient une entreprise, et une entreprise grandit grâce à{' '}
+              <span className="italic text-brand-orange">la force du réseau.</span>
+            </p>
+          </blockquote>
+          <p className="mt-8 pl-14 text-xs font-semibold uppercase tracking-[0.22em] text-white/60">IN NETWORK, plus qu’un espace, une dynamique</p>
         </Container>
       </section>
 
-      <Container className="section-padding max-w-5xl">
-        <div className="mb-10">
-          <span className="eyebrow mb-3">L&apos;écosystème IN NETWORK</span>
-          <h2 className="font-heading text-3xl font-bold text-ink-900 md:text-4xl">
-            Cinq leviers, une <span className="text-brand-orange">dynamique intégrée</span>
-          </h2>
-        </div>
-        {/* Un seul tableau d'enfants : ScrollReveal décale chaque enfant direct (cf. scroll-motion.tsx). */}
-        <ScrollReveal stagger={80} className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            ...LEVERS.map((lever) => (
-              <Card key={lever.title} accent="orange" className="h-full">
-                <CardContent className="flex h-full flex-col gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-card bg-brand-orange/10 text-brand-orange">
-                    <lever.icon className="h-5 w-5" strokeWidth={1.75} />
-                  </div>
-                  <h3 className="font-heading text-lg font-bold uppercase tracking-wide text-ink-900">{lever.title}</h3>
-                  <p className="text-sm leading-relaxed text-ink-500">{lever.description}</p>
-                </CardContent>
-              </Card>
-            )),
-            <div key="portes" className="flex h-full items-center rounded-3xl bg-ink-900 p-6 text-white">
-              <p className="font-heading text-lg font-semibold leading-snug">
-                Les services sont les portes d&apos;entrée. <span className="text-accent-yellow">La communauté est la force.</span>
-              </p>
-            </div>,
-          ]}
-        </ScrollReveal>
-      </Container>
-
       <section className="section-tint">
-        <Container className="section-padding max-w-5xl">
-          <div className="grid gap-12 lg:grid-cols-2">
+        <Container className="section-padding max-w-6xl">
+          <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr] lg:items-end">
             <div>
-              <span className="eyebrow mb-3">Nos services</span>
-              <h2 className="font-heading text-3xl font-bold text-ink-900 md:text-4xl">Ce que vous trouvez ici.</h2>
-              <p className="mt-4 leading-relaxed text-ink-600">
-                Un espace de coworking ouvert et flexible, des bureaux privatifs pour les équipes en structuration,
-                une salle de réunion disponible 24h/24, un service de domiciliation juridique et fiscale activable
-                en 48 h, un accompagnement complet pour la création d&apos;entreprise, et un accès structuré aux experts
-                du groupe.
-              </p>
-              <p className="mt-3 font-semibold text-ink-900">Chaque service est une porte d&apos;entrée vers l&apos;écosystème — pas une finalité.</p>
-              <Link href="/services" className={cn(buttonVariants({ variant: 'outline', size: 'md' }), 'mt-6')}>
-                Découvrir les services & tarifs
-              </Link>
-            </div>
-            <div>
-              <span className="eyebrow mb-3">Notre valeur ajoutée</span>
-              <h2 className="font-heading text-3xl font-bold text-ink-900 md:text-4xl">Ce que vous ne trouvez pas ailleurs.</h2>
-              <p className="mt-4 leading-relaxed text-ink-600">
-                IN NETWORK réunit dans un même lieu ce que l&apos;entrepreneur doit habituellement chercher séparément :
-                un espace crédible, des services administratifs, des expertises complémentaires et un réseau actif.
-              </p>
-              <p className="mt-3 leading-relaxed text-ink-600">
-                Nous ne proposons pas des bureaux. Nous proposons un environnement qui structure, professionnalise et connecte.
-              </p>
-              <p className="mt-3 font-semibold text-ink-900">
-                La valeur d&apos;IN NETWORK augmente à mesure que le réseau grandit : plus la communauté est dense, plus chaque membre en bénéficie.
+              <span className="eyebrow mb-3">Notre vision</span>
+              <h2 className="font-heading text-3xl font-bold text-ink-900 md:text-5xl">
+                Trois horizons, <span className="text-brand-orange">une ambition commune.</span>
+              </h2>
+              <p className="mt-4 max-w-2xl text-ink-600">
+                Créer un écosystème entrepreneurial de référence en Afrique du Nord et au-delà, où les talents, les idées et les entreprises se rencontrent, se développent et génèrent un impact durable.
               </p>
             </div>
+            <p className="flex gap-3 border-l-2 border-brand-orange/40 pl-5 font-heading text-lg leading-snug text-ink-800">
+              Des espaces, des compétences et des connexions pour transformer les ambitions en opportunités concrètes.
+            </p>
+          </div>
+          <ScrollReveal stagger={90} className="mt-12 grid gap-5 md:grid-cols-3">
+            {HORIZONS.map((horizon) => (
+              <article key={horizon.n} className="flex h-full flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-soft">
+                <div className="relative aspect-[16/9]">
+                  <Image src={horizon.photo.src} alt={horizon.photo.alt} fill sizes="(min-width: 768px) 33vw, 100vw" className="object-cover" />
+                  <div className="absolute inset-0 bg-linear-to-t from-ink-900/80 via-ink-900/10 to-transparent" />
+                  <p className="absolute bottom-4 left-5 flex items-end gap-3 text-white">
+                    <span className="font-heading text-5xl font-light leading-none">{horizon.n}</span>
+                    <span className="pb-1 text-xs font-semibold uppercase tracking-[0.18em]">{horizon.kicker}</span>
+                  </p>
+                </div>
+                <div className="flex flex-1 flex-col gap-3 p-6">
+                  <p className="flex items-center gap-3 font-heading text-lg font-bold text-ink-900">
+                    <horizon.icon className="h-5 w-5 shrink-0 text-brand-orange" /> {horizon.title}
+                  </p>
+                  <p className="text-sm leading-relaxed text-ink-500">{horizon.text}</p>
+                  <p className="mt-auto border-t border-ink-900/8 pt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-500">{horizon.tags.join(' · ')}</p>
+                </div>
+              </article>
+            ))}
+          </ScrollReveal>
+          <div className="relative mt-10 flex flex-col gap-4 overflow-hidden rounded-[1.75rem] bg-ink-900 p-6 text-white md:flex-row md:items-center md:gap-10 md:p-8">
+            <BrandTexture />
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/60 md:w-48">Notre conviction pour demain</p>
+            <p className="flex-1 font-heading text-[clamp(1.25rem,2.4vw,1.75rem)] leading-snug">
+              « Des talents connectés créent des entreprises plus fortes et un <span className="text-brand-orange">impact durable.</span> »
+            </p>
           </div>
         </Container>
       </section>
@@ -251,26 +251,29 @@ export default function AProposPage() {
             <span className="eyebrow mb-3">Notre communauté</span>
             <h2 className="font-heading text-3xl font-bold text-ink-900 md:text-4xl">Seul, on avance. Ensemble, on va plus loin.</h2>
             <p className="mt-4 leading-relaxed text-ink-600">
-              La communauté IN NETWORK rassemble des entrepreneurs, des freelances, des startups, des PME, des experts et
-              des partenaires institutionnels. Elle produit des connexions, des recommandations, des collaborations et des
-              opportunités commerciales croisées.
+              La communauté IN NETWORK rassemble des entrepreneurs, des freelances, des startups, des PME, des experts et des partenaires institutionnels. Elle produit des connexions, des recommandations, des collaborations et des opportunités commerciales croisées.
             </p>
             <p className="mt-3 font-semibold text-ink-900">Ce n&apos;est pas un réseau de cartes de visite. C&apos;est un réseau de confiance.</p>
-            <p className="mt-3 leading-relaxed text-ink-600">
-              Notre force : la densité et la qualité des relations construites au sein de l&apos;écosystème. Nos partenariats
-              couvrent les domaines juridique, comptable, financier, formation, incubation et communication — pour que chaque
-              membre trouve au sein du réseau les ressources dont il a besoin.
-            </p>
+            <ul className="mt-8 space-y-3">
+              {DIFFERENTIATORS.map((text, index) => (
+                <li key={text} className="flex gap-4">
+                  <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-orange/10 font-heading text-sm font-bold text-brand-orange">
+                    {index + 1}
+                  </span>
+                  <p className="text-sm leading-relaxed text-ink-700">{text}</p>
+                </li>
+              ))}
+            </ul>
           </div>
-          <Card accent="violet" className="self-start">
+          <Card accent="ink" className="self-start">
             <CardContent>
               <p className="flex items-center gap-2 font-heading text-base font-bold text-ink-900">
-                <Users2 className="h-4 w-4 text-violet-700" /> Un réseau en construction permanente
+                <Users2 className="h-4 w-4 text-brand-orange" /> Un réseau en construction permanente
               </p>
               <ul className="mt-4 space-y-2 text-sm text-ink-600">
                 {COMMUNITY.map((item) => (
                   <li key={item} className="flex items-start gap-2.5">
-                    <Network className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
+                    <Network className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" />
                     {item}
                   </li>
                 ))}
@@ -283,71 +286,6 @@ export default function AProposPage() {
 
       <section className="section-tint">
         <Container className="section-padding max-w-5xl">
-          <div className="mb-10">
-            <span className="eyebrow mb-3">Ce qui nous distingue</span>
-            <h2 className="font-heading text-3xl font-bold text-ink-900 md:text-4xl">
-              Nos avantages <span className="text-brand-orange">différenciants</span>
-            </h2>
-          </div>
-          <ScrollReveal stagger={80} className="grid gap-4 md:grid-cols-2">
-            {DIFFERENTIATORS.map((text, index) => (
-              <div key={text} className="flex gap-4 rounded-3xl bg-white p-6 shadow-soft ring-1 ring-ink-900/6">
-                <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-orange/10 font-heading text-sm font-bold text-brand-orange">
-                  {index + 1}
-                </span>
-                <p className="text-sm leading-relaxed text-ink-700">{text}</p>
-              </div>
-            ))}
-          </ScrollReveal>
-        </Container>
-      </section>
-
-      <Container className="section-padding max-w-5xl">
-        <div className="mb-10">
-          <span className="eyebrow mb-3">Notre valeur ajoutée</span>
-          <h2 className="font-heading text-3xl font-bold text-ink-900 md:text-4xl">
-            Six raisons de <span className="text-brand-orange">nous choisir</span>
-          </h2>
-        </div>
-        <ScrollReveal stagger={70} className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {VALUE_POINTS.map((point) => (
-            <div key={point.title} className="h-full rounded-3xl border border-ink-900/8 bg-white p-5 shadow-soft">
-              <p className="font-heading text-base font-bold text-ink-900">{point.title}</p>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{point.text}</p>
-            </div>
-          ))}
-        </ScrollReveal>
-      </Container>
-
-      <Container className="section-padding max-w-5xl pt-0">
-        <div className="mb-10">
-          <span className="eyebrow mb-3">Nos objectifs</span>
-          <h2 className="font-heading text-3xl font-bold text-ink-900 md:text-4xl">
-            Là où nous <span className="text-brand-orange">allons</span>
-          </h2>
-        </div>
-        <ScrollReveal stagger={100} className="grid gap-5 md:grid-cols-3">
-          {OBJECTIVES.map((objective) => (
-            <Card key={objective.title} accent="orange" className="h-full">
-              <CardContent className="flex h-full flex-col gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-card bg-brand-orange/10 text-brand-orange">
-                  <objective.icon className="h-5 w-5" strokeWidth={1.75} />
-                </div>
-                <span className="text-xs font-semibold uppercase tracking-wide text-ink-500">{objective.label}</span>
-                <h3 className="font-heading text-lg font-bold text-ink-900">{objective.title}</h3>
-                <ul className="space-y-2 text-sm leading-relaxed text-ink-500">
-                  {objective.points.map((point) => (
-                    <li key={point}>{point}</li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ))}
-        </ScrollReveal>
-      </Container>
-
-      <section className="section-tint">
-        <Container className="section-padding max-w-5xl">
           <div className="grid gap-12 lg:grid-cols-2">
             <div>
               <span className="eyebrow mb-3">Notre mission</span>
@@ -355,8 +293,7 @@ export default function AProposPage() {
                 Faciliter l&apos;implantation, la structuration et le <span className="text-brand-orange">développement</span>
               </h2>
               <p className="mt-4 leading-relaxed text-ink-600">
-                Construire un écosystème professionnel où les entreprises peuvent se structurer, se connecter et saisir de
-                nouvelles opportunités — en Algérie et au-delà.
+                Construire un écosystème professionnel où les entreprises peuvent se structurer, se connecter et saisir de nouvelles opportunités — en Algérie et au-delà.
               </p>
               <ul className="mt-5 space-y-2.5 text-ink-700">
                 {MISSION.map((item) => (
@@ -388,48 +325,57 @@ export default function AProposPage() {
         </Container>
       </section>
 
-      <Container className="section-padding max-w-5xl">
-        <div className="mb-10">
-          <span className="eyebrow mb-3">La Maison IN Groupe</span>
-          <h2 className="font-heading text-3xl font-bold text-ink-900 md:text-4xl">
-            Un seul point d&apos;entrée pour des expertises <span className="text-brand-orange">multiples</span>
-          </h2>
-          <p className="mt-3 max-w-2xl text-ink-500">
-            IN NETWORK joue le rôle de porte d&apos;entrée et de connecteur au sein du groupe : il oriente chaque membre vers
-            les expertises adaptées. Chaque prestation est réalisée et facturée par la filiale compétente, selon ses propres
-            conditions de service.
-          </p>
-        </div>
-        <ScrollReveal stagger={70} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {GROUP_BRANDS.map((brand) => (
-            <div key={brand.name} className="rounded-3xl bg-white/60 p-1.5 ring-1 ring-ink-900/6">
-              <div className="h-full rounded-[1.1rem] bg-white p-5">
-                <p className="font-heading font-bold text-ink-900">{brand.name}</p>
-                <p className="mt-1 text-sm text-ink-500">{brand.role}</p>
-              </div>
+      <section className="relative overflow-hidden">
+        <Container className="section-padding max-w-6xl">
+          <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr] lg:items-center">
+            <div>
+              <span className="eyebrow mb-3">La Maison IN Groupe</span>
+              <h2 className="font-heading text-3xl font-bold text-ink-900 md:text-5xl">
+                Un écosystème. Dix expertises. <span className="text-brand-orange">Une même ambition.</span>
+              </h2>
+              <p className="mt-4 max-w-2xl text-ink-600">
+                Des expertises complémentaires pour accompagner les entreprises à chaque étape de leur développement. IN NETWORK oriente chaque membre vers la filiale adaptée ; chaque prestation est réalisée et facturée par la filiale compétente, selon ses propres conditions.
+              </p>
             </div>
-          ))}
-        </ScrollReveal>
-        <p className="mt-4 text-sm text-ink-500">Autres filiales du groupe : selon les besoins identifiés.</p>
-      </Container>
+            <div className="flex items-center justify-center gap-4 lg:justify-end">
+              <span className="h-px w-12 bg-ink-900/20" />
+              <p className="text-center font-heading text-ink-900">
+                <span className="block text-xs font-semibold tracking-[0.4em]">LA MAISON</span>
+                <span className="block text-5xl font-extrabold leading-none">IN</span>
+                <span className="block text-xs font-semibold tracking-[0.4em]">GROUPE</span>
+              </p>
+              <span className="h-px w-12 bg-ink-900/20" />
+            </div>
+          </div>
+          <ScrollReveal stagger={50} className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {GROUP_BRANDS.map((brand) => (
+              <div key={brand.name} className={cn('flex h-full flex-col gap-3 rounded-2xl border bg-white p-5 shadow-soft', brand.name === 'IN NETWORK' ? 'border-brand-orange/40 ring-1 ring-brand-orange/20' : 'border-ink-900/8')}>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-orange/10 text-brand-orange">
+                  <brand.icon className="h-4 w-4" />
+                </span>
+                <span aria-hidden className="h-0.5 w-6 rounded-full bg-brand-orange" />
+                <p className="font-heading text-sm font-bold text-ink-900">{brand.name}</p>
+                <p className="-mt-2 text-xs text-ink-500">{brand.role}</p>
+              </div>
+            ))}
+          </ScrollReveal>
+        </Container>
+      </section>
 
       <section className="relative overflow-hidden bg-ink-900 text-white">
         <BrandTexture />
-        <NetworkMotif tone="white" variant="default" className="pointer-events-none absolute -left-20 -bottom-20 h-[400px] w-[520px] opacity-40" />
+        <NetworkMotif tone="white" variant="default" className="pointer-events-none absolute -bottom-20 -left-20 h-[400px] w-[520px] opacity-40" />
         <Container className="section-padding relative flex flex-col items-center gap-5 text-center">
           <p className="eyebrow-light justify-center">Notre engagement</p>
           <h2 className="max-w-2xl font-heading text-3xl font-bold text-white md:text-4xl">
-            Construire ensemble ce que <span className="text-accent-yellow">nul ne peut construire seul.</span>
+            Construire ensemble ce que <span className="text-brand-orange">nul ne peut construire seul.</span>
           </h2>
           <p className="max-w-2xl text-white/75">
-            IN NETWORK n&apos;est pas un fournisseur de services : c&apos;est un partenaire de développement. Chaque
-            entrepreneur, quelle que soit son étape, y trouve l&apos;espace pour travailler, les ressources pour structurer son
-            activité, et le réseau pour accélérer sa croissance. Connecter les ambitions. Multiplier les opportunités. Réussir collectivement.
+            Chaque entrepreneur, quelle que soit son étape, trouve chez IN NETWORK l&apos;espace pour travailler, les ressources pour structurer son activité et le réseau pour accélérer sa croissance.
           </p>
-          <p className="font-heading text-lg font-semibold text-white">Rejoignez l&apos;écosystème. Construisons ensemble.</p>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row">
             <Link href="/register" className={cn(buttonVariants({ variant: 'primary', size: 'lg' }))}>
-              Devenir membre
+              Rejoindre le réseau
             </Link>
             <Link href="/contact" className={cn(buttonVariants({ variant: 'outline-light', size: 'lg' }))}>
               Nous contacter

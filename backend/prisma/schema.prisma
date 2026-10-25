@@ -822,6 +822,9 @@ model ContactMessage {
   id        String    @id @default(cuid())
   name      String
   email     String
+  // Page Contact refondue (audit 25/10/2026) : téléphone facultatif et sujet.
+  phone     String?
+  subject   String?
   message   String    @db.Text
   isRead    Boolean   @default(false)
   replyText String?   @db.Text

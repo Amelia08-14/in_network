@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../utils/apiResponse';
 import {
+  DIRECTION_ONLY_WRITE,
   parsePermissions,
   permissionSatisfies,
   resolveRequiredPermission,
@@ -34,6 +35,10 @@ export async function adminPermission(req: Request, _res: Response, next: NextFu
 
   if (!resource || resource === 'system_users') {
     throw new ApiError(403, 'FORBIDDEN', 'Cette section est réservée aux administrateurs.');
+  }
+
+  if (level === 'write' && DIRECTION_ONLY_WRITE.includes(resource)) {
+    throw new ApiError(403, 'FORBIDDEN', 'Le catalogue des services et les tarifs sont modifiés par la Direction.');
   }
 
   const account = await prisma.user.findUnique({

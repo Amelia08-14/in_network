@@ -3,26 +3,27 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Palette de la charte graphique IN NETWORK (Brand Guideline, p.6 et p.12).
-     Couleurs principales : violet profond #47295C (Pantone 669 C — aussi la
-     couleur du « IN » du logo), violet #964594 (258 C), bleu #235BA8 (293 C),
-     orange #D44835 (7597 C). Secondaires : sauge #C0D5A9, jaune #FFC25A,
-     vert #73B866, gris #7A7A7A. Le violet profond est l'ancre (texte, surfaces
-     sombres) : l'échelle `ink-*` en dérive — une seule source de vérité. */
+  /* Charte « Bleu Nuit » (Brand Guideline IN NETWORK, 26/10/2026). Hiérarchie
+     voulue par la cliente : 1) bleu nuit #001042 (le « IN » du logo) et beige,
+     couleurs principales ; 2) l'orange de la charte #D44835 (Pantone 7597 C,
+     aplat — pas de dégradé ni de doré) ; 3) le bleu #235BA8 ; 4) le violet
+     #964594, seulement si nécessaire. Jaune #FFC25A = secondaire fonctionnel.
+     L'échelle `ink-*` dérive du bleu nuit — une seule source de vérité. */
   --color-brand-orange: #d44835;
   --color-brand-blue: #235ba8;
   --color-brand-violet: #964594;
   --color-brand-plum: #47295c;
-  --color-brand-paper: #f7f4fa;
-  --color-brand-paper-deep: #eee8f3;
+  --color-brand-navy: #001042;
+  --color-brand-paper: #f6f0e6;
+  --color-brand-paper-deep: #ece2d2;
 
-  --color-ink-400: #a399b3;
-  --color-ink-500: #74688a;
-  --color-ink-600: #5f5273;
-  --color-ink-700: #51406a;
-  --color-ink-800: #3b2250;
-  --color-ink-900: #47295c;
-  --color-ink: #47295c;
+  --color-ink-400: #9aa1b6;
+  --color-ink-500: #5f6886;
+  --color-ink-600: #444e70;
+  --color-ink-700: #27325b;
+  --color-ink-800: #0d1d4f;
+  --color-ink-900: #001042;
+  --color-ink: #001042;
 
   --color-accent-green-light: #c0d5a9;
   --color-accent-green: #73b866;
@@ -56,9 +57,9 @@
   --spacing-section-mobile: 2.5rem;
 
   --shadow-soft:
-    0 1px 2px rgba(71, 41, 92, 0.05), 0 6px 20px -6px rgba(71, 41, 92, 0.14);
+    0 1px 2px rgba(0, 16, 66, 0.05), 0 6px 20px -6px rgba(0, 16, 66, 0.14);
   --shadow-soft-lg:
-    0 4px 10px rgba(71, 41, 92, 0.05), 0 16px 40px -12px rgba(71, 41, 92, 0.2);
+    0 4px 10px rgba(0, 16, 66, 0.05), 0 16px 40px -12px rgba(0, 16, 66, 0.22);
 
   --animate-fade-in: fade-in 0.3s ease-out;
   --animate-fade-in-up: fade-in-up 0.5s ease-out both;
@@ -101,6 +102,16 @@
   }
 }
 
+/* Le papier peint global sur une surface qui doit rester opaque (ex. le hero,
+   dont la vidéo se fond par mix-blend dans un groupe isolé). Le hero démarre
+   en haut de page, comme le motif du body : les deux se raccordent. */
+@utility bg-wallpaper {
+  background-color: var(--color-brand-paper);
+  background-image: url('/background/motif-clair.svg');
+  background-size: 560px 555px;
+  background-repeat: repeat;
+}
+
 @utility section-padding {
   @apply py-14 md:py-24;
 }
@@ -124,10 +135,9 @@
 }
 
 @utility section-tint {
-  /* Alterne le fond des sections sans jamais toucher au blanc pur ni au gris
-     générique — reste dans la même famille chaude que le fond global
-     (bg-brand-paper) pour ne jamais mélanger teintes froides et chaudes. */
-  @apply bg-brand-paper-deep;
+  /* Alterne le fond des sections dans la famille beige, translucide pour que
+     le papier peint reste visible. */
+  @apply bg-brand-paper-deep/60;
 }
 
 @layer base {
@@ -156,27 +166,17 @@
     pointer-events: none;
   }
 
-  /* Texture de marque du groupe (La Maison IN Groupe) en couche globale fixe
-     derrière tout le site — même technique que in-academy.dz : motif
-     background.svg tuilé, soft-light, très discret, sous le contenu. */
-  html::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    background-image: url('/background/background.svg');
-    background-size: 460px 460px;
-    background-repeat: repeat;
-    opacity: 0.5;
-    mix-blend-mode: soft-light;
-    pointer-events: none;
-  }
-
+  /* Papier peint de la marque (motif background.svg) visible, en léger, sur
+     tout le site (demande cliente 26/10/2026) : beige + motif bleu nuit.
+     Les sections claires sont transparentes ou translucides pour le laisser
+     paraître ; les sections bleu nuit posent la variante blanche (BrandTexture). */
   body {
-    @apply font-body text-ink-600 bg-brand-paper antialiased;
+    @apply font-body text-ink-600 antialiased;
+    background-color: var(--color-brand-paper);
+    background-image: url('/background/motif-clair.svg');
+    background-size: 560px 555px;
+    background-repeat: repeat;
     text-rendering: optimizeLegibility;
-    position: relative;
-    z-index: 1;
   }
 
   h1,

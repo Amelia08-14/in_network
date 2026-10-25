@@ -6,6 +6,7 @@ import { getSettings } from '../settings/settings.service';
 import { discountLabel, renderDocumentPdf, type PdfDocumentInput } from './documentPdf';
 import { advanceStageTo, logActivity, scheduleTask } from './leads.service';
 import { DEFAULT_VAT_RATE, computeTotals, formatAmount, netLineAmount, round2, type DocDiscount } from './money';
+import { lockLinesToCatalogue } from './catalogueLines';
 import { nextNumber } from './numbering';
 import { assertLeadAccess, leadScopeWhere, type StaffScope } from './scope';
 import { STAFF_SELECT, listStaffByRole, listStaffWith, notifyUsers } from './staff';
@@ -228,6 +229,7 @@ export async function createQuote(input: { leadId: string; templateId?: string; 
     }));
   }
 
+  lines = await lockLinesToCatalogue(lines, scope);
   const totals = computeTotals(lines, DEFAULT_VAT_RATE);
   const validUntil = new Date(Date.now() + validityDays * 24 * 3600 * 1000);
   const quote = await prisma.quote.create({
@@ -252,9 +254,11 @@ export async function createQuote(input: { leadId: string; templateId?: string; 
 export async function updateQuote(
   id: string,
   patch: { validUntil?: Date | null; notes?: string | null; vatRate?: number; lines?: DocLineInput[] } & DiscountPatch,
+  scope?: StaffScope,
 ) {
   const existing = await getQuote(id);
   if (existing.status !== 'DRAFT') throw ApiError.conflict('Seul un devis en brouillon peut être modifié — repassez-le en brouillon d’abord.');
+  if (patch.lines) patch = { ...patch, lines: await lockLinesToCatalogue(patch.lines, scope) };
 
   const vatRate = patch.vatRate ?? Number(existing.vatRate);
   const lines = patch.lines ?? storedLines(existing.lines);

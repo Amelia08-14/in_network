@@ -14,16 +14,7 @@ import { MotionSafeVideo } from '@/components/ui/motion-safe-video';
 // carte atteigne la hauteur du bloc de texte.
 export function Hero() {
   return (
-    <section className="relative isolate -mt-24 flex items-center overflow-x-clip bg-brand-paper md:-mt-28">
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-60"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 1px 1px, rgba(71,41,92,0.08) 1px, transparent 0)',
-          backgroundSize: '36px 36px',
-        }}
-      />
+    <section className="bg-wallpaper relative isolate -mt-24 flex items-center overflow-x-clip md:-mt-28">
       <div
         aria-hidden
         className="absolute -left-48 top-24 h-[480px] w-[480px] rounded-full bg-brand-orange/[0.06] blur-3xl"
@@ -42,18 +33,17 @@ export function Hero() {
             </p>
           </div>
 
-          <h1 className="hero-in hero-d1 mt-6 font-heading text-[2.5rem] font-extrabold leading-[1.05] tracking-[-0.02em] text-ink-900 lg:text-[clamp(2.25rem,3.4vw,3rem)]">
-            Ce n&apos;est plus
-            <br />
-            un coworking.
-            <br />
-            <span className="text-brand-orange">C&apos;est un networking.</span>
+          {/* Accroche de l'audit du site (25/10/2026) : dire d'emblée ce qu'IN NETWORK
+              propose (un lieu, des services, un réseau) et à qui, plutôt qu'une promesse de mise en relation. */}
+          <h1 className="hero-in hero-d1 mt-6 font-heading text-[2.4rem] font-extrabold leading-[1.06] tracking-[-0.02em] text-ink-900 lg:text-[clamp(2.25rem,3.4vw,3rem)]">
+            Un espace pour <span className="text-brand-orange">entreprendre, développer</span> et concrétiser vos projets{' '}
+            <span className="text-brand-orange">en Algérie.</span>
           </h1>
 
           <p className="hero-in hero-d2 mt-6 max-w-[520px] text-base leading-7 text-ink-600">
-            IN NETWORK réunit en un seul lieu des espaces de travail modernes, des services pour créer et
-            structurer votre activité, des experts qui vous accompagnent et une communauté
-            d&apos;entrepreneurs. Notre ambition : faire de chaque connexion une opportunité.
+            IN NETWORK accompagne les entrepreneurs, les entreprises et les professionnels grâce à des espaces
+            de travail, des services adaptés et un réseau de partenaires pour donner vie à leurs projets en
+            Algérie.
           </p>
 
           <div className="hero-in hero-d3 mt-8 flex flex-col gap-3 sm:flex-row">
@@ -68,15 +58,15 @@ export function Hero() {
               href="/services"
               className="inline-flex min-h-14 items-center justify-center rounded-full border border-ink-900/20 px-8 text-sm font-semibold text-ink-900 transition duration-300 hover:border-ink-900 hover:bg-ink-900/[0.03]"
             >
-              Découvrir les services
+              Découvrir nos services
             </Link>
           </div>
 
           <dl className="hero-in hero-d3 mt-8 grid grid-cols-3 gap-3 border-t border-ink-900/10 pt-5 sm:gap-5">
             {[
-              ['Entreprises', 'freelances & PME'],
-              ['Experts', 'juridique & compta'],
-              ['Partenaires', 'institutions & réseaux'],
+              ['Entrepreneurs', 'Freelances, startups et PME'],
+              ['Experts', 'Accompagnement juridique, comptable et stratégique'],
+              ['Partenaires', 'Institutions, investisseurs et réseaux professionnels'],
             ].map(([term, desc]) => (
               <div key={term}>
                 <dt className="font-heading text-sm font-bold text-ink-900">{term}</dt>

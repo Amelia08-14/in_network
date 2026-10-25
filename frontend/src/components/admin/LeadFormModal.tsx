@@ -10,7 +10,8 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { errorMessage, Field, OfficeManagerOptions, SalesAgentOptions, useCrmAccess, useStaff } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
-import { CHANNELS, OFFER_OPTIONS, PIPELINE } from '@/lib/crm';
+import { CHANNELS, PIPELINE } from '@/lib/crm';
+import { useLeadOffers } from '@/lib/options';
 import { cn } from '@/lib/utils';
 import type { LeadChannel, LeadCircuit, LeadPipeline } from '@/types/crm';
 
@@ -38,6 +39,7 @@ const EMPTY = {
 // commercial sa prospection en circuit 1 ; le responsable commercial et la
 // Direction peuvent aiguiller dès la saisie. Un contact déjà suivi est refusé.
 export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const offers = useLeadOffers();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: staff } = useStaff();
@@ -144,7 +146,7 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         <Field label="Offre pressentie" htmlFor="lead-offer">
           <Select id="lead-offer" value={form.offerInterest} onChange={(e) => set({ offerInterest: e.target.value })}>
             <option value="">À déterminer</option>
-            {OFFER_OPTIONS.map((offer) => (
+            {[...new Set([...offers, ...(form.offerInterest ? [form.offerInterest] : [])])].map((offer) => (
               <option key={offer} value={offer}>
                 {offer}
               </option>

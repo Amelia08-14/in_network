@@ -15,6 +15,7 @@ import { useAuthStore } from '@/store/auth';
 import { api, ApiRequestError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { MemberProfileSummary } from '@/types';
+import { BrandTexture } from '@/components/ui/brand-texture';
 
 export default function MemberDetailPage() {
   const params = useParams<{ id: string }>();
@@ -59,13 +60,17 @@ export default function MemberDetailPage() {
       </Link>
 
       <Card className="mt-6 overflow-hidden">
-        <div className="h-24 bg-ink-900" />
+        <div className="relative h-24 overflow-hidden bg-ink-900">
+          <BrandTexture />
+        </div>
         <CardContent className="relative px-6 pb-7 md:px-8">
-          <div className="-mt-14 flex flex-col items-start gap-5 sm:flex-row sm:items-end">
-            <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-3xl border-4 border-white bg-linear-to-br from-ink-900 to-brand-orange text-3xl font-bold text-white shadow-soft">
+          {/* Seule la photo chevauche le bandeau bleu nuit : le nom (bleu nuit)
+              reste sur fond blanc, toujours lisible. */}
+          <div className="flex flex-col items-start gap-5 sm:flex-row">
+            <div className="-mt-14 flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-3xl border-4 border-white bg-linear-to-br from-ink-900 to-brand-orange text-3xl font-bold text-white shadow-soft">
               {profile.avatarUrl ? <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}
             </div>
-            <div className="flex-1 pb-1">
+            <div className="flex-1 sm:pt-3">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="font-heading text-3xl font-bold text-ink-900">{profile.firstName} {profile.lastName}</h1>
                 <MemberTypeBadge memberType={profile.memberType} />

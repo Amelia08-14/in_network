@@ -1,12 +1,15 @@
 import { cn } from '@/lib/utils';
 import { Container } from './container';
+import { BrandTexture } from './brand-texture';
 import { NetworkMotif, type MotifVariant } from './network-motif';
 
 type SectionTone = 'paper' | 'tint' | 'navy' | 'orange';
 
+// Fonds clairs transparents / translucides : le papier peint global (beige +
+// motif bleu nuit) reste visible. Fonds sombres : bleu nuit + motif blanc.
 const TONE: Record<SectionTone, string> = {
-  paper: 'bg-brand-paper text-ink-700',
-  tint: 'bg-brand-paper-deep text-ink-700',
+  paper: 'text-ink-700',
+  tint: 'bg-brand-paper-deep/60 text-ink-700',
   navy: 'bg-ink-900 text-white/80',
   orange: 'bg-brand-orange text-white',
 };
@@ -45,6 +48,7 @@ export function Section({
       id={id}
       className={cn('relative isolate overflow-hidden py-20 md:py-28', TONE[tone], className)}
     >
+      {tone === 'navy' && <BrandTexture />}
       {showMotif && (
         <NetworkMotif
           tone="white"

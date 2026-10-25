@@ -1,14 +1,18 @@
 import Link from 'next/link';
 import { Logo } from '@/components/layout/Logo';
+import { BrandTexture } from '@/components/ui/brand-texture';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Panneau de marque — sobre, visible en desktop */}
       <aside className="relative hidden w-[42%] flex-col justify-between overflow-hidden bg-ink-900 p-12 text-white lg:flex">
-        <Logo variant="light" priority />
+        <BrandTexture />
+        <div className="relative">
+          <Logo variant="light" priority />
+        </div>
 
-        <div className="max-w-sm">
+        <div className="relative max-w-sm">
           <span className="eyebrow text-white/60">IN NETWORK</span>
           <p className="mt-5 font-heading text-3xl font-bold leading-tight">
             Le lieu et le réseau qui font avancer les entrepreneurs.
@@ -19,13 +23,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </p>
         </div>
 
-        <p className="text-xs text-white/40">
+        <p className="relative text-xs text-white/40">
           © {new Date().getFullYear()} IN NETWORK — La Maison IN Groupe.
         </p>
       </aside>
 
       {/* Colonne formulaire */}
-      <div className="flex flex-1 flex-col bg-white">
+      <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-between px-6 py-5 lg:px-10">
           <span className="lg:hidden">
             <Logo priority />

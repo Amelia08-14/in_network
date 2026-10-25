@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, X } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Plus, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,25 +12,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { api, ApiRequestError } from '@/lib/admin-api';
 import { revalidatePublic } from '@/lib/revalidate-public';
-import { ServicesTarifsHeader } from '@/components/admin/ServicesTarifsHeader';
+import { ServicesTarifsHeader, useCanEditCatalogue } from '@/components/admin/ServicesTarifsHeader';
 import { cn, slugify } from '@/lib/utils';
 import { HUE, SERVICE_HUE } from '@/lib/palette';
 import { CATEGORY_LABEL } from '@/components/features/ServiceCard';
-import type { ApiListResponse, PricingTier, ServiceCatalogItem } from '@/types';
+import type { PricingTier, ServiceCatalogItem } from '@/types';
 
-const CATEGORIES = ['DOMICILIATION', 'CREATION_ENTREPRISE', 'ADMINISTRATION', 'COMPTABILITE', 'JURIDIQUE', 'MARKETING', 'SECRETARIAT', 'AUTRE'];
+type AdminService = ServiceCatalogItem & { isActive: boolean };
+
+const CATEGORIES = ['OFFRE', 'DOMICILIATION', 'CREATION_ENTREPRISE', 'ADMINISTRATION', 'COMPTABILITE', 'JURIDIQUE', 'MARKETING', 'SECRETARIAT', 'INCUBATION', 'DIASPORA', 'AUTRE'];
 const POLES = [
   { value: 'SPACES', label: 'Espaces et domiciliation' },
   { value: 'COMPANY_CREATION', label: 'Création d’entreprise' },
   { value: 'IN_GROUP', label: 'Solutions IN Group' },
 ] as const;
 
+const errorText = (e: unknown, fallback: string) => (e instanceof ApiRequestError ? e.message : fallback);
+
 /**
  * Réglages de livraison d'un service (processus v1.3) : le pôle qui le livre
  * et sa durée de validité, qui fixe l'échéance et les alertes de
  * renouvellement des services vendus. Enregistrés à la volée.
  */
-function DeliverySettings({ service, onSaved }: { service: ServiceCatalogItem; onSaved: () => void }) {
+function DeliverySettings({ service, onSaved }: { service: AdminService; onSaved: () => void }) {
   const [duration, setDuration] = useState(service.durationMonths ? String(service.durationMonths) : '');
   const [error, setError] = useState<string | null>(null);
   const save = useMutation({
@@ -39,7 +43,7 @@ function DeliverySettings({ service, onSaved }: { service: ServiceCatalogItem; o
       setError(null);
       onSaved();
     },
-    onError: (e) => setError(e instanceof ApiRequestError ? e.message : 'Enregistrement impossible'),
+    onError: (e) => setError(errorText(e, 'Enregistrement impossible')),
   });
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -68,140 +72,155 @@ function DeliverySettings({ service, onSaved }: { service: ServiceCatalogItem; o
   );
 }
 
-const EMPTY_FORM = {
-  title: '',
-  category: 'AUTRE',
-  description: '',
-  priceFrom: '',
-  tiers: [] as PricingTier[],
-};
+interface FormState {
+  title: string;
+  category: string;
+  description: string;
+  priceFrom: string;
+  tiers: PricingTier[];
+}
 
-export default function AdminServicesPage() {
+const EMPTY_FORM: FormState = { title: '', category: 'AUTRE', description: '', priceFrom: '', tiers: [] };
+
+const formFrom = (service: AdminService): FormState => ({
+  title: service.title,
+  category: service.category,
+  description: service.description,
+  priceFrom: service.pricingTiers?.length ? '' : (service.priceFrom ?? ''),
+  tiers: service.pricingTiers ?? [],
+});
+
+/** Création ou modification d'un service : titre, catégorie, description, prix (unique, paliers ou sur devis). */
+function ServiceForm({ service, onDone }: { service: AdminService | null; onDone: () => void }) {
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(service ? formFrom(service) : EMPTY_FORM);
+  const [error, setError] = useState<string | null>(null);
+  const tiers = form.tiers.filter((t) => t.label.trim());
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-services'],
-    queryFn: () => api.get<ApiListResponse<ServiceCatalogItem> | { data: ServiceCatalogItem[] }>('/api/services'),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: () =>
-      api.post('/api/admin/services', {
-        title: form.title,
-        slug: slugify(form.title),
-        category: form.category,
-        description: form.description,
-        priceFrom: form.priceFrom ? Number(form.priceFrom) : undefined,
-        pricingTiers: form.tiers.length > 0 ? form.tiers : undefined,
-      }),
+  const save = useMutation({
+    mutationFn: () => {
+      // Un service à paliers affiche « à partir de » son palier le moins cher ; sans prix ni palier, il est « sur devis ».
+      const priceFrom = tiers.length ? Math.min(...tiers.map((t) => Number(t.price))) : form.priceFrom.trim() ? Number(form.priceFrom) : null;
+      const body = { title: form.title.trim(), category: form.category, description: form.description.trim(), priceFrom, pricingTiers: tiers.length ? tiers : null };
+      return service
+        ? api.patch(`/api/admin/services/${service.id}`, body)
+        : api.post('/api/admin/services', { ...body, slug: slugify(form.title), priceFrom: priceFrom ?? undefined, pricingTiers: tiers.length ? tiers : undefined });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-services'] });
       revalidatePublic('services');
-      setForm(EMPTY_FORM);
-      setShowForm(false);
-      setFormError(null);
+      onDone();
     },
-    onError: (e) => setFormError(e instanceof ApiRequestError ? e.message : 'Erreur lors de la création'),
+    onError: (e) => setError(errorText(e, service ? 'Enregistrement impossible' : 'Erreur lors de la création')),
   });
 
-  const services = data?.data ?? [];
-
-  function addTier() {
-    setForm({ ...form, tiers: [...form.tiers, { label: '', price: 0 }] });
-  }
-  function updateTier(index: number, patch: Partial<PricingTier>) {
-    setForm({ ...form, tiers: form.tiers.map((t, i) => (i === index ? { ...t, ...patch } : t)) });
-  }
-  function removeTier(index: number) {
-    setForm({ ...form, tiers: form.tiers.filter((_, i) => i !== index) });
-  }
+  const setTier = (index: number, patch: Partial<PricingTier>) => setForm({ ...form, tiers: form.tiers.map((t, i) => (i === index ? { ...t, ...patch } : t)) });
 
   return (
-    <div className="space-y-6">
+    <Card>
+      <CardContent className="space-y-4">
+        <p className="font-heading text-base font-bold text-ink-900">{service ? `Modifier « ${service.title} »` : 'Nouveau service'}</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="svc-title">Titre</Label>
+            <Input id="svc-title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </div>
+          <div>
+            <Label htmlFor="svc-category">Catégorie</Label>
+            <Select id="svc-category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {CATEGORY_LABEL[c] ?? c}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="svc-description">Description</Label>
+          <Textarea id="svc-description" rows={6} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <p className="mt-1 text-xs text-ink-500">Première ligne : l’accroche affichée sur la carte. Lignes suivantes commençant par « • » : les points détaillés.</p>
+        </div>
+        <div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label>Formules et prix (DA)</Label>
+            <Button type="button" size="sm" variant="outline" onClick={() => setForm({ ...form, tiers: [...form.tiers, { label: '', price: 0 }] })}>
+              <Plus className="h-3.5 w-3.5" /> Ajouter une formule
+            </Button>
+          </div>
+          <div className="mt-2 space-y-2">
+            {form.tiers.map((tier, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input aria-label={`Libellé de la formule ${index + 1}`} placeholder="Libellé (ex. NET)" value={tier.label} onChange={(e) => setTier(index, { label: e.target.value })} />
+                <Input aria-label={`Prix de la formule ${index + 1}`} type="number" min="0" placeholder="Prix DA" className="w-36" value={tier.price} onChange={(e) => setTier(index, { price: Number(e.target.value) })} />
+                <button type="button" aria-label={`Retirer la formule ${index + 1}`} onClick={() => setForm({ ...form, tiers: form.tiers.filter((_, i) => i !== index) })} className="text-ink-500 hover:text-brand-orange">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {form.tiers.length === 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <Input aria-label="Prix unique" type="number" min="0" placeholder="Prix unique (vide : sur devis)" className="w-64" value={form.priceFrom} onChange={(e) => setForm({ ...form, priceFrom: e.target.value })} />
+              <span className="text-xs text-ink-500">Sans prix ni formule, le service est proposé « sur devis ».</span>
+            </div>
+          )}
+        </div>
+        {error && <p className="text-sm text-brand-orange">{error}</p>}
+        <div className="flex gap-2">
+          <Button onClick={() => save.mutate()} disabled={save.isPending || !form.title.trim() || !form.description.trim()}>
+            {save.isPending ? 'Enregistrement…' : service ? 'Enregistrer' : 'Créer le service'}
+          </Button>
+          <Button variant="ghost" onClick={onDone}>
+            Annuler
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function AdminServicesPage() {
+  const canEditCatalogue = useCanEditCatalogue();
+  const queryClient = useQueryClient();
+  // null : fermé ; 'new' : création ; sinon : le service modifié.
+  const [editing, setEditing] = useState<AdminService | 'new' | null>(null);
+
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ['admin-services'],
+    queryFn: () => api.get<{ data: AdminService[] }>('/api/admin/services').then((r) => r.data),
+  });
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin-services'] });
+  const toggle = useMutation({
+    mutationFn: (service: AdminService) => api.patch(`/api/admin/services/${service.id}`, { isActive: !service.isActive }),
+    onSuccess: () => {
+      refresh();
+      revalidatePublic('services');
+    },
+  });
+
+  return (
+    // Hors Direction : catalogue en lecture seule (le serveur refuse toute modification).
+    <fieldset disabled={!canEditCatalogue} className="min-w-0 space-y-6">
       <ServicesTarifsHeader active="catalogue" />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="font-heading text-lg font-bold text-ink-900">Catalogue de services</h2>
-          <p className="mt-1 text-sm text-ink-500">Secrétariat, création juridique et autres prestations à la carte. Le pôle désigne qui livre le service ; la durée fixe son échéance (vide : sans échéance, comme une création d’entreprise).</p>
+          <p className="mt-1 text-sm text-ink-500">Offres, services aux entreprises et packs : créez, modifiez ou masquez un service. Le pôle désigne qui le livre ; la durée fixe son échéance (vide : sans échéance, comme une création d’entreprise).</p>
         </div>
-        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
-          <Plus className="h-4 w-4" /> Nouveau service
-        </Button>
+        {canEditCatalogue && (
+          <Button size="sm" onClick={() => setEditing('new')}>
+            <Plus className="h-4 w-4" /> Nouveau service
+          </Button>
+        )}
       </div>
 
-      {showForm && (
-        <Card>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label>Titre</Label>
-                <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-              </div>
-              <div>
-                <Label>Catégorie</Label>
-                <Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-            </div>
-            <div>
-              <Label>Prix "à partir de" (si pas de paliers)</Label>
-              <Input type="number" value={form.priceFrom} onChange={(e) => setForm({ ...form, priceFrom: e.target.value })} />
-            </div>
-            <div>
-              <div className="flex items-center justify-between">
-                <Label>Paliers de prix</Label>
-                <Button type="button" size="sm" variant="outline" onClick={addTier}>
-                  <Plus className="h-3.5 w-3.5" /> Ajouter un palier
-                </Button>
-              </div>
-              <div className="mt-2 space-y-2">
-                {form.tiers.map((tier, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input placeholder="Libellé" value={tier.label} onChange={(e) => updateTier(index, { label: e.target.value })} />
-                    <Input
-                      type="number"
-                      placeholder="Prix DA"
-                      className="w-32"
-                      value={tier.price}
-                      onChange={(e) => updateTier(index, { price: Number(e.target.value) })}
-                    />
-                    <button type="button" onClick={() => removeTier(index)} className="text-ink-500 hover:text-brand-orange">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {formError && <p className="text-sm text-brand-orange">{formError}</p>}
-            <div className="flex gap-2">
-              <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending || !form.title}>
-                {createMutation.isPending ? 'Création...' : 'Créer le service'}
-              </Button>
-              <Button variant="ghost" onClick={() => setShowForm(false)}>
-                Annuler
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {editing && <ServiceForm key={editing === 'new' ? 'new' : editing.id} service={editing === 'new' ? null : editing} onDone={() => setEditing(null)} />}
 
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-5 text-sm text-ink-500">Chargement...</p>
+            <p className="p-5 text-sm text-ink-500">Chargement…</p>
           ) : services.length === 0 ? (
             <EmptyState title="Aucun service" />
           ) : (
@@ -213,12 +232,16 @@ export default function AdminServicesPage() {
                     <th className="px-5 py-3">Catégorie</th>
                     <th className="px-5 py-3">Tarif</th>
                     <th className="px-5 py-3">Pôle · durée (mois)</th>
+                    {canEditCatalogue && <th className="px-5 py-3" />}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-900/8">
                   {services.map((service) => (
-                    <tr key={service.id}>
-                      <td className="px-5 py-3 font-medium text-ink-800">{service.title}</td>
+                    <tr key={service.id} className={cn(!service.isActive && 'bg-ink-900/[0.03] text-ink-400')}>
+                      <td className="px-5 py-3 font-medium text-ink-800">
+                        {service.title}
+                        {!service.isActive && <span className="ml-2 rounded-pill bg-ink-900/8 px-2 py-0.5 text-xs font-semibold text-ink-500">Masqué</span>}
+                      </td>
                       <td className="px-5 py-3">
                         <span className={cn('inline-flex items-center gap-1.5 rounded-pill px-2.5 py-0.5 text-xs font-semibold', HUE[SERVICE_HUE[service.category] ?? 'gray'].soft, HUE[SERVICE_HUE[service.category] ?? 'gray'].text)}>
                           {CATEGORY_LABEL[service.category] ?? service.category}
@@ -226,14 +249,26 @@ export default function AdminServicesPage() {
                       </td>
                       <td className="px-5 py-3 text-ink-600">
                         {service.pricingTiers && service.pricingTiers.length > 0
-                          ? service.pricingTiers.map((t) => `${t.label}: ${t.price} DA`).join(' · ')
+                          ? service.pricingTiers.map((t) => `${t.label} : ${Number(t.price).toLocaleString('fr-FR')} DA`).join(' · ')
                           : service.priceFrom
-                            ? `à partir de ${service.priceFrom} DA`
-                            : '—'}
+                            ? `${Number(service.priceFrom).toLocaleString('fr-FR')} DA`
+                            : 'Sur devis'}
                       </td>
                       <td className="px-5 py-3">
-                        <DeliverySettings service={service} onSaved={() => queryClient.invalidateQueries({ queryKey: ['admin-services'] })} />
+                        <DeliverySettings service={service} onSaved={refresh} />
                       </td>
+                      {canEditCatalogue && (
+                        <td className="px-5 py-3">
+                          <div className="flex justify-end gap-1">
+                            <Button size="sm" variant="ghost" aria-label={`Modifier ${service.title}`} onClick={() => setEditing(service)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" aria-label={service.isActive ? `Masquer ${service.title}` : `Réafficher ${service.title}`} title={service.isActive ? 'Masquer du site et des devis' : 'Réafficher'} disabled={toggle.isPending} onClick={() => toggle.mutate(service)}>
+                              {service.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -242,6 +277,6 @@ export default function AdminServicesPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </fieldset>
   );
 }

@@ -27,9 +27,10 @@ const BASE_NAV: NavItem[] = [
   { href: '/dashboard/profil', label: 'Mon profil', icon: UserRound },
 ];
 
-// « Mon équipe » n'apparaît que pour le représentant qui a inscrit
-// l'entreprise (company.isOwner) — les collaborateurs invités ne le voient pas.
+// Entreprise multi-postes : le représentant gère « Mon équipe » ; chaque
+// collaborateur, qui a son propre accès, consulte « Mon entreprise ».
 const TEAM_NAV: NavItem = { href: '/dashboard/equipe', label: 'Mon équipe', icon: Building2 };
+const COMPANY_NAV: NavItem = { href: '/dashboard/equipe', label: 'Mon entreprise', icon: Building2 };
 
 // Avant le premier paiement (décision du 23/10/2026), seuls ces onglets sont
 // ouverts : la demande de devis et « Devis et factures » (devis, proforma,
@@ -83,7 +84,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   });
 
   const withBadges = BASE_NAV.map((item) => (item.href === '/dashboard/messages' && unread ? { ...item, badge: unread } : item));
-  const base = user?.company?.isOwner ? [...withBadges, TEAM_NAV] : withBadges;
+  const base = user?.company ? [...withBadges, user.company.isOwner ? TEAM_NAV : COMPANY_NAV] : withBadges;
   const navItems: NavItem[] = pending
     ? base.map((item) => ({ ...item, locked: !OPEN_WHILE_PENDING.includes(item.href), highlight: item.href === DOCUMENTS_HREF }))
     : base;

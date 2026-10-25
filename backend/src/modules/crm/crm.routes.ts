@@ -170,9 +170,10 @@ crmRouter.post(
 // ============================ Devis ============================
 export const quotesRouter = Router();
 quotesRouter.use(attachScope);
+// Les modèles fixent libellés et prix des services : Direction seulement (25/10/2026).
 const manageTemplates = (req: Request, _res: Response, next: NextFunction) => {
   try {
-    assertCanManage(requireScope(req));
+    if (!requireScope(req).direction) throw ApiError.forbidden('Les modèles de devis sont gérés par la Direction.');
     next();
   } catch (error) {
     next(error);
@@ -231,7 +232,7 @@ quotesRouter.get('/:id', asyncHandler(async (req, res) => {
 quotesRouter.patch(
   '/:id',
   validate({ body: s.quotePatchSchema }),
-  asyncHandler(async (req, res) => ok(res, await quotes.updateQuote(param(req, 'id'), req.body))),
+  asyncHandler(async (req, res) => ok(res, await quotes.updateQuote(param(req, 'id'), req.body, requireScope(req)))),
 );
 quotesRouter.post('/:id/submit', asyncHandler(async (req, res) => ok(res, await quotes.submitForApproval(param(req, 'id'), req.user!.id))));
 quotesRouter.post('/:id/send', asyncHandler(async (req, res) => ok(res, await quotes.sendQuote(param(req, 'id'), req.user!.id))));
@@ -262,7 +263,7 @@ invoicesRouter.post(
       if (!leadId) throw ApiError.forbidden('Rattachez cette facture à l’un de vos leads.');
       await assertLeadAccess(scope, leadId);
     }
-    ok(res, await invoices.createInvoice(req.body, req.user!.id), 201);
+    ok(res, await invoices.createInvoice(req.body, req.user!.id, scope), 201);
   }),
 );
 invoicesRouter.use(
@@ -273,7 +274,7 @@ invoicesRouter.get('/:id', asyncHandler(async (req, res) => ok(res, await invoic
 invoicesRouter.patch(
   '/:id',
   validate({ body: s.invoicePatchSchema }),
-  asyncHandler(async (req, res) => ok(res, await invoices.updateInvoice(param(req, 'id'), req.body))),
+  asyncHandler(async (req, res) => ok(res, await invoices.updateInvoice(param(req, 'id'), req.body, requireScope(req)))),
 );
 invoicesRouter.delete(
   '/:id',

@@ -2,7 +2,8 @@ import { forwardRef } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
-// CDC §3.2 — orange = CTA principal (réserver, adhérer), violet = CTA secondaire.
+// Charte Bleu Nuit — dégradé orange du logo = CTA principal (réserver, adhérer),
+// bleu nuit = CTA secondaire.
 // Ne jamais utiliser l'orange en texte fin sur blanc (contraste insuffisant) :
 // réservé aux fonds de bouton avec texte blanc.
 const buttonVariants = cva(

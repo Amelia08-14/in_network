@@ -42,6 +42,11 @@ export const DASHBOARD_RESOURCES = [
 
 export type DashboardResource = (typeof DASHBOARD_RESOURCES)[number]['key'];
 
+// Catalogue (services, formules, tarifs des espaces) : créé et modifié par la
+// Direction seulement (demande client 25/10/2026). Les comptes bornés peuvent au
+// plus le consulter, même si un droit « modification » leur a été coché.
+export const DIRECTION_ONLY_WRITE: DashboardResource[] = ['services', 'plans', 'spaces'];
+
 const RESOURCE_KEYS = DASHBOARD_RESOURCES.map((r) => r.key) as [DashboardResource, ...DashboardResource[]];
 
 // Objet de permissions accepté à la création / modification d'un compte staff.

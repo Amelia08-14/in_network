@@ -218,3 +218,41 @@ export async function updateProfile(userId: string, input: UpdateProfileInput) {
 
   return getMyProfile(userId);
 }
+
+/**
+ * Vitrine publique de la communauté (page d'accueil, audit du 25/10/2026) :
+ * l'annuaire reste réservé aux connectés ; le visiteur voit seulement le
+ * prénom et l'initiale du nom, l'activité, les secteurs et la ville de
+ * quelques membres validés, et les chiffres réels de la communauté.
+ */
+export async function getCommunityShowcase() {
+  const where: Prisma.MemberProfileWhereInput = { isPublic: true, user: { isActive: true, role: 'MEMBER' } };
+  const [members, profiles, sectors] = await Promise.all([
+    prisma.memberProfile.count({ where }),
+    prisma.memberProfile.findMany({
+      where,
+      include: { tags: { include: { tag: true } } },
+      // Les profils les plus complets d'abord (photo, intitulé), puis les plus récents.
+      orderBy: [{ avatarUrl: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
+      take: 12,
+    }),
+    prisma.tag.count({ where: { category: 'SECTOR', profileTags: { some: { relation: 'OFFER', profile: where } } } }),
+  ]);
+  return {
+    members,
+    sectors,
+    profiles: profiles.map((p) => ({
+      id: p.id,
+      displayName: `${p.firstName} ${p.lastName ? `${p.lastName.charAt(0).toUpperCase()}.` : ''}`.trim(),
+      memberType: p.memberType,
+      avatarUrl: p.avatarUrl,
+      jobTitle: p.jobTitle,
+      city: p.city,
+      tags: p.tags
+        .filter((pt) => pt.relation === 'OFFER')
+        .sort((a, b) => Number(b.tag.category === 'SECTOR') - Number(a.tag.category === 'SECTOR'))
+        .slice(0, 2)
+        .map((pt) => pt.tag.label),
+    })),
+  };
+}

@@ -113,10 +113,14 @@ const LEVELS: { value: '' | 'read' | 'write'; label: string }[] = [
   { value: 'write', label: 'Modification' },
 ];
 
-function LevelControl({ label, value, onChange }: { label: string; value: '' | 'read' | 'write'; onChange: (v: '' | 'read' | 'write') => void }) {
+// Catalogue (services, formules, espaces) : modifié par la Direction seulement,
+// les autres comptes peuvent au plus le consulter (règle appliquée par le serveur).
+const READ_ONLY_RESOURCES = ['services', 'plans', 'spaces'];
+
+function LevelControl({ label, value, onChange, readOnlyMax = false }: { label: string; value: '' | 'read' | 'write'; onChange: (v: '' | 'read' | 'write') => void; readOnlyMax?: boolean }) {
   return (
     <div role="radiogroup" aria-label={label} className="inline-flex shrink-0 rounded-lg border border-ink-900/10 bg-ink-900/[0.03] p-0.5">
-      {LEVELS.map((level) => {
+      {LEVELS.filter((level) => !readOnlyMax || level.value !== 'write').map((level) => {
         const on = value === level.value;
         return (
           <button
@@ -184,8 +188,16 @@ function PermissionMatrix({ value, onChange }: { value: DashboardPermissions; on
             <ul className="divide-y divide-ink-900/8">
               {levelKeys.map((key) => (
                 <li key={key} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
-                  <span className="text-sm text-ink-800">{LABEL_BY_KEY[key]}</span>
-                  <LevelControl label={LABEL_BY_KEY[key]} value={(value[key] as '' | 'read' | 'write') ?? ''} onChange={(level) => setLevel(key, level)} />
+                  <span className="text-sm text-ink-800">
+                    {LABEL_BY_KEY[key]}
+                    {READ_ONLY_RESOURCES.includes(key) && <span className="block text-xs text-ink-500">Modification réservée à la Direction</span>}
+                  </span>
+                  <LevelControl
+                    label={LABEL_BY_KEY[key]}
+                    readOnlyMax={READ_ONLY_RESOURCES.includes(key)}
+                    value={READ_ONLY_RESOURCES.includes(key) && value[key] ? 'read' : ((value[key] as '' | 'read' | 'write') ?? '')}
+                    onChange={(level) => setLevel(key, level)}
+                  />
                 </li>
               ))}
               {flagKeys.map((key) => (
@@ -199,7 +211,7 @@ function PermissionMatrix({ value, onChange }: { value: DashboardPermissions; on
                     </span>
                     <input
                       type="checkbox"
-                      className="mt-1 h-5 w-5 shrink-0 accent-[#964594]"
+                      className="mt-1 h-5 w-5 shrink-0 accent-[#001042]"
                       checked={Boolean(value[key])}
                       onChange={(e) => setLevel(key, e.target.checked ? 'write' : '')}
                     />

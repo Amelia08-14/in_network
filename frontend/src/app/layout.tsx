@@ -15,11 +15,11 @@ const robotoSlab = Roboto_Slab({
 
 export const metadata: Metadata = {
   title: {
-    default: 'IN NETWORK — Le réseau qui fait avancer les entrepreneurs',
+    default: 'IN NETWORK — Entreprendre, développer et concrétiser vos projets en Algérie',
     template: '%s — IN NETWORK',
   },
   description:
-    "IN NETWORK : espace de coworking, mise en réseau et services entrepreneuriaux à Hydra, Alger.",
+    "IN NETWORK accompagne les entrepreneurs, les entreprises et les professionnels à Hydra, Alger : bureaux privés, open space, salles de réunion, domiciliation, services aux entreprises et réseau de partenaires.",
   icons: {
     icon: [{ url: '/in_icon.ico' }, { url: '/icon-symbol.png', type: 'image/png' }],
   },

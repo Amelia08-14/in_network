@@ -246,7 +246,7 @@ function QuoteEditor({ quote }: { quote: QuoteDetail }) {
               <Input id="q-vat" type="number" min="0" max="100" step="0.01" disabled={!editable} value={vatRate} onChange={(e) => setVatRate(e.target.value)} />
             </Field>
           </div>
-          <LineItemsEditor lines={lines} onChange={setLines} vatRate={Number(vatRate) || 0} readOnly={!editable} discount={discount} onDiscountChange={setDiscount} />
+          <LineItemsEditor lines={lines} onChange={setLines} vatRate={Number(vatRate) || 0} readOnly={!editable} discount={discount} onDiscountChange={setDiscount} catalogue locked={!access.direction} />
           <Field label="Notes et conditions (reprises sur le PDF)" htmlFor="q-notes">
             <Textarea id="q-notes" rows={3} disabled={!editable} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Modalités de paiement, délais, périmètre…" />
           </Field>

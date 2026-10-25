@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/ui/modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LineItemsEditor } from '@/components/admin/LineItemsEditor';
-import { errorMessage, Field, PageTitle, QuoteBadge } from '@/components/admin/crm-ui';
+import { errorMessage, Field, PageTitle, QuoteBadge, useCrmAccess } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
 import { dateFr, money, QUOTE_STATUS } from '@/lib/crm';
 import { cn } from '@/lib/utils';
@@ -119,6 +119,8 @@ function Quotes() {
 }
 
 function Templates() {
+  // Les modèles fixent libellés et prix : la Direction les gère, les autres comptes les utilisent.
+  const canEdit = useCrmAccess().direction;
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Partial<QuoteTemplate> | null>(null);
   const { data: templates, isLoading } = useQuery({
@@ -134,9 +136,11 @@ function Templates() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-ink-500">Un modèle pré-remplit les lignes, la validité et les notes d’un devis en un clic.</p>
-        <Button onClick={() => setEditing({ name: '', validityDays: 15, lines: [{ description: '', quantity: 1, unitPrice: 0 }], isActive: true })}>
-          <Plus className="h-4 w-4" /> Nouveau modèle
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setEditing({ name: '', validityDays: 15, lines: [{ description: '', quantity: 1, unitPrice: 0 }], isActive: true })}>
+            <Plus className="h-4 w-4" /> Nouveau modèle
+          </Button>
+        )}
       </div>
       {isLoading ? (
         <p className="text-sm text-ink-500">Chargement…</p>
@@ -151,7 +155,7 @@ function Templates() {
                   <h3 className="font-heading text-base font-bold text-ink-900">{t.name}</h3>
                   {t.description && <p className="text-sm text-ink-500">{t.description}</p>}
                 </div>
-                <div className="flex gap-1">
+                <div className={cn('flex gap-1', !canEdit && 'hidden')}>
                   <button type="button" aria-label={`Modifier ${t.name}`} onClick={() => setEditing(t)} className="rounded-lg p-2 text-ink-500 hover:bg-ink-900/5">
                     <Pencil className="h-4 w-4" />
                   </button>

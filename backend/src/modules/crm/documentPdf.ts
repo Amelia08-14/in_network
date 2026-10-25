@@ -47,9 +47,9 @@ export interface PdfDocumentInput {
   paymentInfo?: string | null;
 }
 
-// Couleurs de la charte (Brand Guideline) : violet profond #47295C, orange #D44835.
-const INK = '#47295C';
-const MUTED = '#6B6079';
+// Couleurs de la charte Bleu Nuit (26/10/2026) : bleu nuit #001042, orange #D44835.
+const INK = '#001042';
+const MUTED = '#5F6886';
 const ACCENT = '#D44835';
 const LINE = '#E2DCE8';
 const LOGO_PATH = path.resolve(__dirname, '../../../assets/logo-in-network.png');

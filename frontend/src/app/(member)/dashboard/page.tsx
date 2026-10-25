@@ -138,7 +138,7 @@ export default function DashboardOverviewPage() {
   return (
     <div className="space-y-8">
       <div className="relative overflow-hidden rounded-2xl bg-ink-900 p-6 text-white shadow-soft-lg sm:p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-yellow">Espace membre</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-orange">Espace membre</p>
         <h1 className="mt-2 font-heading text-2xl font-bold sm:text-3xl">Bonjour{data.firstName ? ` ${data.firstName}` : ''}</h1>
         <p className="mt-2 max-w-2xl text-sm text-white/75">
           {data.memberSince ? `Membre IN NETWORK depuis le ${dateFr(data.memberSince)}. ` : ''}
@@ -149,7 +149,7 @@ export default function DashboardOverviewPage() {
           <p className="mt-3 inline-flex items-center gap-2 rounded-pill bg-white/10 px-3 py-1 text-xs">
             <Building2 className="h-3.5 w-3.5" /> {company.isOwner ? `Vous gérez le compte ${company.name}` : `Équipe ${company.name}`}
             {company.isOwner && (
-              <Link href="/dashboard/equipe" className="font-semibold text-accent-yellow hover:underline">
+              <Link href="/dashboard/equipe" className="font-semibold text-brand-orange hover:underline">
                 Gérer
               </Link>
             )}

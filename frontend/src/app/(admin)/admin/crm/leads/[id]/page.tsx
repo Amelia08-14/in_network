@@ -49,6 +49,7 @@ import {
   useCrmAccess,
 } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
+import { useLeadOffers } from '@/lib/options';
 import {
   ACTIVITY_LABEL,
   APPOINTMENT_LABEL,
@@ -60,7 +61,6 @@ import {
   KIND,
   MANUAL_ACTIVITY_TYPES,
   money,
-  OFFER_OPTIONS,
   originLabel,
   PIPELINE,
   POLE,
@@ -554,6 +554,7 @@ function DocRow({ href, title, sub, badge, icon }: { href: string; title: string
 }
 
 function InfoCard({ lead, saving, disabled, onSave }: { lead: LeadDetail; saving: boolean; disabled: boolean; onSave: (body: Record<string, unknown>) => void }) {
+  const offers = useLeadOffers();
   const initial = {
     title: lead.title,
     contactName: lead.contactName,
@@ -629,7 +630,7 @@ function InfoCard({ lead, saving, disabled, onSave }: { lead: LeadDetail; saving
           <Field label="Offre pressentie" htmlFor="f-offer">
             <Select id="f-offer" value={form.offerInterest} onChange={(e) => set({ offerInterest: e.target.value })}>
               <option value="">À déterminer</option>
-              {[...new Set([...OFFER_OPTIONS, ...(form.offerInterest ? [form.offerInterest] : [])])].map((offer) => (
+              {[...new Set([...offers, ...(form.offerInterest ? [form.offerInterest] : [])])].map((offer) => (
                 <option key={offer} value={offer}>
                   {offer}
                 </option>

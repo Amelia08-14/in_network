@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { Prisma } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import { requireAuth, requireRole } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
@@ -69,7 +70,7 @@ import { approveAccount } from '../situation/situation.service';
 import { createSystemUserSchema, updateSystemUserSchema } from './admin.schema';
 import * as systemUsers from './systemUsers.service';
 import * as companiesService from '../companies/companies.service';
-import { adminUpdateCompanySchema } from '../companies/companies.schema';
+import { adminUpdateCompanySchema, setMemberActiveSchema } from '../companies/companies.schema';
 
 export const adminRouter = Router();
 
@@ -158,6 +159,23 @@ adminRouter.patch(
   validate({ body: adminUpdateCompanySchema }),
   asyncHandler(async (req, res) => {
     ok(res, await companiesService.adminUpdateCompany(param(req, 'id'), req.body));
+  }),
+);
+// Chaque poste a son propre accès (demande client 25/10/2026) : l'équipe peut
+// renvoyer des identifiants à un collaborateur ou couper / rouvrir son accès.
+adminRouter.post(
+  '/companies/:id/members/:memberId/resend',
+  asyncHandler(async (req, res) => {
+    await companiesService.adminResendMemberAccess(param(req, 'id'), param(req, 'memberId'));
+    ok(res, { sent: true });
+  }),
+);
+adminRouter.patch(
+  '/companies/:id/members/:memberId',
+  validate({ body: setMemberActiveSchema }),
+  asyncHandler(async (req, res) => {
+    await companiesService.adminSetMemberActive(param(req, 'id'), param(req, 'memberId'), req.body.isActive);
+    ok(res, { updated: true });
   }),
 );
 
@@ -587,6 +605,13 @@ adminRouter.post(
 );
 
 // --- Services entrepreneuriaux ---
+// Catalogue complet, services masqués compris (la route publique ne renvoie que les actifs).
+adminRouter.get(
+  '/services',
+  asyncHandler(async (_req, res) => {
+    ok(res, await prisma.serviceCatalogItem.findMany({ orderBy: [{ isActive: 'desc' }, { category: 'asc' }, { title: 'asc' }] }));
+  }),
+);
 adminRouter.post(
   '/services',
   validate({ body: createServiceCatalogSchema }),
@@ -599,7 +624,15 @@ adminRouter.patch(
   '/services/:id',
   validate({ body: updateServiceCatalogSchema }),
   asyncHandler(async (req, res) => {
-    const item = await prisma.serviceCatalogItem.update({ where: { id: param(req, 'id') }, data: req.body });
+    const { pricingTiers, ...rest } = req.body;
+    const item = await prisma.serviceCatalogItem.update({
+      where: { id: param(req, 'id') },
+      data: {
+        ...rest,
+        // Paliers retirés : colonne JSON remise à NULL (le prix « à partir de » suit).
+        ...(pricingTiers !== undefined ? { pricingTiers: pricingTiers && pricingTiers.length > 0 ? pricingTiers : Prisma.DbNull } : {}),
+      },
+    });
     ok(res, item);
   }),
 );

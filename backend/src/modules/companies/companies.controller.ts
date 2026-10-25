@@ -7,7 +7,7 @@ import * as companiesService from './companies.service';
 
 export const getMyCompanyHandler = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw ApiError.unauthorized();
-  ok(res, await companiesService.getMyCompany(req.user.id));
+  ok(res, await companiesService.getCompanyForMember(req.user.id));
 });
 
 export const updateMyCompanyHandler = asyncHandler(async (req: Request, res: Response) => {

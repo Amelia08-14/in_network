@@ -60,6 +60,9 @@ export const createServiceCatalogSchema = z.object({
   pricingTiers: z.array(pricingTierSchema).optional(),
 });
 export const updateServiceCatalogSchema = createServiceCatalogSchema.partial().extend({
+  // null = service « sur devis » (aucun prix) ; [] ou null = sans paliers.
+  priceFrom: z.number().nonnegative().nullable().optional(),
+  pricingTiers: z.array(pricingTierSchema).nullable().optional(),
   isActive: z.boolean().optional(),
   // Processus v1.3 : pôle de livraison, filiale IN Group, durée de validité
   // (mois ; null = sans échéance) pour calculer l'échéance des services vendus.

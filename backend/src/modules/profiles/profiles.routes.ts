@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { validate } from '../../middleware/validate';
 import { requireAuth } from '../../middleware/auth';
+import { asyncHandler } from '../../utils/asyncHandler';
+import { ok } from '../../utils/apiResponse';
+import { getCommunityShowcase } from './profiles.service';
 import { listProfilesQuerySchema, updateProfileSchema } from './profiles.schema';
 import {
   listProfilesHandler,
@@ -24,5 +27,11 @@ profilesRouter.get(
   listProfilesHandler,
 );
 profilesRouter.get('/me', requireAuth, getMyProfileHandler);
+// Vitrine publique (accueil) : chiffres réels + aperçu limité, sans coordonnées.
+// Déclarée avant /:id pour ne pas être lue comme un identifiant.
+profilesRouter.get(
+  '/showcase',
+  asyncHandler(async (_req, res) => ok(res, await getCommunityShowcase())),
+);
 profilesRouter.put('/me', requireAuth, validate({ body: updateProfileSchema }), updateMyProfileHandler);
 profilesRouter.get('/:id', requireAuth, getProfileHandler);

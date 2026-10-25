@@ -28,6 +28,7 @@ import { testimonialsRouter } from './modules/testimonials/testimonials.routes';
 import { partnersRouter } from './modules/partners/partners.routes';
 import { uploadsRouter, UPLOADS_DIR } from './modules/uploads/uploads.routes';
 import { contactRouter } from './modules/contact/contact.routes';
+import { optionsRouter } from './modules/settings/settings.routes';
 import { memberRouter } from './modules/situation/situation.routes';
 import { memberSpaceRouter } from './modules/member/memberSpace.routes';
 import { leadWebhookRouter } from './modules/webhooks/leadWebhook.routes';
@@ -105,6 +106,7 @@ app.use('/api/uploads', uploadsRouter);
 app.use('/api/testimonials', testimonialsRouter);
 app.use('/api/partners', partnersRouter);
 app.use('/api/contact', contactRouter);
+app.use('/api/options', optionsRouter);
 // Leads des formulaires publicitaires des réseaux (Make / Zapier), par jeton.
 app.use('/api/webhooks/leads', leadWebhookRouter);
 

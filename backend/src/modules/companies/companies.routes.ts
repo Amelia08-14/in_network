@@ -16,8 +16,9 @@ import {
   updateMyCompanyHandler,
 } from './companies.controller';
 
-// Espace « Mon équipe » du dashboard — réservé au représentant qui a inscrit
-// l'entreprise (le service vérifie qu'un Company.ownerId correspond).
+// Espace « Mon entreprise » du dashboard : consultable par chaque collaborateur
+// rattaché (GET /mine) ; les modifications restent réservées au représentant qui
+// a inscrit l'entreprise (le service vérifie qu'un Company.ownerId correspond).
 export const companiesRouter = Router();
 
 companiesRouter.use(requireAuth);

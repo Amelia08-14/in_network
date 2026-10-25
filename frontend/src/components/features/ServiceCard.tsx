@@ -82,7 +82,8 @@ export function ServiceCard({ service }: { service: ServiceCatalogItem }) {
           <h3 className="font-heading text-xl font-bold leading-tight tracking-tight text-ink-900">
             {service.title}
           </h3>
-          <p className="line-clamp-2 text-sm leading-relaxed text-ink-500">{service.description}</p>
+          {/* Phrase d’accroche seulement : le détail (puces) est sur la fiche « Voir le détail ». */}
+          <p className="line-clamp-2 text-sm leading-relaxed text-ink-500">{service.description.split('\n')[0].replace(/^•\s*/, '')}</p>
         </div>
 
         {tiers.length > 0 ? (

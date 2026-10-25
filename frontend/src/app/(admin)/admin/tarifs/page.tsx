@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { api, ApiRequestError } from '@/lib/admin-api';
 import { revalidatePublic } from '@/lib/revalidate-public';
 import { capacityText } from '@/lib/spaces';
-import { ServicesTarifsHeader } from '@/components/admin/ServicesTarifsHeader';
+import { ServicesTarifsHeader, useCanEditCatalogue } from '@/components/admin/ServicesTarifsHeader';
 import type { ApiListResponse, MembershipPlan, Site, SpaceResource } from '@/types';
 
 const SPACE_TYPE_LABEL: Record<SpaceResource['type'], string> = {
@@ -213,6 +213,7 @@ function SpaceRow({ space }: { space: SpaceResource }) {
 }
 
 export default function AdminTarifsPage() {
+  const canEditCatalogue = useCanEditCatalogue();
   const queryClient = useQueryClient();
   const [showSpaceForm, setShowSpaceForm] = useState(false);
   const [spaceForm, setSpaceForm] = useState(EMPTY_SPACE_FORM);
@@ -264,7 +265,8 @@ export default function AdminTarifsPage() {
   });
 
   return (
-    <div className="space-y-8">
+    // Hors Direction : catalogue en lecture seule (le serveur refuse toute modification).
+    <fieldset disabled={!canEditCatalogue} className="space-y-8 min-w-0">
       <ServicesTarifsHeader active="tarifs" />
 
       <Card>
@@ -436,6 +438,6 @@ export default function AdminTarifsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </fieldset>
   );
 }

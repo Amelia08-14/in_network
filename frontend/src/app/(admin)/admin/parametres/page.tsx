@@ -10,6 +10,8 @@ import { Pill } from '@/components/admin/crm-ui';
 import { EmptyState } from '@/components/ui/empty-state';
 import { errorMessage, ErrorNote, PageTitle, useCrmAccess } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
+import { HIDEABLE_NAV_ITEMS } from '@/lib/admin-nav';
+import { X } from 'lucide-react';
 
 // Paramètres du processus commercial v1.3 : les délais et seuils que la
 // Direction règle sans développement. Une valeur vide (« non fixée ») désactive
@@ -180,6 +182,139 @@ function SocialLeadsCard() {
   );
 }
 
+interface OptionList {
+  key: string;
+  label: string;
+  hint: string;
+  values: string[];
+  defaults: string[];
+}
+
+/** Une liste de choix : le super administrateur ajoute ou retire des valeurs. */
+function OptionListEditor({ list, values, onChange }: { list: OptionList; values: string[]; onChange: (values: string[]) => void }) {
+  const [draft, setDraft] = useState('');
+  const add = () => {
+    const value = draft.trim();
+    if (value && !values.includes(value)) onChange([...values, value]);
+    setDraft('');
+  };
+  return (
+    <div className="space-y-2 py-4">
+      <div>
+        <p className="text-sm font-medium text-ink-900">{list.label}</p>
+        <p className="text-xs text-ink-500">{list.hint}</p>
+      </div>
+      <ul className="flex flex-wrap gap-1.5">
+        {values.length === 0 && <li className="text-xs text-ink-400">Liste vide.</li>}
+        {values.map((value) => (
+          <li key={value} className="inline-flex items-center gap-1 rounded-full border border-ink-900/12 bg-white py-1 pl-3 pr-1 text-xs text-ink-800">
+            {value}
+            <button type="button" aria-label={`Supprimer « ${value} »`} onClick={() => onChange(values.filter((v) => v !== value))} className="rounded-full p-0.5 text-ink-400 hover:bg-brand-orange/10 hover:text-brand-orange">
+              <X className="h-3 w-3" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          add();
+        }}
+      >
+        <Input aria-label={`Nouvelle valeur — ${list.label}`} className="h-9 max-w-xs" placeholder="Nouvelle option" value={draft} onChange={(e) => setDraft(e.target.value)} />
+        <Button type="submit" size="sm" variant="outline" disabled={!draft.trim()}>
+          Ajouter
+        </Button>
+        {list.defaults.length > 0 && (
+          <Button type="button" size="sm" variant="ghost" onClick={() => onChange([...list.defaults])}>
+            Valeurs d’origine
+          </Button>
+        )}
+      </form>
+    </div>
+  );
+}
+
+/** Super administrateur : listes de choix et rubriques du menu du dashboard. */
+function PlatformOptionsCard() {
+  const queryClient = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ['platform-options-admin'],
+    queryFn: () => api.get<{ data: { lists: OptionList[]; hiddenModules: string[] } }>('/api/admin/settings/options').then((r) => r.data),
+  });
+  const [lists, setLists] = useState<Record<string, string[]> | null>(null);
+  const [hidden, setHidden] = useState<string[] | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: () => api.patch('/api/admin/settings/options', { ...(lists ? { lists } : {}), ...(hidden ? { hiddenModules: hidden } : {}) }),
+    onSuccess: () => {
+      setLists(null);
+      setHidden(null);
+      setMessage('Options enregistrées.');
+      queryClient.invalidateQueries({ queryKey: ['platform-options-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-options'] });
+    },
+    onError: (e) => setMessage(errorMessage(e, 'Enregistrement impossible.')),
+  });
+  if (!data) return null;
+  const currentLists = lists ?? Object.fromEntries(data.lists.map((l) => [l.key, l.values]));
+  const currentHidden = hidden ?? data.hiddenModules;
+  const sections = [...new Set(HIDEABLE_NAV_ITEMS.map((item) => item.section ?? ''))];
+  const dirty = lists !== null || hidden !== null;
+
+  return (
+    <Card>
+      <CardContent className="space-y-6">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-heading text-base font-bold text-ink-900">Listes et menu du dashboard</h2>
+            <Pill tone="ink">Super administrateur</Pill>
+          </div>
+          <p className="mt-1 text-sm text-ink-500">Ajoutez ou supprimez les options proposées dans les formulaires, et retirez du menu les rubriques que l’équipe n’utilise pas.</p>
+        </div>
+
+        <section className="divide-y divide-ink-900/8">
+          {data.lists.map((list) => (
+            <OptionListEditor key={list.key} list={list} values={currentLists[list.key] ?? []} onChange={(values) => setLists({ ...currentLists, [list.key]: values })} />
+          ))}
+        </section>
+
+        <section className="space-y-3 border-t border-ink-900/8 pt-5">
+          <div>
+            <h3 className="text-sm font-semibold text-ink-900">Rubriques du menu</h3>
+            <p className="text-xs text-ink-500">Décochée, une rubrique disparaît du menu de toute l’équipe (vous la gardez pour pouvoir la réactiver). Les données ne sont pas supprimées.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {sections.map((section) => (
+              <fieldset key={section} className="space-y-1.5">
+                <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">{section}</legend>
+                {HIDEABLE_NAV_ITEMS.filter((item) => (item.section ?? '') === section).map((item) => (
+                  <label key={item.href} className="flex items-center gap-2 text-sm text-ink-800">
+                    <input
+                      type="checkbox"
+                      checked={!currentHidden.includes(item.href)}
+                      onChange={(e) => setHidden(e.target.checked ? currentHidden.filter((h) => h !== item.href) : [...currentHidden, item.href])}
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </fieldset>
+            ))}
+          </div>
+        </section>
+
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {message && <p className="text-sm text-ink-600">{message}</p>}
+          <Button disabled={!dirty || save.isPending} onClick={() => save.mutate()}>
+            {save.isPending ? 'Enregistrement…' : 'Enregistrer les options'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SettingsPage() {
   const access = useCrmAccess();
   const queryClient = useQueryClient();
@@ -257,6 +392,7 @@ export default function SettingsPage() {
           {save.isPending ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
       </div>
+      {access.role === 'SUPER_ADMIN' && <PlatformOptionsCard />}
       <SocialLeadsCard />
     </div>
   );

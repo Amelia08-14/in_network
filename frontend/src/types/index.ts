@@ -130,6 +130,9 @@ export interface CompanyMember {
   avatarUrl: string | null;
   isPublic: boolean;
   isOwner: boolean;
+  /** Accès du poste : e-mail confirmé, dernière connexion (non communiqués aux collègues). */
+  emailVerified: boolean;
+  lastLoginAt: string | null;
 }
 
 export interface CompanyDashboard {
@@ -143,6 +146,8 @@ export interface CompanyDashboard {
   isActive: boolean;
   usedSeats: number;
   members: CompanyMember[];
+  /** Représentant : gère l'équipe ; autre collaborateur : consultation. */
+  canManage: boolean;
 }
 
 export interface AdminCompany {
@@ -158,6 +163,9 @@ export interface AdminCompany {
   createdAt: string;
   ownerEmail: string;
   ownerName: string | null;
+  /** Le représentant est validé : la validation vaut pour tous les postes. */
+  validated: boolean;
+  members: CompanyMember[];
 }
 
 export interface SystemUser {
