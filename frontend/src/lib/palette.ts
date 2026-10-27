@@ -68,7 +68,7 @@ export function planHue(name: string): Hue {
   if (n.includes('abonnement annuel')) return n.includes('premium') ? 'orange' : n.includes('elite') ? 'ink' : 'blue';
   if (n.includes('domiciliation')) return 'blue';
   if (n.includes('open space')) return 'orange';
-  if (n.includes('privatif') || n.includes('bureau privé') || n.includes('bureau roof')) return 'ink';
+  if (n.includes('privatif') || n.includes('bureau privé') || /roof — \d+ personnes/.test(n)) return 'ink';
   if (n.includes('casier')) return 'amber';
   return 'ink';
 }

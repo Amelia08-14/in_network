@@ -94,7 +94,8 @@ const SPACE_GALLERY: { photo: VenuePhoto; caption: string; detail: string }[] = 
   { photo: VENUE_PHOTOS.terrasse, caption: 'La terrasse', detail: 'Un espace détente pour échanger et faire une pause' },
   { photo: VENUE_PHOTOS.grandeSalle, caption: 'Salle de réunion', detail: 'Idéale pour vos réunions professionnelles' },
   { photo: VENUE_PHOTOS.postes, caption: 'Espace de travail', detail: 'Un cadre motivant au quotidien' },
-  { photo: VENUE_PHOTOS.cuisine, caption: 'Cuisine & pause café', detail: 'Café, thé et espace convivial' },
+  // Photo de la cuisine retirée (jugée de mauvaise qualité, 27/10/2026) en attendant une nouvelle prise de vue.
+  { photo: VENUE_PHOTOS.detente, caption: 'Le salon d’accueil', detail: 'Pour recevoir vos visiteurs et souffler entre deux rendez-vous' },
   { photo: VENUE_PHOTOS.salleReunion, caption: 'Salle de réunion compacte', detail: 'Un espace adapté à vos rendez-vous' },
 ];
 

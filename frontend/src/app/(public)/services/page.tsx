@@ -82,18 +82,19 @@ const PLAN_STYLE: { match: string; tagline: string; photo: VenuePhoto }[] = [
   { match: 'casier', tagline: 'Une solution pratique et sécurisée pour vos effets personnels.', photo: VENUE_PHOTOS.casiers },
   { match: 'domiciliation', tagline: 'Une adresse à Hydra qui inspire confiance à vos clients et partenaires dès le premier contact.', photo: VENUE_PHOTOS.detente },
   { match: 'open space rdc', tagline: 'Un poste dédié au cœur d’une communauté active, pour travailler, échanger et collaborer.', photo: VENUE_PHOTOS.openSpace },
-  { match: 'open space roof', tagline: 'Votre poste de travail individuel, dans l’open space Roof.', photo: ROOF_PHOTOS.openSpace },
+  { match: 'roof', tagline: 'Votre poste de travail individuel dans l’espace IN Network Roof.', photo: ROOF_PHOTOS.openSpace },
   { match: 'open space', tagline: 'Un poste dédié au cœur d’une communauté active, pour travailler, échanger et collaborer.', photo: VENUE_PHOTOS.openSpace },
 ];
 const planStyle = (name: string) => PLAN_STYLE.find((style) => name.toLowerCase().includes(style.match));
-const isPrivateOffice = (plan: MembershipPlan) => /bureau (privé|privatif|roof)/i.test(plan.name);
+// « Bureau privé — 2 personnes »… et « Bureau IN Network Roof — 14 personnes » (anciennement « Bureau Roof »).
+const isPrivateOffice = (plan: MembershipPlan) => /bureau (privé|privatif)|roof — \d+ personnes/i.test(plan.name);
 
 // Bureaux privés : ce qui distingue chaque taille (catalogue du 25/10/2026).
 const OFFICE_TAGLINES: Record<number, string> = {
   2: 'Idéal pour travailler à deux, structurer votre activité et recevoir vos clients en toute discrétion.',
   4: 'Plus d’espace pour accueillir votre équipe et vos clients, avec deux demi-journées de salle de réunion par semaine.',
   8: 'Un bureau d’équipe avec balcon, pour une structure qui grandit.',
-  14: 'Le plus grand bureau du lieu, avec balcon et accès à la terrasse rooftop.',
+  14: 'IN Network Roof : le plus grand espace du lieu, avec balcon et accès à la terrasse rooftop.',
 };
 
 // Ordre des bureaux dans le catalogue (l'API les trie par nom).
@@ -103,17 +104,20 @@ const officeRank = (name: string) => {
   return rank === -1 ? OFFICE_ORDER.length : rank;
 };
 
-// Visuels des bureaux d'une même taille, chacun sous son nom. Le bureau Roof
-// n'a pas de visuel propre : on montre la terrasse rooftop, à laquelle il donne
-// accès (catalogue), en le disant dans la légende.
-const OFFICE_EXTRA_SHOTS: Record<string, OfficeShot> = {
-  'Bureau Roof': { name: 'Terrasse rooftop (accès inclus)', photo: ROOF_PHOTOS.terrasse },
-};
+// Visuels des bureaux d'une même taille, chacun sous son nom. IN Network Roof
+// (« Bureau Roof » avant le renommage en base) : l'espace d'abord, puis la
+// terrasse rooftop à laquelle il donne accès (demande cliente 27/10/2026).
+const ROOF_SHOTS: OfficeShot[] = [
+  { name: 'IN Network Roof', photo: ROOF_PHOTOS.openSpace },
+  { name: 'Terrasse rooftop', photo: ROOF_PHOTOS.terrasse },
+];
+const isRoofOffice = (name: string) => name === 'IN Network Roof' || name === 'Bureau Roof';
+const officeLabel = (name: string) => (isRoofOffice(name) ? 'IN Network Roof' : name.replace(/^Bureau /, ''));
 const officeShots = (names: string[]): OfficeShot[] =>
   names.flatMap((name) => {
+    if (isRoofOffice(name)) return ROOF_SHOTS;
     const photo = OFFICE_PHOTOS[name];
-    if (photo) return [{ name: name.replace(/^Bureau /, ''), photo }];
-    return OFFICE_EXTRA_SHOTS[name] ? [OFFICE_EXTRA_SHOTS[name]] : [];
+    return photo ? [{ name: officeLabel(name), photo }] : [];
   });
 
 // Photo de chaque salle (sélection de la galerie du lieu).
@@ -164,7 +168,7 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'Quelle différence entre les bureaux privés ?',
     answer:
-      'La taille et ce qui l’accompagne : jusqu’à 2 personnes (45 000 DA HT / mois, une demi-journée de salle de réunion par semaine), jusqu’à 4 personnes (65 000 DA HT, deux demi-journées), jusqu’à 8 personnes avec balcon (105 000 DA HT) et le bureau Roof jusqu’à 14 personnes, avec balcon et accès à la terrasse rooftop (205 000 DA HT). Tous sont fermés, meublés et accessibles 24h/24.',
+      'La taille et ce qui l’accompagne : jusqu’à 2 personnes (45 000 DA HT / mois, une demi-journée de salle de réunion par semaine), jusqu’à 4 personnes (65 000 DA HT, deux demi-journées), jusqu’à 8 personnes avec balcon (105 000 DA HT) et IN Network Roof jusqu’à 14 personnes, avec balcon et accès à la terrasse rooftop (205 000 DA HT). Tous sont fermés, meublés et accessibles 24h/24.',
   },
   {
     question: 'Comment réserver une salle de réunion ?',
@@ -509,41 +513,51 @@ export default async function ServicesPage() {
           {plans.length === 0 ? (
             <EmptyState title="Grille tarifaire en cours de finalisation" description="Contactez-nous pour connaître nos offres actuelles." />
           ) : (
-            <ScrollReveal stagger={80} className="grid items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            // Une formule par ligne (retour cliente 27/10/2026) : en colonnes, les
+            // listes de prestations très inégales (1 pour le casier, 10 pour la
+            // domiciliation) donnaient des cartes de hauteurs disparates.
+            <ScrollReveal stagger={80} className="flex flex-col gap-5">
               {plans.map((plan) => {
                 const style = planStyle(plan.name);
                 const hue = planHue(plan.name);
                 return (
-                  <Card key={plan.id} accent={HUE_ACCENT[hue]} className="h-full overflow-hidden">
-                    {style && <Photo photo={style.photo} sizes="(min-width: 1280px) 280px, (min-width: 640px) 45vw, 100vw" className="aspect-[16/10]" />}
-                    <CardContent className="flex h-full flex-col gap-4">
-                      <div>
-                        <h3 className={cn('font-heading text-lg font-bold', HUE[hue].text)}>{plan.name}</h3>
-                        {style && <p className="mt-1 text-sm text-ink-500">{style.tagline}</p>}
-                        <p className="mt-3 flex items-baseline gap-1.5">
-                          <span className="font-heading text-3xl font-bold text-ink-900">{Number(plan.price).toLocaleString('fr-FR')}</span>
-                          <span className={cn('rounded-pill px-2 py-0.5 text-xs font-semibold', HUE[hue].soft, HUE[hue].text)}>
-                            {CURRENCY} HT {CYCLE_LABEL[plan.billingCycle]}
-                          </span>
-                        </p>
+                  <Card key={plan.id} accent={HUE_ACCENT[hue]} className="overflow-hidden">
+                    <div className="grid md:grid-cols-[240px_1fr] lg:grid-cols-[260px_1fr_230px]">
+                      {style && <Photo photo={style.photo} sizes="(min-width: 768px) 260px, 100vw" className="aspect-[16/9] md:aspect-auto md:min-h-full" />}
+                      <div className={cn('flex flex-col gap-4 p-5 md:p-6', !style && 'md:col-span-2 lg:col-span-1')}>
+                        <div>
+                          <h3 className={cn('font-heading text-xl font-bold', HUE[hue].text)}>{plan.name}</h3>
+                          {style && <p className="mt-1 max-w-xl text-sm text-ink-500">{style.tagline}</p>}
+                        </div>
+                        {plan.features.length > 0 && (
+                          <ul className="grid gap-x-6 gap-y-2 border-t border-dashed border-ink-900/10 pt-4 text-sm text-ink-600 sm:grid-cols-2">
+                            {plan.features.map((feature) => (
+                              <li key={feature} className="flex items-start gap-2">
+                                <Check className={cn('mt-0.5 h-4 w-4 shrink-0', HUE[hue].text)} /> {feature}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
-                      {plan.features.length > 0 && (
-                        <ul className="space-y-2 border-t border-dashed border-ink-900/10 pt-4 text-sm text-ink-600">
-                          {plan.features.map((feature) => (
-                            <li key={feature} className="flex items-start gap-2">
-                              <Check className={cn('mt-0.5 h-4 w-4 shrink-0', HUE[hue].text)} /> {feature}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <AddToCartButton
-                        item={{ targetType: 'PLAN', targetId: plan.id, title: plan.name, price: Number(plan.price), priceUnit: plan.billingCycle, category: 'PLAN' }}
-                        label="Ajouter au devis"
-                        variant="primary"
-                        size="lg"
-                        className="mt-auto w-full"
-                      />
-                    </CardContent>
+                      <div className={cn('flex flex-col justify-center gap-4 border-t border-ink-900/8 p-5 md:col-span-2 md:flex-row md:items-center md:justify-between lg:col-span-1 lg:flex-col lg:items-stretch lg:justify-center lg:border-l lg:border-t-0 lg:p-6', HUE[hue].wash)}>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-500">Tarif</p>
+                          <p className="mt-1 flex items-baseline gap-1.5">
+                            <span className="font-heading text-3xl font-bold tabular-nums text-ink-900">{formatNumber(plan.price)}</span>
+                            <span className={cn('text-sm font-semibold', HUE[hue].text)}>
+                              {CURRENCY} HT {CYCLE_LABEL[plan.billingCycle]}
+                            </span>
+                          </p>
+                        </div>
+                        <AddToCartButton
+                          item={{ targetType: 'PLAN', targetId: plan.id, title: plan.name, price: Number(plan.price), priceUnit: plan.billingCycle, category: 'PLAN' }}
+                          label="Ajouter au devis"
+                          variant="primary"
+                          size="lg"
+                          className="w-full md:w-auto lg:w-full"
+                        />
+                      </div>
+                    </div>
                   </Card>
                 );
               })}
@@ -603,7 +617,7 @@ export default async function ServicesPage() {
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-orange">{capacity > 0 ? `Jusqu’à ${capacity} personnes · bureau fermé` : 'Bureau fermé'}</p>
                           <h3 className="mt-1 font-heading text-lg font-bold text-ink-900">
-                            {named.length > 0 ? named.map((o) => o.name.replace(/^Bureau /, '')).join(' · ') : plan.name}
+                            {named.length > 0 ? named.map((o) => officeLabel(o.name)).join(' · ') : plan.name}
                           </h3>
                           {OFFICE_TAGLINES[capacity] && <p className="mt-1 text-sm text-ink-500">{OFFICE_TAGLINES[capacity]}</p>}
                           <p className="mt-3 flex items-baseline gap-1.5">

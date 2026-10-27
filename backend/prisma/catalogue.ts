@@ -46,6 +46,8 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
     ['Salle de réunion 2', 'Salle LMIG'],
     ['Bureau Y', 'Bureau Lamda'],
     ['Bureau Z', 'Bureau Julia'],
+    // L'espace du dernier étage s'appelle « IN Network Roof » (demande cliente 27/10/2026).
+    ['Bureau Roof', 'IN Network Roof'],
   ];
   for (const [from, to] of spaceRenames) {
     const old = await prisma.spaceResource.findFirst({ where: { siteId, name: from } });
@@ -128,7 +130,7 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
     office('Bureau Rouge', 8, 105000, eightPeople),
     office('Bureau Vert', 8, 105000, eightPeople),
     office('Bureau Orange', 8, 105000, eightPeople),
-    office('Bureau Roof', 14, 205000, 'Bureau fermé jusqu’à 14 personnes, avec balcon et accès à la terrasse rooftop : six bureaux et un meuble de rangement.'),
+    office('IN Network Roof', 14, 205000, 'Bureau fermé IN Network Roof, jusqu’à 14 personnes, avec balcon et accès à la terrasse rooftop : six bureaux et un meuble de rangement.'),
   ];
   for (const space of spaces) {
     const data = { siteId, isActive: true, ...space };
@@ -183,14 +185,14 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
       ],
     },
     {
-      name: 'Bureau open space Roof',
+      name: 'Bureau open space IN Network Roof',
       billingCycle: 'MONTHLY' as const,
       price: 25900,
       includedMeetingHours: 2,
       // Le catalogue ne détaille pas les prestations de l'open space Roof : seules
       // celles qu'il indique sont reprises (à compléter dans Admin › Tarifs).
       features: [
-        'Poste de travail individuel en open space (Roof)',
+        'Poste de travail individuel dans l’open space IN Network Roof',
         '1 personne',
         "Accès sécurisé à l'espace 24h/24, 7j/7",
       ],
@@ -244,7 +246,7 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
       ],
     },
     {
-      name: 'Bureau Roof — 14 personnes',
+      name: 'Bureau IN Network Roof — 14 personnes',
       billingCycle: 'MONTHLY' as const,
       price: 205000,
       includedMeetingHours: 8,
@@ -333,6 +335,8 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
     ['Bureau open space', 'Bureau open space RDC'],
     ['Bureau privatif A', 'Bureau privé — 2 personnes'],
     ['Bureau privatif B', 'Bureau privé — 4 personnes'],
+    ['Bureau open space Roof', 'Bureau open space IN Network Roof'],
+    ['Bureau Roof — 14 personnes', 'Bureau IN Network Roof — 14 personnes'],
   ];
   for (const [from, to] of planRenames) {
     const old = await prisma.membershipPlan.findFirst({ where: { name: from } });

@@ -1,10 +1,10 @@
 // Photos réelles d'IN NETWORK Hydra utilisées par les pages vitrines : nouvelles
-// photos fournies le 27/10/2026 (optimisées dans public/espaces), cuisine et
-// petite salle de réunion d'origine. La galerie complète reste gérée depuis
+// photos fournies le 27/10/2026 (optimisées dans public/espaces) ; petite salle
+// de réunion d'origine. La photo de la cuisine a été retirée (qualité
+// insuffisante) : à réintroduire avec une nouvelle prise de vue. La galerie complète reste gérée depuis
 // l'admin (Galerie du lieu).
 export const VENUE_PHOTOS = {
   terrasse: { src: '/espaces/terrasse-pergola.webp', alt: 'La terrasse d’IN NETWORK Hydra : salons extérieurs sous la pergola, avec vue sur la verdure' },
-  cuisine: { src: '/espaces/cuisine.webp', alt: 'L’espace cuisine et pause café' },
   openSpace: { src: '/espaces/allee-coworking.webp', alt: 'Postes de travail en open space, devant les bureaux privés vitrés' },
   openSpaceVue: { src: '/espaces/open-space-lumineux.webp', alt: 'Vue de l’open space et de ses grandes tables de travail en bois' },
   postes: { src: '/espaces/ilot-postes.webp', alt: 'Un îlot de postes en open space, prises intégrées, devant les bureaux fermés vitrés' },
@@ -36,6 +36,6 @@ export const OFFICE_PHOTOS: Record<string, VenuePhoto> = {
 };
 
 export const ROOF_PHOTOS = {
-  openSpace: { src: '/espaces/cowork_roof/open-space-roof.webp', alt: 'L’open space Roof : postes de travail individuels et table de réunion' },
-  terrasse: { src: '/espaces/cowork_roof/terrasse-rooftop.webp', alt: 'La terrasse rooftop de l’Espace Roof, avec ses salons et tables extérieures' },
+  openSpace: { src: '/espaces/cowork_roof/open-space-roof.webp', alt: 'L’espace IN Network Roof : postes de travail et grande table de réunion' },
+  terrasse: { src: '/espaces/cowork_roof/terrasse-rooftop.webp', alt: 'La terrasse rooftop d’IN Network Roof, avec ses salons et tables extérieures' },
 } as const;
