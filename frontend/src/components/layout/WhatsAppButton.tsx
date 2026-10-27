@@ -11,8 +11,9 @@ export function WhatsAppButton() {
     <a
       href={href}
       target="_blank"
-      rel="noreferrer"
-      aria-label="Contacter IN NETWORK sur WhatsApp"
+      rel="noopener noreferrer"
+      aria-label="Contacter IN NETWORK sur WhatsApp (nouvel onglet)"
+      title="Écrivez-nous sur WhatsApp"
       className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-soft-lg transition-transform duration-200 hover:scale-105 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#25D366]"
     >
       <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden="true">
