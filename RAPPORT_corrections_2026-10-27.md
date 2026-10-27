@@ -1,7 +1,7 @@
 # IN NETWORK — Rapport des corrections du 27/10/2026
 
 Source : `IN_NETWORK_plan_corrections.md` (audit + catalogue). Chaque tâche y est cochée avec la liste des fichiers modifiés.
-Branche : `corrections/audit-catalogue-2026-10-27` (10 commits, **pas encore fusionnée dans `main` ni déployée**).
+Fusionné dans `main` le 27/10/2026 (branche de travail `corrections/audit-catalogue-2026-10-27`). **Pas encore déployé sur le serveur.**
 
 ## En bref
 
@@ -114,3 +114,18 @@ S'y ajoutent : la validation de la table des secteurs (4.3), et les dates et lie
 - `/services` : filtres par famille, galeries des bureaux, bloc des salles.
 - Quelques fiches détail : secrétariat, création d'entreprise (les deux options), une fiche IN COM, IN CUBATOR.
 - Accueil : 3 témoignages au lieu de 6, 6 cartes de services.
+
+---
+
+## Compléments du 27/10/2026 (après relecture)
+
+- **Nouvelles photos du lieu** : 8 vraies photos remplacent les images médiocres (terrasse sous pergola, open space, îlot de postes, allée de coworking, salon d'accueil, casiers, grande salle, salle de formation). Elles sont converties en WebP sous de nouveaux noms, pour que les navigateurs ne gardent pas les anciennes en cache ; les anciens fichiers sont supprimés. La cuisine et la petite salle de réunion gardent leur photo d'origine.
+- **Adresse exacte** (tâche 3.14) : « N°08, Parc Paradou, Hydra 16035 », affichée sur la page contact (carte « Notre adresse » et sous la carte, avec lien itinéraire) et dans le pied de page, avec données structurées `LocalBusiness` sur toutes les pages publiques. Le « Siège social » des mentions légales n'est pas modifié, car il peut différer de l'adresse du lieu (tâche 3.15).
+- **Filiales** (tâche 3.20) : IN ACADEMY, IN BEAUTY & HEALTH, IN DENTAL CARE et IN DEV deviennent des cartes cliquables (« Visiter le site »). Les 4 liens ont été testés. Restent : les logos officiels et les sites des autres filiales.
+- **Suppression de comptes réservée au super administrateur** : le serveur refuse la suppression d'un membre ou d'un utilisateur système à tout autre rôle, et le bouton est masqué pour eux. Les autres rôles peuvent toujours désactiver un compte. La pièce d'identité d'un membre supprimé est effacée avec son compte.
+- **Pièce d'identité obligatoire** pour un profil complet :
+  - le membre l'envoie depuis « Mon profil » (PDF, JPG, PNG ou WebP, 10 Mo maximum) ;
+  - le fichier est privé (`private-uploads/identity`), jamais accessible par un lien public ;
+  - l'équipe la consulte depuis la fiche membre de l'admin (droit « Membres »).
+  - ⚠️ Effet immédiat : les membres existants qui ne l'ont pas encore envoyée voient leur profil repasser « incomplet ». Les actions qui exigent un profil complet (commandes, réservations, mises en relation) sont donc bloquées tant qu'ils ne l'ont pas envoyée. Prévenez-les au moment du déploiement.
+- **Déploiement** : une migration de plus (`20261027130000_piece_identite`), appliquée par `npm run deploy` comme la précédente. Sur le VPS, le dossier `backend/private-uploads/identity` est créé automatiquement au démarrage ; il doit être inclus dans les sauvegardes, comme `private-uploads/proofs`.
