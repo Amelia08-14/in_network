@@ -9,6 +9,10 @@ export const registerSchema = z.object({
   lastName: z.string().min(1),
   memberType: z.nativeEnum(MemberType).default(MemberType.FREELANCE),
   phone: z.string().optional(),
+  // Obligatoires à l'inscription (audit 27/10/2026) : sans eux, la fiche de
+  // l'annuaire est vide. Le domaine d'activité vient du référentiel (liste fermée).
+  jobTitle: z.string().trim().min(2, 'Poste requis').max(200),
+  sector: z.string().trim().min(1, 'Domaine d’activité requis').max(120),
   // Origine du visiteur (lien de campagne, réseau social) : canal du lead créé.
   attribution: attributionSchema.optional(),
 });

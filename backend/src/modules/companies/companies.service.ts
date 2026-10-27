@@ -6,6 +6,7 @@ import { sendEmail } from '../../lib/email';
 import { ApiError } from '../../utils/apiResponse';
 import { uniqueSlug } from '../../utils/slugify';
 import type { AddMemberInput, RegisterCompanyInput, UpdateMyCompanyInput } from './companies.schema';
+import { assertClosedSectors } from '../profiles/profiles.service';
 
 // Sélection sûre des champs d'un collaborateur exposés au propriétaire de
 // l'entreprise (jamais de passwordHash / tokens — cf. SAFE_USER_SELECT admin).
@@ -295,6 +296,7 @@ export async function createCompanyAccount(input: RegisterCompanyInput) {
   const site = await prisma.site.findFirst({ where: { isActive: true } });
   if (!site) throw new Error('Aucun site actif configuré — lance le seed avant de tester');
 
+  await assertClosedSectors(prisma, null, [input.sector]);
   const passwordHash = await hashPassword(input.password);
   const slug = await uniqueSlug(input.companyName, async (candidate) =>
     Boolean(await prisma.company.findUnique({ where: { slug: candidate }, select: { id: true } })),
@@ -318,6 +320,7 @@ export async function createCompanyAccount(input: RegisterCompanyInput) {
             companyLogoUrl: input.logoUrl ?? null,
             siteId: site.id,
             isPublic: false,
+            tags: { create: [{ relation: 'OFFER', tag: { connect: { label: input.sector } } }] },
           },
         },
       },

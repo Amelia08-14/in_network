@@ -37,6 +37,7 @@ import { sortServices } from '@/lib/services-order';
 import { VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
 import { uniqueTestimonials, type Testimonial } from '@/lib/testimonials';
 import type { ServiceCatalogItem, EventItem } from '@/types';
+import { formatCity, formatJobTitle } from '@/lib/display';
 
 // Vitrine publique de la communauté (GET /api/profiles/showcase) : chiffres
 // réels et aperçu limité — l'annuaire complet reste réservé aux connectés.
@@ -396,10 +397,10 @@ export default async function HomePage() {
                     {p.displayName}
                     <span className="rounded-pill bg-brand-orange/10 px-2 py-0.5 text-[11px] font-semibold text-brand-orange">{MEMBER_TYPE_LABEL[p.memberType] ?? 'Membre'}</span>
                   </p>
-                  {p.jobTitle && <p className="text-sm text-ink-600">{p.jobTitle}</p>}
+                  {p.jobTitle && <p className="text-sm text-ink-600">{formatJobTitle(p.jobTitle)}</p>}
                   {p.city && (
                     <p className="flex items-center gap-1 text-xs text-ink-500">
-                      <MapPin className="h-3 w-3" /> {p.city}
+                      <MapPin className="h-3 w-3" /> {formatCity(p.city)}
                     </p>
                   )}
                   {p.tags.length > 0 && (

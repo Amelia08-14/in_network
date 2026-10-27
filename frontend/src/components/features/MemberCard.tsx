@@ -3,6 +3,7 @@ import { ArrowRight, Building2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { MemberTypeBadge, MEMBER_TYPE_ACCENT } from '@/components/ui/badge';
 import type { MemberProfileSummary } from '@/types';
+import { formatJobTitle } from '@/lib/display';
 
 // Même traitement "portrait affirmé" qu'ExpertCard : gros avatar, hiérarchie
 // resserrée, CTA hover — pour que la carte reste dense et vivante même
@@ -28,7 +29,7 @@ export function MemberCard({ profile }: { profile: MemberProfileSummary }) {
               <p className="truncate font-heading text-lg font-bold text-ink-900">
                 {profile.firstName} {profile.lastName}
               </p>
-              {profile.jobTitle && <p className="mt-0.5 truncate text-sm font-medium text-brand-blue">{profile.jobTitle}</p>}
+              {profile.jobTitle && <p className="mt-0.5 truncate text-sm font-medium text-brand-blue">{formatJobTitle(profile.jobTitle)}</p>}
               {profile.companyName && (
                 <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] font-semibold uppercase tracking-wide text-ink-500">
                   {profile.companyLogoUrl ? (

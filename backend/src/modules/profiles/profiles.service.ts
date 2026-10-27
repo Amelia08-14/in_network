@@ -170,6 +170,22 @@ export async function getMyProfile(userId: string) {
   return { ...serializeProfile(profile, userId), completeness: await getProfileCompleteness(userId) };
 }
 
+/** Refuse un domaine d'activité hors référentiel, sauf s'il figure déjà sur le profil (`profileId` null : inscription). */
+export async function assertClosedSectors(db: Prisma.TransactionClient, profileId: string | null, labels: string[]) {
+  if (labels.length === 0) return;
+  const [known, current] = await Promise.all([
+    db.tag.findMany({ where: { category: 'SECTOR', group: { not: null }, label: { in: labels } }, select: { label: true } }),
+    profileId
+      ? db.profileTag.findMany({ where: { profileId, relation: 'OFFER', tag: { category: 'SECTOR' } }, select: { tag: { select: { label: true } } } })
+      : Promise.resolve([] as { tag: { label: string } }[]),
+  ]);
+  const allowed = new Set([...known.map((t) => t.label), ...current.map((pt) => pt.tag.label)]);
+  const unknown = labels.filter((label) => !allowed.has(label));
+  if (unknown.length > 0) {
+    throw ApiError.badRequest(`Domaine d’activité hors liste : ${unknown.join(', ')}. Choisissez dans la liste proposée.`, { field: 'sectors', unknown });
+  }
+}
+
 async function replaceProfileTags(
   db: Prisma.TransactionClient,
   profileId: string,
@@ -178,6 +194,12 @@ async function replaceProfileTags(
   labels: string[],
 ) {
   const normalized = [...new Set(labels.map((l) => l.trim()).filter(Boolean))];
+
+  // Domaines d'activité : liste fermée (audit 27/10/2026) — seuls les libellés
+  // du référentiel (taxonomy.ts, group renseigné) sont acceptés. Les anciennes
+  // saisies libres déjà portées par ce profil restent tolérées jusqu'à la
+  // migration (prisma/migrate-sectors.ts), pour ne pas bloquer l'enregistrement.
+  if (category === 'SECTOR') await assertClosedSectors(db, profileId, normalized);
 
   const tags = await Promise.all(
     normalized.map((label) =>
@@ -230,7 +252,14 @@ export async function getCommunityShowcase() {
   const [members, profiles, sectors] = await Promise.all([
     prisma.memberProfile.count({ where }),
     prisma.memberProfile.findMany({
-      where,
+      // Fiches mises en avant (audit 27/10/2026) : seulement les fiches complètes
+      // — activité, ville et au moins un domaine d'activité. Les chiffres
+      // (membres, secteurs) restent calculés sur tous les profils validés.
+      where: {
+        ...where,
+        AND: [{ jobTitle: { not: null } }, { jobTitle: { not: '' } }, { city: { not: null } }, { city: { not: '' } }],
+        tags: { some: { relation: 'OFFER', tag: { category: 'SECTOR' } } },
+      },
       include: { tags: { include: { tag: true } } },
       // Les profils les plus complets d'abord (photo, intitulé), puis les plus récents.
       orderBy: [{ avatarUrl: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],

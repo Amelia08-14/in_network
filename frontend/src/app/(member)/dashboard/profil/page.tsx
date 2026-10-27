@@ -240,7 +240,7 @@ function ProfilForm({ profile }: { profile: MemberProfileSummary }) {
           </Section>
 
           <Section icon={Wrench} title="Compétences et domaines" description="Ces choix alimentent le moteur de mise en relation : soyez précis.">
-            <TagPicker label="Domaine(s) d’activité *" category="SECTOR" value={sectors} onChange={setSectors} max={10} tone="ink" placeholder="Ex. Services numériques, Commerce de détail, BTP…" />
+            <TagPicker label="Domaine(s) d’activité *" category="SECTOR" value={sectors} onChange={setSectors} max={10} tone="ink" closed hint="Choisissez dans la liste : elle est commune à tous les membres, pour que l’annuaire et les mises en relation vous retrouvent." placeholder="Ex. Services numériques (ESN), Commerce de détail, BTP…" />
             <TagPicker label="Compétences proposées" category="SKILL" value={skillsOffered} onChange={setSkillsOffered} max={20} tone="orange" hint="Ce que vous savez faire et pouvez apporter aux autres membres." placeholder="Ex. Développement Web, Comptabilité, Design UI/UX…" />
             <TagPicker label="Compétences recherchées" category="SKILL" value={skillsWanted} onChange={setSkillsWanted} max={20} tone="blue" hint="Ce que vous cherchez chez un partenaire, un prestataire ou une recrue." placeholder="Ex. Marketing Digital, Droit des affaires, Levée de fonds…" />
           </Section>

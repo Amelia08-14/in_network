@@ -16,6 +16,7 @@ import { createCompanyAccount } from '../companies/companies.service';
 import { createLeadFromRegistration } from '../crm/leadIntake.service';
 import { isAccountValidated } from '../situation/accountState';
 import type { RegisterInput, LoginInput, RegisterCompanyInput } from './auth.schema';
+import { assertClosedSectors } from '../profiles/profiles.service';
 
 const EMAIL_VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
@@ -96,6 +97,7 @@ export async function register(input: RegisterInput) {
   const site = await prisma.site.findFirst({ where: { isActive: true } });
   if (!site) throw new Error('Aucun site actif configuré — lance le seed avant de tester');
 
+  await assertClosedSectors(prisma, null, [input.sector]);
   const passwordHash = await hashPassword(input.password);
 
   // Décision produit : plus de barrière de vérification email — un compte
@@ -113,7 +115,9 @@ export async function register(input: RegisterInput) {
           firstName: input.firstName,
           lastName: input.lastName,
           memberType: input.memberType,
+          jobTitle: input.jobTitle,
           siteId: site.id,
+          tags: { create: [{ relation: 'OFFER', tag: { connect: { label: input.sector } } }] },
         },
       },
     },

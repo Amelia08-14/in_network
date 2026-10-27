@@ -42,6 +42,8 @@ interface AuthState {
     lastName: string;
     memberType: string;
     phone?: string;
+    jobTitle: string;
+    sector: string;
   }) => Promise<void>;
   registerCompany: (input: {
     email: string;
@@ -49,9 +51,9 @@ interface AuthState {
     firstName: string;
     lastName: string;
     phone?: string;
-    jobTitle?: string;
+    jobTitle: string;
     companyName: string;
-    sector?: string;
+    sector: string;
     website?: string;
     seatLimit: number;
   }) => Promise<void>;

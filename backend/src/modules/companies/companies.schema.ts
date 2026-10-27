@@ -24,10 +24,11 @@ export const registerCompanySchema = z.object({
   firstName: z.string().trim().min(1, 'Prénom requis').max(100),
   lastName: z.string().trim().min(1, 'Nom requis').max(100),
   phone: z.string().trim().max(40).optional(),
-  jobTitle: z.string().trim().max(200).optional(),
+  jobTitle: z.string().trim().min(2, 'Poste requis').max(200),
   // Entreprise
   companyName: z.string().trim().min(2, 'Raison sociale requise').max(200),
-  sector: z.string().trim().max(120).optional(),
+  // Domaine d'activité du référentiel (liste fermée), obligatoire à l'inscription.
+  sector: z.string().trim().min(1, 'Domaine d’activité requis').max(120),
   website: optionalUrl,
   logoUrl: optionalUrl,
   // Représentant inclus : 1 = solo, min 1.

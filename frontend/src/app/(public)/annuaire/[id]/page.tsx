@@ -16,6 +16,7 @@ import { api, ApiRequestError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { MemberProfileSummary } from '@/types';
 import { BrandTexture } from '@/components/ui/brand-texture';
+import { formatJobTitle } from '@/lib/display';
 
 export default function MemberDetailPage() {
   const params = useParams<{ id: string }>();
@@ -82,7 +83,7 @@ export default function MemberDetailPage() {
                   <BadgeCheck className="h-3.5 w-3.5" /> Profil vérifié
                 </Badge>
               </div>
-              {profile.jobTitle && <p className="mt-1 text-lg font-medium text-brand-blue">{profile.jobTitle}</p>}
+              {profile.jobTitle && <p className="mt-1 text-lg font-medium text-brand-blue">{formatJobTitle(profile.jobTitle)}</p>}
               {profile.companyName && (
                 <p className="mt-1 flex items-center gap-2 text-sm text-ink-500">
                   {profile.companyLogoUrl ? (

@@ -60,6 +60,7 @@ export function TagPicker({
   placeholder,
   hint,
   tone = 'ink',
+  closed = false,
 }: {
   label: string;
   category: 'SKILL' | 'SECTOR';
@@ -69,9 +70,13 @@ export function TagPicker({
   placeholder?: string;
   hint?: string;
   tone?: 'ink' | 'orange' | 'blue';
+  /** Liste fermée : seulement les libellés du référentiel, pas de saisie libre (domaines d'activité). */
+  closed?: boolean;
 }) {
   const id = useId();
-  const { data: options = [], isLoading } = useTagOptions(category);
+  const { data: allOptions = [], isLoading } = useTagOptions(category);
+  // Liste fermée : les étiquettes saisies librement par d'autres membres (sans famille) ne sont pas proposées.
+  const options = useMemo(() => (closed ? allOptions.filter((o) => o.group) : allOptions), [allOptions, closed]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -90,7 +95,7 @@ export function TagPicker({
   const flat = useMemo(() => grouped.flatMap(([, items]) => items), [grouped]);
 
   const trimmed = query.trim();
-  const canCreate = trimmed.length > 1 && trimmed.length <= 80 && !selected.has(normalize(trimmed)) && !options.some((o) => normalize(o.label) === normalize(trimmed));
+  const canCreate = !closed && trimmed.length > 1 && trimmed.length <= 80 && !selected.has(normalize(trimmed)) && !options.some((o) => normalize(o.label) === normalize(trimmed));
   const rows = canCreate ? [...flat.map((o) => ({ kind: 'option' as const, label: o.label })), { kind: 'create' as const, label: trimmed }] : flat.map((o) => ({ kind: 'option' as const, label: o.label }));
 
   useEffect(() => {

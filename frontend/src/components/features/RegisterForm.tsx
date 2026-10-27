@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { groupTagOptions, useTagOptions } from '@/components/features/TagPicker';
 import { useAuthStore } from '@/store/auth';
 import { ApiRequestError } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,9 @@ const schema = z.object({
   email: z.string().trim().email('Email invalide'),
   phone: z.string().trim().min(6, 'Téléphone requis pour vous recontacter'),
   password: z.string().min(8, 'Au moins 8 caractères'),
+  // Obligatoires (audit 27/10/2026) : la fiche de l'annuaire n'est jamais vide.
+  jobTitle: z.string().trim().min(2, 'Poste requis'),
+  sector: z.string().trim().min(1, 'Choisissez votre domaine d’activité'),
   memberType: z.enum(['FREELANCE', 'STARTUP']),
   companyName: z.string().trim().optional(),
   seatLimit: z.string().optional(),
@@ -49,6 +53,9 @@ export function RegisterForm({ initialType }: { initialType: AccountType }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [extraErrors, setExtraErrors] = useState<{ companyName?: string; seatLimit?: string }>({});
+  // Domaines d'activité : liste fermée du référentiel (sans les saisies libres d'anciens membres).
+  const { data: sectorOptions = [] } = useTagOptions('SECTOR');
+  const sectorGroups = groupTagOptions(sectorOptions.filter((o) => o.group));
 
   const {
     register,
@@ -82,6 +89,8 @@ export function RegisterForm({ initialType }: { initialType: AccountType }) {
           firstName: values.firstName,
           lastName: values.lastName,
           phone: values.phone,
+          jobTitle: values.jobTitle,
+          sector: values.sector,
           companyName: values.companyName!,
           seatLimit,
         });
@@ -93,6 +102,8 @@ export function RegisterForm({ initialType }: { initialType: AccountType }) {
           lastName: values.lastName,
           memberType: values.memberType,
           phone: values.phone,
+          jobTitle: values.jobTitle,
+          sector: values.sector,
         });
       }
       router.push('/dashboard/catalogue');
@@ -173,6 +184,31 @@ export function RegisterForm({ initialType }: { initialType: AccountType }) {
               </select>
             </Field>
           )}
+
+          <Field label="Poste" htmlFor="jobTitle" error={errors.jobTitle?.message}>
+            <Input id="jobTitle" autoComplete="organization-title" placeholder="Ex. Gérante, développeur web, consultant RH" {...register('jobTitle')} />
+          </Field>
+          <Field label="Domaine d’activité" htmlFor="sector" error={errors.sector?.message}>
+            <select
+              id="sector"
+              defaultValue=""
+              className="flex h-11 w-full rounded-card border border-ink-900/15 bg-white px-3 py-2 text-sm text-ink-900 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ink-900"
+              {...register('sector')}
+            >
+              <option value="" disabled>
+                Choisissez dans la liste
+              </option>
+              {sectorGroups.map(([group, items]) => (
+                <optgroup key={group} label={group}>
+                  {items.map((item) => (
+                    <option key={item.id} value={item.label}>
+                      {item.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </Field>
 
           <Field label="Email" htmlFor="email" error={errors.email?.message}>
             <Input id="email" type="email" autoComplete="email" {...register('email')} />
