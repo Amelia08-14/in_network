@@ -432,7 +432,7 @@ export default async function HomePage() {
                 Des services pour <span className="text-brand-orange">chaque étape</span>
               </>
             }
-            lead="Secrétariat, administration, création d'entreprise, comptabilité, juridique, communication — ajoutez-en plusieurs à une seule demande de devis."
+            lead="Secrétariat, création d’entreprise, administration, finance, communication et incubation — ajoutez-en plusieurs à une seule demande de devis."
           />
           <Link href="/services" className={cn(buttonVariants({ variant: 'outline', size: 'md' }), 'gap-2')}>
             Voir tous les services <ArrowRight className="h-4 w-4" />

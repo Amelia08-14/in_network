@@ -12,6 +12,8 @@ import {
   Compass,
   Globe2,
   Headphones,
+  LayoutGrid,
+  Wifi,
   Network,
   Projector,
   Rocket,
@@ -120,6 +122,13 @@ const ROOM_PHOTOS: Record<string, VenuePhoto> = {
   'Salle LMIG': VENUE_PHOTOS.grandeSalle,
   'Salle de formation': VENUE_PHOTOS.salleProjection,
 };
+
+// Salles : équipements proposés en extra (catalogue, annexe G).
+const ROOM_EXTRAS: { icon: typeof Clock; title: string; text: string }[] = [
+  { icon: Wifi, title: 'Une connexion ultra-rapide', text: 'Pour vos visioconférences, démonstrations en direct et échanges sans interruption liée à la connexion.' },
+  { icon: Projector, title: 'Un projecteur 8K à disposition', text: 'Valorisez vos présentations et vos contenus visuels avec un équipement adapté à vos interventions.' },
+  { icon: LayoutGrid, title: 'Des espaces modulables pour vos événements', text: 'Selon la configuration et les disponibilités, découvrez des espaces adaptés à vos conférences, rencontres professionnelles et événements d’entreprise.' },
+];
 
 // « À qui s'adressent nos services ? » (catalogue des services, §06).
 const PROFILES: [profile: string, services: string][] = [
@@ -712,9 +721,44 @@ export default async function ServicesPage() {
                 );
               })}
             </ul>
-            <p className="mt-6 max-w-3xl text-sm text-ink-500">
-              En extra : des espaces modulables pour vos événements, une connexion ultra-rapide et un projecteur 8K, selon la configuration et les disponibilités.
-            </p>
+            {/* Équipements en extra et appel à l'action (catalogue, annexe G). */}
+            <div className="mt-10 rounded-3xl border border-ink-900/8 bg-white p-6 shadow-soft md:p-8">
+              <div className="flex flex-wrap items-center gap-3">
+                <h3 className="font-heading text-xl font-bold text-ink-900">Les équipements qui font la différence</h3>
+                <span className="rounded-pill bg-brand-orange/10 px-2.5 py-0.5 text-xs font-semibold text-brand-orange">En extra</span>
+              </div>
+              <p className="mt-2 max-w-3xl text-sm text-ink-500">
+                Bénéficiez d’un environnement professionnel équipé pour accompagner vos intervenants, mobiliser vos participants et valoriser la qualité de vos contenus.
+              </p>
+              <ul className="mt-5 grid gap-4 md:grid-cols-3">
+                {ROOM_EXTRAS.map((extra) => (
+                  <li key={extra.title} className="rounded-2xl bg-ink-900/[0.03] p-4">
+                    <extra.icon className="h-5 w-5 text-brand-orange" />
+                    <p className="mt-2 font-semibold text-ink-900">{extra.title}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-ink-500">{extra.text}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="relative mt-6 overflow-hidden rounded-3xl bg-ink-900 p-6 text-white md:p-8">
+              <BrandTexture />
+              <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="font-heading text-xl font-bold text-white md:text-2xl">Votre prochaine rencontre mérite le bon cadre.</p>
+                  <p className="mt-2 max-w-2xl text-sm text-white/75">
+                    Réunir, convaincre, transmettre ou fédérer : choisissez l’espace IN NETWORK adapté à votre objectif et offrez à vos participants une expérience professionnelle de qualité.
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                  <Link href={`/contact?sujet=${encodeURIComponent('Réserver une salle')}`} className={cn(buttonVariants({ variant: 'primary', size: 'md' }), 'gap-2')}>
+                    <CalendarCheck className="h-4 w-4" /> Réserver une salle
+                  </Link>
+                  <Link href={VISIT_HREF} className="inline-flex h-11 items-center justify-center gap-2 rounded-card border border-white/40 px-5 text-sm font-semibold text-white transition hover:bg-white/10">
+                    Visiter l’espace
+                  </Link>
+                </div>
+              </div>
+            </div>
           </section>
         )}
 
@@ -723,7 +767,7 @@ export default async function ServicesPage() {
             n={number('services') + 1}
             hue="blue"
             title="Services aux entreprises"
-            lead="Secrétariat, formation et création d’entreprise à prix fixe ; administration, fiscalité, communication et incubation sur devis."
+            lead="Secrétariat et création d’entreprise à prix fixe ; administration, finance, communication et incubation sur devis."
           />
 
           {services.length > 0 && (
