@@ -4,20 +4,21 @@ import { useState } from 'react';
 import { ServiceCard } from '@/components/features/ServiceCard';
 import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
-import { sortServices } from '@/lib/services-order';
+import { displayCategory, sortServices } from '@/lib/services-order';
 import { HUE, SERVICE_HUE } from '@/lib/palette';
 import type { ServiceCatalogItem } from '@/types';
 
+// Familles du catalogue client (27/10/2026). Le juridique est rangé dans
+// l'Administration (cf. displayCategory), d'où l'absence d'onglet « Juridique ».
 const CATEGORY_TABS: { label: string; value: ServiceCatalogItem['category'] | 'ALL' }[] = [
   { label: 'Tous', value: 'ALL' },
   { label: 'Secrétariat', value: 'SECRETARIAT' },
-  { label: 'Administration', value: 'ADMINISTRATION' },
   { label: "Création d'entreprise", value: 'CREATION_ENTREPRISE' },
-  { label: 'Juridique', value: 'JURIDIQUE' },
-  { label: 'Comptabilité', value: 'COMPTABILITE' },
+  { label: 'Administration', value: 'ADMINISTRATION' },
+  { label: 'Finance', value: 'COMPTABILITE' },
   { label: 'Communication', value: 'MARKETING' },
-  { label: 'Domiciliation', value: 'DOMICILIATION' },
   { label: 'Incubation', value: 'INCUBATION' },
+  { label: 'Domiciliation', value: 'DOMICILIATION' },
   { label: 'Autre', value: 'AUTRE' },
 ];
 
@@ -27,11 +28,11 @@ const CATEGORY_TABS: { label: string; value: ServiceCatalogItem['category'] | 'A
 // (+ "Tous"), pour ne jamais proposer un filtre qui ne mène nulle part.
 export function ServicesFilterGrid({ services }: { services: ServiceCatalogItem[] }) {
   const [category, setCategory] = useState<(typeof CATEGORY_TABS)[number]['value']>('ALL');
-  const availableCategories = new Set(services.map((s) => s.category));
+  const availableCategories = new Set(services.map((s) => displayCategory(s.category)));
   const tabs = CATEGORY_TABS.filter((tab) => tab.value === 'ALL' || availableCategories.has(tab.value));
 
   const ordered = sortServices(services);
-  const filtered = category === 'ALL' ? ordered : ordered.filter((s) => s.category === category);
+  const filtered = category === 'ALL' ? ordered : ordered.filter((s) => displayCategory(s.category) === category);
 
   return (
     <>

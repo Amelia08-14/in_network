@@ -18,6 +18,8 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { SERVICE_CATEGORY_ACCENT } from '@/components/ui/badge';
 import { AddToCartButton } from '@/components/features/AddToCartButton';
 import { HUE, SERVICE_HUE } from '@/lib/palette';
+import { CURRENCY, formatNumber } from '@/lib/money';
+import { displayCategory, SERVICE_OPTION } from '@/lib/services-order';
 import { cn } from '@/lib/utils';
 import type { ServiceCatalogItem } from '@/types';
 
@@ -25,8 +27,8 @@ export const CATEGORY_LABEL: Record<string, string> = {
   DOMICILIATION: 'Domiciliation',
   CREATION_ENTREPRISE: "Création d'entreprise",
   ADMINISTRATION: 'Administration',
-  COMPTABILITE: 'Comptabilité',
-  JURIDIQUE: 'Juridique',
+  COMPTABILITE: 'Finance',
+  JURIDIQUE: 'Administration',
   MARKETING: 'Communication',
   SECRETARIAT: 'Secrétariat',
   OFFRE: 'Offres par besoin',
@@ -61,12 +63,27 @@ export const CATEGORY_ICON: Record<string, LucideIcon> = {
 //
 // Panier de devis : chaque palier porte son bouton « + » ; un service sans
 // grille (« sur devis ») s'ajoute d'un bouton en pied de carte.
+/**
+ * Phrase d'accroche d'une carte : la première ligne de la description. Quand
+ * elle annonce une liste (« Le Pack 02, auquel s'ajoutent : »), la liste suit
+ * sur la même ligne — sans quoi la carte s'arrêterait sur les deux-points.
+ */
+export function serviceSummary(description: string): string {
+  const lines = description.split('\n').map((line) => line.trim()).filter(Boolean);
+  const first = (lines[0] ?? '').replace(/^•\s*/, '');
+  if (!first.endsWith(':')) return first;
+  const bullets = lines.slice(1).filter((line) => line.startsWith('•')).map((line) => line.replace(/^•\s*/, ''));
+  return bullets.length ? `${first} ${bullets.join(', ')}` : first.replace(/\s*:$/, '');
+}
+
 export function ServiceCard({ service }: { service: ServiceCatalogItem }) {
-  const accent = SERVICE_CATEGORY_ACCENT[service.category] ?? 'none';
-  const label = CATEGORY_LABEL[service.category] ?? service.category;
-  const hue = HUE[SERVICE_HUE[service.category] ?? 'gray'];
-  const Icon = CATEGORY_ICON[service.category] ?? Sparkle;
+  const category = displayCategory(service.category);
+  const accent = SERVICE_CATEGORY_ACCENT[category] ?? 'none';
+  const label = CATEGORY_LABEL[category] ?? category;
+  const hue = HUE[SERVICE_HUE[category] ?? 'gray'];
+  const Icon = CATEGORY_ICON[category] ?? Sparkle;
   const tiers = service.pricingTiers ?? [];
+  const option = SERVICE_OPTION[service.slug];
 
   return (
     <Card accent={accent} className="flex h-full flex-col">
@@ -79,11 +96,16 @@ export function ServiceCard({ service }: { service: ServiceCatalogItem }) {
         </div>
 
         <div className="flex flex-col gap-2">
+          {option && (
+            <p className={cn('text-xs font-bold uppercase tracking-[0.12em]', hue.text)}>
+              Option {option.n} — {option.label}
+            </p>
+          )}
           <h3 className="font-heading text-xl font-bold leading-tight tracking-tight text-ink-900">
             {service.title}
           </h3>
           {/* Phrase d’accroche seulement : le détail (puces) est sur la fiche « Voir le détail ». */}
-          <p className="line-clamp-2 text-sm leading-relaxed text-ink-500">{service.description.split('\n')[0].replace(/^•\s*/, '')}</p>
+          <p className="line-clamp-3 text-sm leading-relaxed text-ink-500">{serviceSummary(service.description)}</p>
         </div>
 
         {tiers.length > 0 ? (
@@ -95,8 +117,8 @@ export function ServiceCard({ service }: { service: ServiceCatalogItem }) {
               >
                 <span className="min-w-0 flex-1 text-sm font-medium text-ink-700">{tier.label}</span>
                 <span className="shrink-0 whitespace-nowrap font-heading font-bold tabular-nums text-ink-900">
-                  {tier.price.toLocaleString('fr-FR')}
-                  <span className={cn('ml-1 text-xs font-semibold', hue.text)}>DZD</span>
+                  {formatNumber(tier.price)}
+                  <span className={cn('ml-1 text-xs font-semibold', hue.text)}>{CURRENCY}</span>
                 </span>
                 <AddToCartButton
                   compact

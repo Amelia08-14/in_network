@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { api, ApiRequestError } from '@/lib/admin-api';
-import { formatDzd, itemLabel, PRICE_UNIT_SUFFIX, requestSummary, summarizeAmounts, type QuoteItem } from '@/lib/quote';
+import { formatDa, itemLabel, PRICE_UNIT_SUFFIX, requestSummary, summarizeAmounts, type QuoteItem } from '@/lib/quote';
 
 export type ServiceRequestStatus = 'NEW' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
 
@@ -53,7 +53,7 @@ export function targetLabel(req: Pick<AdminServiceRequest, 'items'>) {
 function itemPriceLabel(item: QuoteItem) {
   if (item.unitPrice == null) return item.targetType === 'SPACE' ? 'Selon la durée' : 'Sur devis';
   const suffix = item.priceUnit ? ` ${PRICE_UNIT_SUFFIX[item.priceUnit] ?? ''}` : '';
-  return `${formatDzd(Number(item.unitPrice))}${suffix}`;
+  return `${formatDa(Number(item.unitPrice))}${suffix}`;
 }
 
 export function requesterLabel(req: AdminServiceRequest) {
@@ -169,7 +169,7 @@ export function ServiceRequestPanel({
                 <span>
                   Total indicatif :{' '}
                   {indicativeRows.length > 0
-                    ? indicativeRows.map((row) => `${formatDzd(row.amount)} (${row.label.toLowerCase()})`).join(' + ')
+                    ? indicativeRows.map((row) => `${formatDa(row.amount)} (${row.label.toLowerCase()})`).join(' + ')
                     : '—'}
                   {unpriced > 0 && ` · ${unpriced} ligne${unpriced > 1 ? 's' : ''} à chiffrer`}
                 </span>

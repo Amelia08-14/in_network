@@ -35,6 +35,7 @@ import { Faq, type FaqItem } from '@/components/features/Faq';
 import { serverGet } from '@/lib/server-api';
 import { byPrice } from '@/lib/services-order';
 import { cn } from '@/lib/utils';
+import { CURRENCY, formatDa, formatNumber } from '@/lib/money';
 import { HUE, planHue, type Hue } from '@/lib/palette';
 import { VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
 import { BrandTexture } from '@/components/ui/brand-texture';
@@ -130,7 +131,7 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'Quelles formules propose IN NETWORK ?',
     answer:
-      'Des offres regroupées par besoin (Starter, Builder, Accelerator, Domiciliation Pro, Événement & Com), l’abonnement annuel (Access, Premium, Elite), des formules au mois — poste en open space, bureau privé de 2 à 14 personnes, domiciliation, casier — ainsi que les salles de réunion et les services aux entreprises. Chaque formule peut être souscrite au mois ou sur engagement annuel.',
+      'Des offres regroupées par besoin (Starter, Builder, Accelerator, Domiciliation Pro, Événement & Com), l’abonnement annuel (Access, Premium, Elite), des formules au mois — poste en open space, bureau privé de 2 à 14 personnes, domiciliation, casier — ainsi que les salles de réunion et les services aux entreprises.',
   },
   {
     question: 'Qu’est-ce que la domiciliation chez IN NETWORK ?',
@@ -201,10 +202,10 @@ const LOCATION_POINTS: { title: string; text: string }[] = [
   { title: 'Un accès sécurisé', text: 'Accès 24h/24, 7j/7 et vidéosurveillance, selon les modalités du site.' },
 ];
 
-function formatDzd(value: string | null): string {
+function roomRate(value: string | null): string {
   // Tarif non renseigné : la salle se demande sur devis.
   if (!value) return '—';
-  return `${Number(value).toLocaleString('fr-FR')} DA`;
+  return formatDa(value);
 }
 
 function BlockHeading({ title, lead, hue, n }: { title: React.ReactNode; lead: string; hue: Hue; n: number }) {
@@ -499,7 +500,7 @@ export default async function ServicesPage() {
                         <p className="mt-3 flex items-baseline gap-1.5">
                           <span className="font-heading text-3xl font-bold text-ink-900">{Number(plan.price).toLocaleString('fr-FR')}</span>
                           <span className={cn('rounded-pill px-2 py-0.5 text-xs font-semibold', HUE[hue].soft, HUE[hue].text)}>
-                            {plan.currency} HT {CYCLE_LABEL[plan.billingCycle]}
+                            {CURRENCY} HT {CYCLE_LABEL[plan.billingCycle]}
                           </span>
                         </p>
                       </div>
@@ -584,7 +585,7 @@ export default async function ServicesPage() {
                           {OFFICE_TAGLINES[capacity] && <p className="mt-1 text-sm text-ink-500">{OFFICE_TAGLINES[capacity]}</p>}
                           <p className="mt-3 flex items-baseline gap-1.5">
                             <span className="font-heading text-3xl font-bold text-ink-900">{Number(plan.price).toLocaleString('fr-FR')}</span>
-                            <span className="rounded-pill bg-ink-900/8 px-2 py-0.5 text-xs font-semibold text-ink-800">{plan.currency} HT / mois</span>
+                            <span className="rounded-pill bg-ink-900/8 px-2 py-0.5 text-xs font-semibold text-ink-800">{CURRENCY} HT / mois</span>
                           </p>
                         </div>
                         <ul className="space-y-1.5 border-t border-dashed border-ink-900/10 pt-4 text-sm text-ink-600">
@@ -660,18 +661,18 @@ export default async function ServicesPage() {
                           </td>
                           <td className="p-4 text-ink-700">
                             <span className="mr-1.5 rounded-pill bg-brand-orange/10 px-2 py-0.5 text-xs font-semibold text-brand-orange">Membre</span>
-                            {formatDzd(space.hourlyRateMember)}
+                            {roomRate(space.hourlyRateMember)}
                           </td>
-                          <td className="p-4 text-ink-700">{formatDzd(space.halfDayRateMember)}</td>
-                          <td className="p-4 text-ink-700">{formatDzd(space.dailyRateMember)}</td>
+                          <td className="p-4 text-ink-700">{roomRate(space.halfDayRateMember)}</td>
+                          <td className="p-4 text-ink-700">{roomRate(space.dailyRateMember)}</td>
                         </tr>
                         <tr className="border-b border-ink-900/6">
                           <td className="p-4 text-ink-700">
                             <span className="mr-1.5 rounded-pill bg-brand-blue/10 px-2 py-0.5 text-xs font-semibold text-brand-blue">Externe</span>
-                            {formatDzd(space.hourlyRateExternal)}
+                            {roomRate(space.hourlyRateExternal)}
                           </td>
-                          <td className="p-4 text-ink-700">{formatDzd(space.halfDayRateExternal)}</td>
-                          <td className="p-4 text-ink-700">{formatDzd(space.dailyRateExternal)}</td>
+                          <td className="p-4 text-ink-700">{roomRate(space.halfDayRateExternal)}</td>
+                          <td className="p-4 text-ink-700">{roomRate(space.dailyRateExternal)}</td>
                         </tr>
                       </Fragment>
                     );
@@ -776,7 +777,7 @@ export default async function ServicesPage() {
                         {tier ? (
                           <p className="flex items-center gap-3 rounded-xl border border-ink-900/15 bg-ink-900/8 py-2 pl-3.5 pr-2">
                             <span className="flex-1 font-heading font-bold tabular-nums text-ink-900">
-                              {tier.price.toLocaleString('fr-FR')} <span className="text-xs font-semibold text-ink-600">DZD</span>
+                              {formatNumber(tier.price)} <span className="text-xs font-semibold text-ink-600">{CURRENCY}</span>
                             </span>
                             <AddToCartButton
                               compact

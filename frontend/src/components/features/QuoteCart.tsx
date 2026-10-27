@@ -12,7 +12,7 @@ import { useAuthStore } from '@/store/auth';
 import { useCart, type CartItem } from '@/store/cart';
 import { api, ApiRequestError } from '@/lib/api';
 import { getAttribution } from '@/lib/attribution';
-import { formatDzd, PRICE_UNIT_SUFFIX, summarizeAmounts } from '@/lib/quote';
+import { formatDa, PRICE_UNIT_SUFFIX, summarizeAmounts } from '@/lib/quote';
 import { cn } from '@/lib/utils';
 import { CART_KIND_HUE, HUE, SERVICE_HUE, type Hue } from '@/lib/palette';
 import { CATEGORY_LABEL } from '@/components/features/ServiceCard';
@@ -28,7 +28,7 @@ function itemKind(item: CartItem): { hue: Hue; label: string } {
 function priceLabel(item: CartItem): string {
   if (item.price == null) return item.targetType === 'SPACE' ? 'Selon la durée' : 'Sur devis';
   const suffix = item.priceUnit ? ` ${PRICE_UNIT_SUFFIX[item.priceUnit] ?? ''}` : '';
-  return `${formatDzd(item.price)}${suffix}`;
+  return `${formatDa(item.price)}${suffix}`;
 }
 
 // Panier de demande de devis : le visiteur compose sa demande (services,
@@ -180,7 +180,7 @@ export function QuoteCart() {
                         {row.label}
                       </dt>
                       <dd className="font-heading text-base font-bold tabular-nums text-ink-900">
-                        {formatDzd(row.amount)}
+                        {formatDa(row.amount)}
                       </dd>
                     </div>
                   ))}

@@ -113,8 +113,9 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
       name: 'Salle de conférence avec terrasse',
       type: 'MEETING_ROOM' as const,
       capacityMin: null,
-      capacity: 30,
-      description: 'Salle de conférence avec terrasse (La Maison IN Groupe), pour vos conférences en petit comité, ateliers et présentations professionnelles.',
+      // 20 personnes : catalogue et page Événementiel (l'ancienne valeur 30 était une erreur).
+      capacity: 20,
+      description: 'Salle de conférence et petite terrasse (La Maison IN Groupe), jusqu’à 20 personnes : réunions, conférences en petit comité, ateliers et présentations professionnelles.',
       ...noRates,
       monthlyRate: null,
     },
@@ -311,7 +312,8 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
         "Profil membre mis en avant dans l'annuaire communautaire",
         "Accompagnement trimestriel avec l'équipe IN NETWORK (synergies réseau)",
         'Domiciliation disponible en option payante séparée',
-        'Soit 15 700 DA / mois',
+        // 189 000 / 12 = 15 750 (le catalogue indiquait 15 700 par erreur).
+        'Soit 15 750 DA / mois',
       ],
     },
     {
@@ -353,7 +355,7 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
   // --- Catalogue de services (Catalogue IN NETWORK V3 + grille « N°02 - service
   // et tarifs ») ---
   // Prix fixes : secrétariat (WORK/NET/NETWORK), formation à la création
-  // d'entreprise (10 000 DA, service administratif) et création juridique
+  // d'entreprise (10 000 DA, option 1 « Je comprends et je fais ») et création juridique
   // complète (100 000 DA). Tout le reste du catalogue est « sur devis » : pas de
   // prix, l'admin chiffre la demande depuis le panier (cf. /devis). Upsert par
   // slug ; on ne supprime jamais un service (des lignes de devis le
@@ -392,7 +394,8 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
     {
       slug: 'formation-creation-entreprise',
       title: "Formation à la création juridique d'entreprise",
-      category: 'ADMINISTRATION',
+      // Option 1 de la création d'entreprise (catalogue) : présentée avec la création déléguée.
+      category: 'CREATION_ENTREPRISE',
       description:
         'Je comprends et je fais : une session pratique pour maîtriser chaque étape de la création de votre entreprise et gagner du temps dans vos démarches.',
       tiers: [{ label: 'Atelier pratique', price: 10000 }],
@@ -410,7 +413,8 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
     {
       slug: 'juridique',
       title: 'Expertise juridique',
-      category: 'JURIDIQUE',
+      // Catalogue : Administration = ressources humaines + expertise juridique.
+      category: 'ADMINISTRATION',
       description: bullets('Sécurisez vos démarches, valorisez vos actifs et avancez avec confiance.', [
         'Contrats et conventions : rédaction et revue de vos documents contractuels',
         'Marques et brevets : accompagnement dans le dépôt et la protection de votre propriété intellectuelle',

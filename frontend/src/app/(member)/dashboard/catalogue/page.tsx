@@ -126,7 +126,7 @@ export default function MemberCataloguePage() {
                         <h3 className="font-heading text-lg font-bold text-ink-900">{plan.name}</h3>
                         <p className="mt-1 flex items-baseline gap-1.5">
                           <span className="font-heading text-2xl font-bold text-ink-900">{Number(plan.price).toLocaleString('fr-FR')}</span>
-                          <span className="text-xs font-semibold text-ink-500">{plan.currency} {CYCLE[plan.billingCycle]}</span>
+                          <span className="text-xs font-semibold text-ink-500">{/* Comme sur /services : formules au mois HT, abonnement annuel sans mention. */}DA{plan.billingCycle === 'ANNUAL' ? '' : ' HT'} {CYCLE[plan.billingCycle]}</span>
                         </p>
                       </div>
                       <ul className="space-y-1.5 text-sm text-ink-600">

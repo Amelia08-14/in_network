@@ -60,7 +60,7 @@ export default function AdminStatistiquesPage() {
     <div className="space-y-8">
       <div>
         <h1 className="font-heading text-2xl font-bold text-ink-900">Statistiques</h1>
-        <p className="mt-1 text-sm text-ink-500">Revenu total : {Number(stats.totalRevenue).toLocaleString('fr-FR')} DZD</p>
+        <p className="mt-1 text-sm text-ink-500">Revenu total : {Number(stats.totalRevenue).toLocaleString('fr-FR')} DA</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -75,7 +75,7 @@ export default function AdminStatistiquesPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
                   <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#64748B' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: '#64748B' }} axisLine={false} tickLine={false} width={40} />
-                  <Tooltip formatter={(value) => `${Number(value).toLocaleString('fr-FR')} DZD`} />
+                  <Tooltip formatter={(value) => `${Number(value).toLocaleString('fr-FR')} DA`} />
                   <Line type="monotone" dataKey="value" stroke={ORANGE} strokeWidth={2.5} dot={false} />
                 </LineChart>
               </ResponsiveContainer>

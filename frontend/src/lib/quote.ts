@@ -21,9 +21,8 @@ export const PRICE_UNIT_SUFFIX: Record<string, string> = {
   DAY_PASS: '/ jour',
 };
 
-export function formatDzd(value: number): string {
-  return `${value.toLocaleString('fr-FR')} DZD`;
-}
+// Montants : notation unique du site, cf. lib/money.ts.
+export { formatDa } from './money';
 
 export function itemLabel(item: { title: string; tierLabel?: string | null }): string {
   return item.tierLabel ? `${item.title} — ${item.tierLabel}` : item.title;

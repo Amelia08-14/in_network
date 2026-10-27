@@ -4,7 +4,7 @@ import type { SpaceResource } from '@/types';
 // réunion, calculé comme côté serveur (backend spaces/roomBooking.ts) — le
 // serveur reste la référence, ceci sert au récapitulatif avant confirmation.
 
-/** « 6 à 8 personnes », « 30 personnes ». */
+/** « 6 à 8 personnes », « 20 personnes ». */
 export function capacityText(space: Pick<SpaceResource, 'capacity' | 'capacityMin'>, short = false) {
   const unit = short ? 'pers.' : 'personnes';
   return space.capacityMin && space.capacityMin < space.capacity ? `${space.capacityMin} à ${space.capacity} ${unit}` : `${space.capacity} ${unit}`;
