@@ -423,7 +423,7 @@ function CreateSystemUserForm({ canCreateAdmin, onClose }: { canCreateAdmin: boo
 /* -------------------------------------------------------------------------- */
 /*  Ligne utilisateur                                                          */
 /* -------------------------------------------------------------------------- */
-function SystemUserRow({ user, currentUserId }: { user: SystemUser; currentUserId: string | undefined }) {
+function SystemUserRow({ user, currentUserId, canDelete }: { user: SystemUser; currentUserId: string | undefined; canDelete: boolean }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [permissions, setPermissions] = useState<DashboardPermissions>(user.permissions ?? {});
@@ -494,17 +494,20 @@ function SystemUserRow({ user, currentUserId }: { user: SystemUser; currentUserI
             <Button size="sm" variant="outline" disabled={update.isPending} onClick={() => update.mutate({ isActive: !user.isActive })}>
               {user.isActive ? 'Désactiver' : 'Réactiver'}
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              aria-label={`Supprimer ${user.email}`}
-              disabled={remove.isPending}
-              onClick={() => {
-                if (window.confirm(`Supprimer définitivement le compte ${user.email} ?`)) remove.mutate();
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {/* Suppression réservée au super administrateur (les autres désactivent). */}
+            {canDelete && (
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label={`Supprimer ${user.email}`}
+                disabled={remove.isPending}
+                onClick={() => {
+                  if (window.confirm(`Supprimer définitivement le compte ${user.email} ?`)) remove.mutate();
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -594,7 +597,7 @@ export default function AdminSystemUsersPage() {
               ) : (
                 <ul className="divide-y divide-ink-900/8">
                   {users.map((u) => (
-                    <SystemUserRow key={u.id} user={u} currentUserId={currentUser?.id} />
+                    <SystemUserRow key={u.id} user={u} currentUserId={currentUser?.id} canDelete={currentUser?.role === 'SUPER_ADMIN'} />
                   ))}
                 </ul>
               )}

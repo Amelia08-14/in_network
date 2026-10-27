@@ -71,6 +71,8 @@ import { createSystemUserSchema, updateSystemUserSchema } from './admin.schema';
 import * as systemUsers from './systemUsers.service';
 import * as companiesService from '../companies/companies.service';
 import { adminUpdateCompanySchema, setMemberActiveSchema } from '../companies/companies.schema';
+import { getIdDocumentFile, removeIdentityFile } from '../profiles/profiles.service';
+import { identityAbsolutePath } from '../situation/proofs.storage';
 
 export const adminRouter = Router();
 
@@ -136,8 +138,10 @@ adminRouter.post(
     ok(res, { success: true });
   }),
 );
+// Suppression d'un compte : réservée au super administrateur (demande client 27/10/2026).
 adminRouter.delete(
   '/system-users/:id',
+  requireRole('SUPER_ADMIN'),
   asyncHandler(async (req, res) => {
     await systemUsers.deleteSystemUser(param(req, 'id'), req.user!.id);
     res.status(204).send();
@@ -373,6 +377,18 @@ adminRouter.get(
   }),
 );
 
+// Pièce d'identité d'un membre (droit « membres » en lecture, cf. adminPermission).
+adminRouter.get(
+  '/members/:id/id-document',
+  asyncHandler(async (req, res) => {
+    const file = await getIdDocumentFile(param(req, 'id'));
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.fileName)}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.sendFile(identityAbsolutePath(file.filePath));
+  }),
+);
+
 adminRouter.patch(
   '/members/:id',
   validate({ body: toggleActiveSchema }),
@@ -394,13 +410,17 @@ adminRouter.patch(
 // Payment en premier puisqu'il référence Booking/Subscription/ServiceRequest.
 // Le reste (RefreshToken, MemberProfile + ProfileTag, ExpertProfile,
 // ExpertConnectionRequest) est déjà en cascade au niveau du schéma.
+// Réservée au super administrateur (demande client 27/10/2026) : les autres
+// comptes du backoffice peuvent seulement désactiver un membre.
 adminRouter.delete(
   '/members/:id',
+  requireRole('SUPER_ADMIN'),
   asyncHandler(async (req, res) => {
     const id = param(req, 'id');
     const member = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } });
     if (!member) throw ApiError.notFound('Membre introuvable');
     if (member.role !== 'MEMBER') throw ApiError.forbidden('Seuls les comptes membres peuvent être supprimés');
+    const identity = await prisma.memberProfile.findUnique({ where: { userId: id }, select: { idDocumentPath: true } });
 
     await prisma.$transaction([
       prisma.payment.deleteMany({ where: { userId: id } }),
@@ -413,6 +433,8 @@ adminRouter.delete(
       prisma.subscription.deleteMany({ where: { userId: id } }),
       prisma.user.delete({ where: { id } }),
     ]);
+    // La pièce d'identité (fichier privé) disparaît avec le compte.
+    if (identity?.idDocumentPath) removeIdentityFile(identity.idDocumentPath);
 
     ok(res, { success: true });
   }),

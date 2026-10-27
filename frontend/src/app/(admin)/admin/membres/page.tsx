@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { api } from '@/lib/admin-api';
+import { useAdminAuthStore } from '@/store/admin-auth';
 import type { ApiListResponse } from '@/types';
 
 interface AdminMember {
@@ -28,6 +29,8 @@ interface AdminMember {
 
 export default function AdminMembresPage() {
   const queryClient = useQueryClient();
+  // Suppression définitive réservée au super administrateur (demande client 27/10/2026).
+  const canDelete = useAdminAuthStore((s) => s.user?.role) === 'SUPER_ADMIN';
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
@@ -125,26 +128,28 @@ export default function AdminMembresPage() {
                         >
                           {member.isActive ? 'Désactiver' : 'Activer'}
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-brand-orange hover:text-brand-orange"
-                          onClick={() => {
-                            const name = member.profile
-                              ? `${member.profile.firstName} ${member.profile.lastName}`
-                              : member.email;
-                            if (
-                              window.confirm(
-                                `Supprimer définitivement le compte de ${name} ? Toutes ses données (réservations, demandes, abonnements...) seront effacées. Cette action est irréversible.`,
-                              )
-                            ) {
-                              deleteMutation.mutate(member.id);
-                            }
-                          }}
-                          aria-label="Supprimer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canDelete && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-brand-orange hover:text-brand-orange"
+                            onClick={() => {
+                              const name = member.profile
+                                ? `${member.profile.firstName} ${member.profile.lastName}`
+                                : member.email;
+                              if (
+                                window.confirm(
+                                  `Supprimer définitivement le compte de ${name} ? Toutes ses données (réservations, demandes, abonnements...) seront effacées. Cette action est irréversible.`,
+                                )
+                              ) {
+                                deleteMutation.mutate(member.id);
+                              }
+                            }}
+                            aria-label="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
