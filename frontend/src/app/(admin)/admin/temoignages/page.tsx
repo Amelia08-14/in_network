@@ -18,12 +18,13 @@ interface Testimonial {
   id: string;
   authorName: string;
   authorRole: string | null;
+  authorContext: string | null;
   content: string | null;
   videoUrl: string | null;
   isPublished: boolean;
 }
 
-const EMPTY_FORM = { authorName: '', authorRole: '', content: '', videoUrl: null as string | null };
+const EMPTY_FORM = { authorName: '', authorRole: '', authorContext: '', content: '', videoUrl: null as string | null };
 
 export default function AdminTemoignagesPage() {
   const queryClient = useQueryClient();
@@ -41,6 +42,7 @@ export default function AdminTemoignagesPage() {
       api.post('/api/admin/testimonials', {
         authorName: form.authorName,
         authorRole: form.authorRole || undefined,
+        authorContext: form.authorContext || undefined,
         content: form.content || undefined,
         videoUrl: form.videoUrl || undefined,
       }),
@@ -87,8 +89,13 @@ export default function AdminTemoignagesPage() {
                 <Input value={form.authorName} onChange={(e) => setForm({ ...form, authorName: e.target.value })} />
               </div>
               <div>
-                <Label>Rôle</Label>
-                <Input value={form.authorRole} onChange={(e) => setForm({ ...form, authorRole: e.target.value })} />
+                <Label>Activité</Label>
+                <Input value={form.authorRole} placeholder="Ex. Motion designer" onChange={(e) => setForm({ ...form, authorRole: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Contexte (avec l’accord de la personne)</Label>
+                <Input value={form.authorContext} placeholder="Ex. Membre depuis 2025, bureau privé" maxLength={191} onChange={(e) => setForm({ ...form, authorContext: e.target.value })} />
+                <p className="mt-1 text-xs text-ink-500">Affiché sur l’accueil : prénom · activité · contexte. Citation : une vraie phrase tirée de la vidéo.</p>
               </div>
             </div>
             <div>
@@ -132,7 +139,7 @@ export default function AdminTemoignagesPage() {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-ink-800">
-                      {t.authorName} {t.authorRole && <span className="font-normal text-ink-500">— {t.authorRole}</span>}
+                      {t.authorName} {(t.authorRole || t.authorContext) && <span className="font-normal text-ink-500">— {[t.authorRole, t.authorContext].filter(Boolean).join(' · ')}</span>}
                     </p>
                     {t.content && <p className="mt-1 text-sm text-ink-600">{t.content}</p>}
                     {t.videoUrl && <p className="mt-1 text-xs font-medium text-brand-blue">Vidéo jointe</p>}

@@ -148,6 +148,7 @@ export const createTestimonialSchema = z
   .object({
     authorName: z.string().min(1),
     authorRole: z.string().optional(),
+    authorContext: z.string().max(191).optional(),
     content: z.string().min(1).optional(),
     videoUrl: z.string().url().optional(),
     thumbnailUrl: z.string().url().optional(),
@@ -159,6 +160,7 @@ export const createTestimonialSchema = z
 export const updateTestimonialSchema = z.object({
   authorName: z.string().min(1).optional(),
   authorRole: z.string().optional(),
+  authorContext: z.string().max(191).optional(),
   content: z.string().min(1).optional(),
   videoUrl: z.string().url().optional(),
   thumbnailUrl: z.string().url().optional(),

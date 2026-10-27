@@ -463,7 +463,8 @@ export default async function HomePage() {
           lead="Des rencontres pour apprendre, échanger et faire avancer vos projets."
         />
         {upcoming.length > 0 ? (
-          <ScrollReveal stagger={90} className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          // 1 à 3 rendez-vous : la grille suit leur nombre (pas de colonne vide).
+          <ScrollReveal stagger={90} className={cn('mt-12 grid gap-5', upcoming.length === 1 ? 'max-w-md' : upcoming.length === 2 ? 'sm:grid-cols-2 lg:max-w-4xl' : 'sm:grid-cols-2 lg:grid-cols-3')}>
             {upcoming.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
@@ -533,7 +534,9 @@ export default async function HomePage() {
                 <blockquote className="mt-3 leading-relaxed text-white/90">{featuredTestimonial.content}</blockquote>
                 <figcaption className="mt-4 text-sm font-semibold text-white">
                   {featuredTestimonial.authorName}
-                  {featuredTestimonial.authorRole && <span className="font-normal text-white/60"> — {featuredTestimonial.authorRole}</span>}
+                  {(featuredTestimonial.authorRole || featuredTestimonial.authorContext) && (
+                    <span className="font-normal text-white/60"> — {[featuredTestimonial.authorRole, featuredTestimonial.authorContext].filter(Boolean).join(' · ')}</span>
+                  )}
                 </figcaption>
               </figure>
             )}

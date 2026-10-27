@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   Armchair,
+  ArrowRight,
   BarChart3,
   Flower2,
   Building2,
@@ -108,7 +109,13 @@ const COMMUNITY = [
 ];
 
 // La Maison IN Groupe — filiales et expertises (proposition de l'audit du site).
-const GROUP_BRANDS: { name: string; role: string; icon: typeof Users2 }[] = [
+// En attente du client (tâche 3.20) : logos officiels (fichier dans public/,
+// ex. '/filiales/in-com.svg') et site de chaque filiale. Tant que `logo` est
+// vide, l'icône générique s'affiche ; une filiale avec `url` devient un lien.
+/** Page « toutes les filiales » de la maquette (bouton masqué tant qu'elle n'est pas fournie). */
+const GROUP_SITE_URL: string | null = null;
+
+const GROUP_BRANDS: { name: string; role: string; icon: typeof Users2; logo?: string; url?: string }[] = [
   { name: 'IN CAPITAL', role: 'Finance & investissement', icon: BarChart3 },
   { name: 'IN DEV', role: 'Développement digital', icon: Code2 },
   { name: 'IN COM', role: 'Communication 360°', icon: Megaphone },
@@ -349,17 +356,42 @@ export default function AProposPage() {
             </div>
           </div>
           <ScrollReveal stagger={50} className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {GROUP_BRANDS.map((brand) => (
-              <div key={brand.name} className={cn('flex h-full flex-col gap-3 rounded-2xl border bg-white p-5 shadow-soft', brand.name === 'IN NETWORK' ? 'border-brand-orange/40 ring-1 ring-brand-orange/20' : 'border-ink-900/8')}>
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-orange/10 text-brand-orange">
-                  <brand.icon className="h-4 w-4" />
-                </span>
-                <span aria-hidden className="h-0.5 w-6 rounded-full bg-brand-orange" />
-                <p className="font-heading text-sm font-bold text-ink-900">{brand.name}</p>
-                <p className="-mt-2 text-xs text-ink-500">{brand.role}</p>
-              </div>
-            ))}
+            {GROUP_BRANDS.map((brand) => {
+              const body = (
+                <>
+                  {brand.logo ? (
+                    <span className="relative flex h-10 w-24 items-center">
+                      <Image src={brand.logo} alt={`Logo ${brand.name}`} fill sizes="96px" className="object-contain object-left" />
+                    </span>
+                  ) : (
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-orange/10 text-brand-orange">
+                      <brand.icon className="h-4 w-4" />
+                    </span>
+                  )}
+                  <span aria-hidden className="h-0.5 w-6 rounded-full bg-brand-orange" />
+                  <p className="font-heading text-sm font-bold text-ink-900">{brand.name}</p>
+                  <p className="-mt-2 text-xs text-ink-500">{brand.role}</p>
+                </>
+              );
+              const cardClass = cn('flex h-full flex-col gap-3 rounded-2xl border bg-white p-5 shadow-soft', brand.name === 'IN NETWORK' ? 'border-brand-orange/40 ring-1 ring-brand-orange/20' : 'border-ink-900/8');
+              return brand.url ? (
+                <a key={brand.name} href={brand.url} target="_blank" rel="noopener noreferrer" className={cn(cardClass, 'transition hover:-translate-y-0.5 hover:border-ink-900/25')}>
+                  {body}
+                </a>
+              ) : (
+                <div key={brand.name} className={cardClass}>
+                  {body}
+                </div>
+              );
+            })}
           </ScrollReveal>
+          {GROUP_SITE_URL && (
+            <div className="mt-8 flex justify-center">
+              <a href={GROUP_SITE_URL} target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({ variant: 'outline', size: 'md' }), 'gap-2')}>
+                Découvrir toutes les filiales <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+          )}
         </Container>
       </section>
 

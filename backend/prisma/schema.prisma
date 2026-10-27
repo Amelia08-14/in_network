@@ -786,14 +786,16 @@ model EventRegistration {
 // ============================================
 
 model Testimonial {
-  id           String   @id @default(cuid())
-  authorName   String
-  authorRole   String?
-  content      String?  @db.Text // optionnel : un témoignage vidéo peut n'avoir aucun texte
-  videoUrl     String?
-  thumbnailUrl String?
-  isPublished  Boolean  @default(false)
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  authorName    String
+  // Activité (« Motion designer ») et contexte (« membre depuis 2025 ») : légende du témoignage.
+  authorRole    String?
+  authorContext String?
+  content       String?  @db.Text // optionnel : un témoignage vidéo peut n'avoir aucun texte
+  videoUrl      String?
+  thumbnailUrl  String?
+  isPublished   Boolean  @default(false)
+  createdAt     DateTime @default(now())
 
   @@map("testimonials")
 }

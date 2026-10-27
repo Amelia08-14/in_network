@@ -54,6 +54,8 @@ export function EventCard({ event }: { event: EventItem }) {
               month: 'long',
               year: 'numeric',
               ...(isPast ? {} : { hour: '2-digit', minute: '2-digit' }),
+              // Heure d'Alger, quel que soit le fuseau du serveur qui rend la page.
+              timeZone: 'Africa/Algiers',
             })}
           </p>
           {event.location && (

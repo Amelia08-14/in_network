@@ -109,6 +109,13 @@ export default function MentionsLegalesPage() {
               </a>
               .
             </p>
+            <p>
+              Le détail figure dans notre{' '}
+              <Link href="/confidentialite" className="font-semibold text-brand-orange hover:underline">
+                politique de confidentialité
+              </Link>
+              .
+            </p>
           </Block>
 
           <Block n="06" icon={Scale} title="Responsabilité">
@@ -122,7 +129,11 @@ export default function MentionsLegalesPage() {
           <Link href="/cgu" className="font-semibold text-brand-orange hover:underline">
             conditions d’utilisation
           </Link>{' '}
-          du site.
+          du site et la{' '}
+          <Link href="/confidentialite" className="font-semibold text-brand-orange hover:underline">
+            politique de confidentialité
+          </Link>
+          .
         </p>
       </div>
     </section>

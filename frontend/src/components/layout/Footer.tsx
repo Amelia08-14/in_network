@@ -35,6 +35,7 @@ const COLUMNS = [
       { href: '/a-propos', label: 'À propos' },
       { href: '/contact', label: 'Contact' },
       { href: '/mentions-legales', label: 'Mentions légales' },
+      { href: '/confidentialite', label: 'Confidentialité' },
       { href: '/cgu', label: "Conditions d'utilisation" },
     ],
   },
