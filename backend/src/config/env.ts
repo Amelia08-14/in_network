@@ -34,7 +34,7 @@ export const env = {
   },
 
   resendApiKey: process.env.RESEND_API_KEY ?? '',
-  emailFrom: process.env.EMAIL_FROM ?? 'IN NETWORK <no-reply@innetwork.dz>',
+  emailFrom: process.env.EMAIL_FROM ?? 'IN NETWORK <contact@in-network.dz>',
 
   smtp: {
     host: process.env.SMTP_HOST ?? '',

@@ -70,11 +70,13 @@ async function notifyAdminsOfNewBooking(spaceName: string, memberEmail: string, 
 
   const html = `<p>Nouvelle demande de réservation de <strong>${memberEmail}</strong> pour <strong>${spaceName}</strong>, le ${DATE_FMT.format(start)} (jusqu'à ${new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short', timeZone: SITE_TIME_ZONE }).format(end)}).</p><p>À confirmer ou annuler depuis le backoffice — Réservations.</p>`;
 
-  sendEmail({
-    to: admins.map((a) => a.email).join(','),
-    subject: 'IN NETWORK — nouvelle demande de réservation',
-    html,
-  }).catch((err) => console.error('[bookings] échec envoi email admin (nouvelle demande)', err));
+  // Un envoi par destinataire : une adresse invalide (ex. le compte admin du
+  // seed, admin@innetwork.dz) ne doit pas faire échouer l'alerte des autres.
+  for (const { email } of admins) {
+    sendEmail({ to: email, subject: 'IN NETWORK — nouvelle demande de réservation', html }).catch((err) =>
+      console.error(`[bookings] échec envoi email admin (nouvelle demande) à ${email}`, err instanceof Error ? err.message : err),
+    );
+  }
 }
 
 export async function listMyBookings(userId: string) {
