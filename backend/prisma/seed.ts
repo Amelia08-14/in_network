@@ -390,6 +390,13 @@ async function main() {
     for (const [index, file] of fs.readdirSync(testimonialsDir).entries()) {
       const ext = path.extname(file);
       const caption = path.basename(file, ext).replace(/\s+/g, ' ').trim();
+      // Déjà publié depuis l'admin avec le prénom du membre (même légende) : ne
+      // pas recréer un doublon « Membre IN NETWORK » (cf. audit du 27/10/2026).
+      const firstSentence = caption.split(/[.!?]/)[0].trim();
+      const alreadyNamed = firstSentence
+        ? await prisma.testimonial.findFirst({ where: { authorName: { not: 'Membre IN NETWORK' }, content: { startsWith: firstSentence } } })
+        : null;
+      if (alreadyNamed) continue;
       const key = `testimonial-${index}`;
       const videoUrl = await saveVideo(path.join(testimonialsDir, file), 'sites', key);
       if (!videoUrl) continue;

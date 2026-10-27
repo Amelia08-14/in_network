@@ -35,15 +35,8 @@ import { BrandTexture } from '@/components/ui/brand-texture';
 import { serverGet } from '@/lib/server-api';
 import { sortServices } from '@/lib/services-order';
 import { VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
+import { uniqueTestimonials, type Testimonial } from '@/lib/testimonials';
 import type { ServiceCatalogItem, EventItem } from '@/types';
-
-interface Testimonial {
-  id: string;
-  authorName: string;
-  authorRole: string | null;
-  content: string | null;
-  videoUrl: string | null;
-}
 
 // Vitrine publique de la communauté (GET /api/profiles/showcase) : chiffres
 // réels et aperçu limité — l'annuaire complet reste réservé aux connectés.
@@ -127,17 +120,6 @@ const CTA_POINTS: { icon: typeof Building2; title: string; text: string }[] = [
 ];
 
 export const revalidate = 3600;
-
-/** Un même témoignage peut avoir été publié deux fois : une vidéo (ou un texte) n'apparaît qu'une fois. */
-function uniqueTestimonials(items: Testimonial[]) {
-  const seen = new Set<string>();
-  return items.filter((t) => {
-    const key = t.videoUrl ? `v:${t.videoUrl}` : `t:${t.authorName}:${t.content}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
 
 /** Trois prochains rendez-vous et trois derniers événements passés (page en ISR : l'heure du rendu fait foi). */
 function splitEvents(events: EventItem[]) {
