@@ -15,4 +15,26 @@ export const VENUE_PHOTOS = {
   detente: { src: '/espaces/espace-detente.webp', alt: 'Un espace d’accueil et de détente' },
 } as const;
 
-export type VenuePhoto = (typeof VENUE_PHOTOS)[keyof typeof VENUE_PHOTOS];
+export type VenuePhoto = { src: string; alt: string };
+
+// Visuels des bureaux nommés et de l'espace Roof, fournis par la cliente le
+// 27/10/2026 (public/espaces/cowork_espace : bureaux du rez-de-chaussée,
+// cowork_colors : bureaux de couleur à l'étage, cowork_roof : open space et
+// terrasse du Roof). Une photo = un bureau précis : on l'associe par le nom du
+// bureau en base (« Bureau Alpha »…), jamais à un autre.
+export const OFFICE_PHOTOS: Record<string, VenuePhoto> = {
+  'Bureau Alpha': { src: '/espaces/cowork_espace/bureau-alpha.webp', alt: 'Le Bureau Alpha : deux postes, cloison vitrée et meuble de rangement, tons bleu nuit et chêne' },
+  'Bureau Bêta': { src: '/espaces/cowork_espace/bureau-beta.webp', alt: 'Le Bureau Bêta : deux postes et un meuble de rangement, tons bleu et sable' },
+  'Bureau Gamma': { src: '/espaces/cowork_espace/bureau-gamma.webp', alt: 'Le Bureau Gamma : deux postes côte à côte, tons vert sauge' },
+  'Bureau Delta': { src: '/espaces/cowork_espace/bureau-delta.webp', alt: 'Le Bureau Delta : deux postes et un meuble de rangement, mur rouge brique' },
+  'Bureau Lamda': { src: '/espaces/cowork_espace/bureau-lamda.webp', alt: 'Le Bureau Lamda : quatre postes autour d’un bureau partagé, tons violet' },
+  'Bureau Julia': { src: '/espaces/cowork_espace/bureau-julia.webp', alt: 'Le Bureau Julia : quatre postes le long des murs, tons terracotta et bois' },
+  'Bureau Rouge': { src: '/espaces/cowork_colors/bureau-rouge.webp', alt: 'Le Bureau Rouge : postes de travail face à face et balcon ouvert sur la verdure' },
+  'Bureau Vert': { src: '/espaces/cowork_colors/bureau-vert.webp', alt: 'Le Bureau Vert : îlots de postes de travail et balcon, tons vert et bois' },
+  'Bureau Orange': { src: '/espaces/cowork_colors/bureau-orange.webp', alt: 'Le Bureau Orange : postes alignés le long des murs et balcon, tons orange' },
+};
+
+export const ROOF_PHOTOS = {
+  openSpace: { src: '/espaces/cowork_roof/open-space-roof.webp', alt: 'L’open space Roof : postes de travail individuels et table de réunion' },
+  terrasse: { src: '/espaces/cowork_roof/terrasse-rooftop.webp', alt: 'La terrasse rooftop de l’Espace Roof, avec ses salons et tables extérieures' },
+} as const;

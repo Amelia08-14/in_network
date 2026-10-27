@@ -37,7 +37,8 @@ import { byPrice } from '@/lib/services-order';
 import { cn } from '@/lib/utils';
 import { CURRENCY, formatDa, formatNumber } from '@/lib/money';
 import { HUE, planHue, type Hue } from '@/lib/palette';
-import { VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
+import { OFFICE_PHOTOS, ROOF_PHOTOS, VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
+import { OfficeGallery, type OfficeShot } from '@/components/features/OfficeGallery';
 import { BrandTexture } from '@/components/ui/brand-texture';
 import type { CardAccent } from '@/components/ui/card';
 import type { MembershipPlan, ServiceCatalogItem, SpaceResource } from '@/types';
@@ -79,7 +80,7 @@ const PLAN_STYLE: { match: string; tagline: string; photo: VenuePhoto }[] = [
   { match: 'casier', tagline: 'Une solution pratique et sécurisée pour vos effets personnels.', photo: VENUE_PHOTOS.casiers },
   { match: 'domiciliation', tagline: 'Une adresse à Hydra qui inspire confiance à vos clients et partenaires dès le premier contact.', photo: VENUE_PHOTOS.detente },
   { match: 'open space rdc', tagline: 'Un poste dédié au cœur d’une communauté active, pour travailler, échanger et collaborer.', photo: VENUE_PHOTOS.openSpace },
-  { match: 'open space roof', tagline: 'Votre poste de travail individuel, dans l’open space Roof.', photo: VENUE_PHOTOS.postes },
+  { match: 'open space roof', tagline: 'Votre poste de travail individuel, dans l’open space Roof.', photo: ROOF_PHOTOS.openSpace },
   { match: 'open space', tagline: 'Un poste dédié au cœur d’une communauté active, pour travailler, échanger et collaborer.', photo: VENUE_PHOTOS.openSpace },
 ];
 const planStyle = (name: string) => PLAN_STYLE.find((style) => name.toLowerCase().includes(style.match));
@@ -99,6 +100,19 @@ const officeRank = (name: string) => {
   const rank = OFFICE_ORDER.findIndex((n) => name.endsWith(n));
   return rank === -1 ? OFFICE_ORDER.length : rank;
 };
+
+// Visuels des bureaux d'une même taille, chacun sous son nom. Le bureau Roof
+// n'a pas de visuel propre : on montre la terrasse rooftop, à laquelle il donne
+// accès (catalogue), en le disant dans la légende.
+const OFFICE_EXTRA_SHOTS: Record<string, OfficeShot> = {
+  'Bureau Roof': { name: 'Terrasse rooftop (accès inclus)', photo: ROOF_PHOTOS.terrasse },
+};
+const officeShots = (names: string[]): OfficeShot[] =>
+  names.flatMap((name) => {
+    const photo = OFFICE_PHOTOS[name];
+    if (photo) return [{ name: name.replace(/^Bureau /, ''), photo }];
+    return OFFICE_EXTRA_SHOTS[name] ? [OFFICE_EXTRA_SHOTS[name]] : [];
+  });
 
 // Photo de chaque salle (sélection de la galerie du lieu).
 const ROOM_PHOTOS: Record<string, VenuePhoto> = {
@@ -568,15 +582,15 @@ export default async function ServicesPage() {
               }
               lead="Un espace fermé, meublé et confidentiel pour travailler, recevoir vos clients et développer votre activité — tout en restant connecté à l’écosystème IN NETWORK. Quatre tailles, de 2 à 14 personnes."
             />
-            <div className="grid gap-6 lg:grid-cols-[0.8fr_2fr]">
-              <Photo photo={VENUE_PHOTOS.bureauPrive} sizes="(min-width: 1024px) 320px, 100vw" className="hidden min-h-[320px] rounded-3xl lg:block" />
-              <ScrollReveal stagger={80} className="grid items-stretch gap-5 sm:grid-cols-2">
+            <ScrollReveal stagger={80} className="grid items-stretch gap-5 sm:grid-cols-2">
                 {officePlans.map((plan) => {
                   const named = officesFor(plan);
                   const capacity = named[0]?.capacity ?? Number(plan.name.match(/(\d+) personnes/)?.[1] ?? 0);
+                  const shots = officeShots(named.map((o) => o.name));
                   return (
                     <Card key={plan.id} accent="ink" className="h-full">
                       <CardContent className="flex h-full flex-col gap-4">
+                        {shots.length > 0 && <OfficeGallery shots={shots} sizes="(min-width: 640px) 45vw, 100vw" />}
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-orange">{capacity > 0 ? `Jusqu’à ${capacity} personnes · bureau fermé` : 'Bureau fermé'}</p>
                           <h3 className="mt-1 font-heading text-lg font-bold text-ink-900">
@@ -606,8 +620,7 @@ export default async function ServicesPage() {
                     </Card>
                   );
                 })}
-              </ScrollReveal>
-            </div>
+            </ScrollReveal>
             <p className="mt-6 text-sm text-ink-500">Chaque bureau porte un nom ; l’équipe vous attribue celui qui est disponible à la signature.</p>
           </section>
         )}
