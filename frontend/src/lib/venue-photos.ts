@@ -1,18 +1,19 @@
-// Photos réelles d'IN NETWORK Hydra (sélection de la galerie du lieu, optimisée
-// dans public/espaces) utilisées par les pages vitrines. La galerie complète
-// reste gérée depuis l'admin (Galerie du lieu).
+// Photos réelles d'IN NETWORK Hydra utilisées par les pages vitrines : nouvelles
+// photos fournies le 27/10/2026 (optimisées dans public/espaces), cuisine et
+// petite salle de réunion d'origine. La galerie complète reste gérée depuis
+// l'admin (Galerie du lieu).
 export const VENUE_PHOTOS = {
-  terrasse: { src: '/espaces/terrasse.webp', alt: 'La terrasse-jardin d’IN NETWORK Hydra, avec ses salons extérieurs' },
+  terrasse: { src: '/espaces/terrasse-pergola.webp', alt: 'La terrasse d’IN NETWORK Hydra : salons extérieurs sous la pergola, avec vue sur la verdure' },
   cuisine: { src: '/espaces/cuisine.webp', alt: 'L’espace cuisine et pause café' },
-  openSpace: { src: '/espaces/open-space.webp', alt: 'Postes de travail en open space' },
-  openSpaceVue: { src: '/espaces/open-space-vue.webp', alt: 'Vue de l’open space et de ses grandes tables de travail' },
-  postes: { src: '/espaces/postes-open-space.webp', alt: 'Postes en open space devant les bureaux fermés vitrés' },
+  openSpace: { src: '/espaces/allee-coworking.webp', alt: 'Postes de travail en open space, devant les bureaux privés vitrés' },
+  openSpaceVue: { src: '/espaces/open-space-lumineux.webp', alt: 'Vue de l’open space et de ses grandes tables de travail en bois' },
+  postes: { src: '/espaces/ilot-postes.webp', alt: 'Un îlot de postes en open space, prises intégrées, devant les bureaux fermés vitrés' },
   bureauPrive: { src: '/espaces/bureau-prive.webp', alt: 'Un bureau privé équipé' },
   salleReunion: { src: '/espaces/salle-reunion.webp', alt: 'Une salle de réunion avec tableau blanc' },
-  grandeSalle: { src: '/espaces/grande-salle.webp', alt: 'Une grande salle de réunion' },
-  salleProjection: { src: '/espaces/salle-projection.webp', alt: 'Une salle équipée d’un écran de projection' },
-  casiers: { src: '/espaces/casiers.webp', alt: 'Les casiers individuels fermés à clé' },
-  detente: { src: '/espaces/espace-detente.webp', alt: 'Un espace d’accueil et de détente' },
+  grandeSalle: { src: '/espaces/grande-salle-18.webp', alt: 'La grande salle de réunion : longue table et fauteuils en cuir, vidéoprojecteur' },
+  salleProjection: { src: '/espaces/salle-formation-projection.webp', alt: 'La salle de formation, présentation projetée et tableau blanc' },
+  casiers: { src: '/espaces/casiers-chene.webp', alt: 'Les casiers individuels en chêne, fermés à clé' },
+  detente: { src: '/espaces/salon-accueil.webp', alt: 'Le salon d’accueil, canapé et fauteuils' },
 } as const;
 
 export type VenuePhoto = { src: string; alt: string };
