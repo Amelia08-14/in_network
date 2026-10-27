@@ -11,8 +11,11 @@ import { ApiError } from '../../utils/apiResponse';
 // droits d'admin.
 export const PROOFS_DIR = path.join(process.cwd(), 'private-uploads', 'proofs');
 export const DOCUMENTS_DIR = path.join(process.cwd(), 'private-uploads', 'member-documents');
+// Pièces d'identité des membres (complétude du profil).
+export const IDENTITY_DIR = path.join(process.cwd(), 'private-uploads', 'identity');
 fs.mkdirSync(PROOFS_DIR, { recursive: true });
 fs.mkdirSync(DOCUMENTS_DIR, { recursive: true });
+fs.mkdirSync(IDENTITY_DIR, { recursive: true });
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const EXTENSION_BY_MIME: Record<string, string> = {
@@ -58,8 +61,11 @@ function absoluteIn(directory: string, relativePath: string): string {
 
 export const proofUpload = privateUpload(PROOFS_DIR);
 export const documentUpload = privateUpload(DOCUMENTS_DIR);
+export const identityUpload = privateUpload(IDENTITY_DIR);
 
 /** Chemin absolu d'un justificatif — refuse toute sortie du dossier privé. */
 export const proofAbsolutePath = (relativePath: string) => absoluteIn(PROOFS_DIR, relativePath);
 /** Chemin absolu d'un document remis au membre. */
 export const documentAbsolutePath = (relativePath: string) => absoluteIn(DOCUMENTS_DIR, relativePath);
+/** Chemin absolu d'une pièce d'identité. */
+export const identityAbsolutePath = (relativePath: string) => absoluteIn(IDENTITY_DIR, relativePath);

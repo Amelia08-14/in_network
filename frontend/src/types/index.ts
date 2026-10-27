@@ -205,7 +205,14 @@ export interface MemberProfileSummary {
   email?: string;
   isPublic?: boolean;
   updatedAt?: string;
+  /** Pièce d'identité envoyée (profil du membre connecté uniquement). */
+  idDocument?: IdDocumentInfo | null;
   completeness?: ProfileCompleteness;
+}
+
+export interface IdDocumentInfo {
+  fileName: string | null;
+  uploadedAt: string | null;
 }
 
 export interface ProfileCompleteness {

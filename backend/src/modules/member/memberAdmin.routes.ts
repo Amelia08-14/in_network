@@ -42,7 +42,7 @@ memberAdminRouter.get(
         phone: true,
         createdAt: true,
         referent: { select: STAFF_SELECT },
-        profile: { select: { firstName: true, lastName: true, companyName: true, memberType: true, isPublic: true, avatarUrl: true, city: true } },
+        profile: { select: { firstName: true, lastName: true, companyName: true, memberType: true, isPublic: true, avatarUrl: true, city: true, idDocumentName: true, idDocumentUploadedAt: true } },
         company: { select: { id: true, name: true, seatLimit: true } },
         memberLeads: {
           select: { id: true, reference: true, title: true, kind: true, stage: true, circuit: true, pipeline: true, channel: true, source: true, salesAgent: { select: STAFF_SELECT }, createdAt: true, wonAt: true },

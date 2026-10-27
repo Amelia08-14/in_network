@@ -322,32 +322,39 @@ model RefreshToken {
 }
 
 model MemberProfile {
-  id             String     @id @default(cuid())
-  userId         String     @unique
-  firstName      String
-  lastName       String
-  memberType     MemberType @default(FREELANCE)
-  companyName    String?
-  jobTitle       String?
-  bio            String?    @db.Text
-  avatarUrl      String?
+  id                   String     @id @default(cuid())
+  userId               String     @unique
+  firstName            String
+  lastName             String
+  memberType           MemberType @default(FREELANCE)
+  companyName          String?
+  jobTitle             String?
+  bio                  String?    @db.Text
+  avatarUrl            String?
   // Logo de l'entreprise du membre — géré par le membre lui-même depuis son
   // espace (/dashboard/profil), distinct de l'avatar (portrait). S'affiche
   // dans l'annuaire et le panneau admin. Toujours parler de « logo », pas de
   // « photo » (demande client 07/09/2026).
-  companyLogoUrl String?
+  companyLogoUrl       String?
   // Ville / wilaya — localisation affichée dans l'annuaire (brief §4.3).
-  city           String?
-  website        String?
-  linkedinUrl    String?
+  city                 String?
+  // Scan d'une pièce d'identité valide (demande client 27/10/2026), exigé pour
+  // un profil complet. Fichier privé (private-uploads/identity), jamais public :
+  // lu seulement par le membre et le backoffice (droit « membres »).
+  idDocumentPath       String?
+  idDocumentName       String?
+  idDocumentMime       String?
+  idDocumentUploadedAt DateTime?
+  website              String?
+  linkedinUrl          String?
   // Faux par défaut : un profil n'apparaît dans l'annuaire qu'après
   // validation Admin (brief client §3.1 — la validation manuelle,
   // temporairement retirée courant août, est redemandée explicitement).
   // L'Admin bascule ce champ à true depuis /admin/validations.
-  isPublic       Boolean    @default(false)
-  siteId         String
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  isPublic             Boolean    @default(false)
+  siteId               String
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
 
   user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   site Site         @relation(fields: [siteId], references: [id])

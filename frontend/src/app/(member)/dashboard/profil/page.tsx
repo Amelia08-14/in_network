@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BadgeCheck, Briefcase, Check, CheckCircle2, Circle, Contact, Handshake, ShoppingBag, UserRound, Wrench } from 'lucide-react';
+import { BadgeCheck, Briefcase, Check, CheckCircle2, Circle, Contact, Handshake, IdCard, ShoppingBag, UserRound, Wrench } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { TagPicker } from '@/components/features/TagPicker';
 import { ChangePasswordCard } from '@/components/features/ChangePasswordCard';
 import { MemberImageUploader } from '@/components/features/upload/MemberImageUploader';
+import { IdDocumentUploader } from '@/components/features/IdDocumentUploader';
 import { api, ApiRequestError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { MemberProfileSummary } from '@/types';
@@ -129,6 +130,7 @@ function ProfilForm({ profile }: { profile: MemberProfileSummary }) {
     { label: 'Présentation', done: Boolean(form.bio.trim()) },
     { label: 'Téléphone', done: Boolean(form.phone.trim()) },
     { label: 'Au moins un domaine d’activité', done: sectors.length > 0 },
+    { label: 'Pièce d’identité (scan)', done: Boolean(profile.idDocument) },
   ];
   const bonus = [avatarUrl, form.city.trim(), form.linkedinUrl.trim(), skillsOffered.length, skillsWanted.length].filter(Boolean).length;
   const doneCount = checklist.filter((c) => c.done).length;
@@ -218,6 +220,10 @@ function ProfilForm({ profile }: { profile: MemberProfileSummary }) {
                 <Input id="linkedinUrl" inputMode="url" placeholder="https://linkedin.com/in/votre-profil" value={form.linkedinUrl} onChange={(e) => set({ linkedinUrl: e.target.value })} />
               </div>
             </div>
+          </Section>
+
+          <Section icon={IdCard} title="Pièce d’identité *" description="Exigée pour compléter votre profil et activer vos demandes, réservations et mises en relation.">
+            <IdDocumentUploader document={profile.idDocument} />
           </Section>
 
           <Section icon={Briefcase} title="Activité" description="Votre poste, votre entreprise et votre présentation.">

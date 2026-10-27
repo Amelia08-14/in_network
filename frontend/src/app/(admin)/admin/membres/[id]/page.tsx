@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CalendarCheck, FileText, History, Mail, PackageCheck, Phone, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, FileText, History, IdCard, Mail, PackageCheck, Phone, UserRound } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -27,7 +27,16 @@ interface MemberFile {
     phone: string | null;
     createdAt: string;
     referent: StaffUser | null;
-    profile: { firstName: string; lastName: string; companyName: string | null; memberType: string; isPublic: boolean; city: string | null } | null;
+    profile: {
+      firstName: string;
+      lastName: string;
+      companyName: string | null;
+      memberType: string;
+      isPublic: boolean;
+      city: string | null;
+      idDocumentName: string | null;
+      idDocumentUploadedAt: string | null;
+    } | null;
     company: { id: string; name: string; seatLimit: number } | null;
     memberLeads: {
       id: string;
@@ -122,6 +131,24 @@ export default function MemberFilePage() {
               )}
               {(member.company?.name || member.profile?.companyName) && <span>{member.company?.name ?? member.profile?.companyName}</span>}
               <span>{memberSince ? `Membre depuis le ${dateFr(memberSince)}` : `Compte créé le ${dateFr(member.createdAt)}`}</span>
+            </p>
+            {/* Pièce d'identité exigée pour un profil complet (fichier privé, droit « membres »). */}
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              <IdCard className="h-4 w-4 text-ink-500" />
+              {member.profile?.idDocumentUploadedAt ? (
+                <>
+                  <span className="text-ink-700">Pièce d’identité envoyée le {dateFr(member.profile.idDocumentUploadedAt)}</span>
+                  <button
+                    type="button"
+                    className="font-semibold text-brand-blue hover:underline"
+                    onClick={() => openAdminPdf(`/api/admin/members/${member.id}/id-document`).catch(() => setError('Impossible d’ouvrir la pièce d’identité (droit « Membres » requis).'))}
+                  >
+                    Voir
+                  </button>
+                </>
+              ) : (
+                <span className="font-medium text-amber-700">Pièce d’identité non fournie</span>
+              )}
             </p>
           </div>
           <Pill tone={member.profile?.isPublic ? 'green' : 'amber'}>{member.profile?.isPublic ? 'Espace actif' : 'Avant paiement'}</Pill>

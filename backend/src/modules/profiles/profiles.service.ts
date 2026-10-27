@@ -1,5 +1,7 @@
 import { Prisma, TagCategory, TagRelationType } from '../../generated/prisma/client';
+import fs from 'node:fs';
 import { prisma } from '../../lib/prisma';
+import { identityAbsolutePath } from '../situation/proofs.storage';
 import { ApiError } from '../../utils/apiResponse';
 import { buildPaginationMeta } from '../../utils/apiResponse';
 import { hasAcceptedConnection } from '../connections/connections.service';
@@ -128,6 +130,8 @@ const COMPLETENESS_FIELDS = [
   { key: 'bio', label: 'Présentation (bio)' },
   { key: 'phone', label: 'Téléphone' },
   { key: 'sectors', label: 'Au moins un secteur d’activité' },
+  // Demande client 27/10/2026 : scan d'une pièce d'identité valide.
+  { key: 'idDocument', label: 'Pièce d’identité (scan)' },
 ] as const;
 
 export interface ProfileCompleteness {
@@ -151,6 +155,7 @@ export async function getProfileCompleteness(userId: string): Promise<ProfileCom
     bio: Boolean(profile.bio?.trim()),
     phone: Boolean(profile.user.phone?.trim()),
     sectors: profile.tags.some((pt) => pt.tag.category === 'SECTOR' && pt.relation === 'OFFER'),
+    idDocument: Boolean(profile.idDocumentPath),
   };
 
   const missing = COMPLETENESS_FIELDS.filter((f) => !checks[f.key]);
@@ -167,7 +172,12 @@ export async function getMyProfile(userId: string) {
     include: profileWithTags,
   });
   if (!profile) throw ApiError.notFound('Profil introuvable');
-  return { ...serializeProfile(profile, userId), completeness: await getProfileCompleteness(userId) };
+  return {
+    ...serializeProfile(profile, userId),
+    // Métadonnées seulement : le fichier se lit par GET /api/profiles/me/id-document.
+    idDocument: profile.idDocumentPath ? { fileName: profile.idDocumentName, uploadedAt: profile.idDocumentUploadedAt } : null,
+    completeness: await getProfileCompleteness(userId),
+  };
 }
 
 /** Refuse un domaine d'activité hors référentiel, sauf s'il figure déjà sur le profil (`profileId` null : inscription). */
@@ -284,4 +294,28 @@ export async function getCommunityShowcase() {
         .map((pt) => pt.tag.label),
     })),
   };
+}
+
+/** Enregistre (ou remplace) la pièce d'identité du membre ; l'ancien fichier est supprimé. */
+export async function setIdDocument(userId: string, file: Express.Multer.File) {
+  const profile = await prisma.memberProfile.findUnique({ where: { userId }, select: { idDocumentPath: true } });
+  if (!profile) throw ApiError.notFound('Profil introuvable');
+  await prisma.memberProfile.update({
+    where: { userId },
+    data: { idDocumentPath: file.filename, idDocumentName: file.originalname.slice(0, 190), idDocumentMime: file.mimetype, idDocumentUploadedAt: new Date() },
+  });
+  if (profile.idDocumentPath) removeIdentityFile(profile.idDocumentPath);
+  return getMyProfile(userId);
+}
+
+/** Fichier de la pièce d'identité d'un membre (membre lui-même ou backoffice). */
+export async function getIdDocumentFile(userId: string) {
+  const profile = await prisma.memberProfile.findUnique({ where: { userId }, select: { idDocumentPath: true, idDocumentName: true, idDocumentMime: true } });
+  if (!profile?.idDocumentPath) throw ApiError.notFound('Aucune pièce d’identité envoyée');
+  return { filePath: profile.idDocumentPath, fileName: profile.idDocumentName ?? 'piece-identite', mimeType: profile.idDocumentMime ?? 'application/octet-stream' };
+}
+
+/** Supprime un fichier de pièce d'identité sans faire échouer l'appelant. */
+export function removeIdentityFile(relativePath: string) {
+  fs.promises.unlink(identityAbsolutePath(relativePath)).catch(() => undefined);
 }
