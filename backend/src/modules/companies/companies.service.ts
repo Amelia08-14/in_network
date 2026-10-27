@@ -7,6 +7,8 @@ import { ApiError } from '../../utils/apiResponse';
 import { uniqueSlug } from '../../utils/slugify';
 import type { AddMemberInput, RegisterCompanyInput, UpdateMyCompanyInput } from './companies.schema';
 import { assertClosedSectors } from '../profiles/profiles.service';
+import { env } from '../../config/env';
+import { emailButton, escapeHtml as escapeEmail } from '../../lib/emailLayout';
 
 // Sélection sûre des champs d'un collaborateur exposés au propriétaire de
 // l'entreprise (jamais de passwordHash / tokens — cf. SAFE_USER_SELECT admin).
@@ -356,7 +358,7 @@ export async function createCompanyAccount(input: RegisterCompanyInput) {
   sendEmail({
     to: user.email,
     subject: "Bienvenue dans l'espace IN NETWORK",
-    html: `<p>Bonjour ${input.firstName},</p><p>Le compte entreprise <strong>${input.companyName}</strong> est créé. Vous pouvez dès maintenant inviter vos collaborateurs depuis l'onglet « Mon équipe » de votre tableau de bord.</p><p>À très vite,<br/>L'équipe IN NETWORK</p>`,
+    html: `<p>Bonjour ${escapeEmail(input.firstName)},</p><p>Le compte entreprise <strong>${escapeEmail(input.companyName)}</strong> est créé. Vous pouvez dès maintenant inviter vos collaborateurs depuis l’onglet « Mon équipe » de votre tableau de bord.</p>${emailButton('Inviter mes collaborateurs', `${env.appUrl}/dashboard/equipe`)}<p>À très vite,<br/>L’équipe IN NETWORK</p>`,
   }).catch((err) => console.error("[companies] échec d'envoi de l'email de bienvenue", err));
 
   return user.id;

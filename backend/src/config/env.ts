@@ -59,7 +59,7 @@ export const env = {
   // renseignés dans l'environnement, ils sont simplement omis du PDF.
   company: {
     name: process.env.COMPANY_NAME ?? 'IN NETWORK — La Maison IN Groupe',
-    address: process.env.COMPANY_ADDRESS ?? 'Hydra, Alger, Algérie',
+    address: process.env.COMPANY_ADDRESS ?? 'N°08, Parc Paradou, Hydra 16035, Alger, Algérie',
     phone: process.env.COMPANY_PHONE ?? '+213 5 60 06 74 86',
     email: process.env.COMPANY_EMAIL ?? 'contact@in-network.dz',
     nif: process.env.COMPANY_NIF ?? '',

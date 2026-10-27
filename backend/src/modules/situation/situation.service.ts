@@ -11,6 +11,7 @@ import { recordPayment } from '../crm/invoices.service';
 import { decideQuote } from '../crm/quotes.service';
 import { STAFF_SELECT, listStaffWith, notifyUsers } from '../crm/staff';
 import { isAccountValidated } from './accountState';
+import { emailButton } from '../../lib/emailLayout';
 
 // « Devis et factures » de l'espace membre (ex « Situation du compte ») : ses
 // demandes, ses devis à confirmer, ses factures proforma à régler et ses
@@ -262,7 +263,7 @@ export async function approveAccount(userId: string, actorId: string, options: {
     sendEmail({
       to: user.email,
       subject: 'IN NETWORK — Votre compte est validé',
-      html: `<p>Bonjour ${escapeHtml(profile.firstName)},</p><p>Bonne nouvelle : votre compte IN NETWORK est validé. Votre espace membre est maintenant entièrement accessible : <a href="${env.appUrl}/dashboard">accéder à mon espace</a>.</p><p>L’équipe IN NETWORK</p>`,
+      html: `<p>Bonjour ${escapeHtml(profile.firstName)},</p><p>Bonne nouvelle : votre compte IN NETWORK est validé. Votre espace membre est maintenant entièrement accessible.</p>${emailButton('Accéder à mon espace', `${env.appUrl}/dashboard`)}<p>L’équipe IN NETWORK</p>`,
     }).catch((err) => console.error('[situation] échec email de validation', err));
   }
   return { alreadyValidated: false };

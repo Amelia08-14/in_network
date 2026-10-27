@@ -7,6 +7,7 @@ import { getSettings } from '../settings/settings.service';
 import { approveAccount } from '../situation/situation.service';
 import { logActivity, scheduleTask } from './leads.service';
 import { STAFF_SELECT, notifyUsers, staffName } from './staff';
+import { emailButton } from '../../lib/emailLayout';
 
 // Activation du membre (phase 4 du processus v1.3), déclenchée par le
 // paiement confirmé :
@@ -91,6 +92,7 @@ function welcomeKitHtml(firstName: string, referentName: string | null) {
     `<li>${link('/annuaire', 'L’annuaire des membres')}, après avoir complété votre profil ;</li>`,
     `<li>${link('/services', 'Les tarifs des services')}, pour demander un service supplémentaire depuis votre espace.</li>`,
     '</ul>',
+    emailButton('Accéder à mon espace', `${env.appUrl}/dashboard`),
     '<p>Nous vous appellerons dans quelques jours pour faire le point.</p>',
     '<p>À très vite,<br>L’équipe IN NETWORK</p>',
   ].join('');

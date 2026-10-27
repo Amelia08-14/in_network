@@ -17,6 +17,7 @@ import { createLeadFromRegistration } from '../crm/leadIntake.service';
 import { isAccountValidated } from '../situation/accountState';
 import type { RegisterInput, LoginInput, RegisterCompanyInput } from './auth.schema';
 import { assertClosedSectors } from '../profiles/profiles.service';
+import { emailButton, emailPanel, escapeHtml as escapeEmail } from '../../lib/emailLayout';
 
 const EMAIL_VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
@@ -145,7 +146,7 @@ export async function register(input: RegisterInput) {
   sendEmail({
     to: user.email,
     subject: "Bienvenue dans l'espace IN NETWORK",
-    html: `<p>Bonjour ${input.firstName},</p><p>Merci pour votre inscription. Depuis votre espace IN NETWORK, choisissez vos services et envoyez votre demande de devis : notre équipe vous recontacte rapidement. Votre espace membre s’active entièrement dès votre premier paiement.</p><p>À très vite,<br/>L'équipe IN NETWORK</p>`,
+    html: `<p>Bonjour ${escapeEmail(input.firstName)},</p><p>Merci pour votre inscription. Depuis votre espace IN NETWORK, choisissez vos services et envoyez votre demande de devis : notre équipe vous recontacte rapidement. Votre espace membre s’active entièrement dès votre premier paiement.</p>${emailButton('Composer ma demande de devis', `${env.appUrl}/dashboard/catalogue`)}<p>À très vite,<br/>L’équipe IN NETWORK</p>`,
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de bienvenue", err));
 
   // L'inscription alimente le CRM (lead « Inscription ») ; non bloquant.
@@ -280,7 +281,7 @@ export async function verifyEmail(token: string) {
   sendEmail({
     to: user.email,
     subject: 'Bienvenue dans l\'espace IN NETWORK',
-    html: `<p>Bonjour ${user.profile?.firstName ?? ''},</p><p>Votre e-mail est confirmé et votre espace membre IN NETWORK est maintenant actif. Vous pouvez vous connecter et accéder à votre espace dès maintenant.</p><p>À très vite,<br/>L'équipe IN NETWORK</p>`,
+    html: `<p>Bonjour ${escapeEmail(user.profile?.firstName)},</p><p>Votre e-mail est confirmé et votre espace membre IN NETWORK est maintenant actif. Vous pouvez vous connecter et accéder à votre espace dès maintenant.</p>${emailButton('Accéder à mon espace', `${env.appUrl}/login`)}<p>À très vite,<br/>L’équipe IN NETWORK</p>`,
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de bienvenue", err));
 }
 
@@ -298,7 +299,7 @@ export async function resendVerification(userId: string) {
   sendEmail({
     to: user.email,
     subject: 'IN NETWORK — confirmez votre e-mail',
-    html: `<p>Confirmez votre adresse e-mail : <a href="${verifyLink(emailVerifyToken)}">${verifyLink(emailVerifyToken)}</a></p>`,
+    html: `<p>Bonjour,</p><p>Pour finaliser la création de votre compte IN NETWORK, confirmez votre adresse e-mail.</p>${emailButton('Confirmer mon adresse e-mail', verifyLink(emailVerifyToken))}<p>Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br/><a href="${verifyLink(emailVerifyToken)}">${verifyLink(emailVerifyToken)}</a></p><p>L’équipe IN NETWORK</p>`,
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de vérification", err));
 }
 
@@ -319,7 +320,7 @@ export async function forgotPassword(email: string) {
   sendEmail({
     to: user.email,
     subject: 'IN NETWORK — réinitialisation de mot de passe',
-    html: `<p>Réinitialisez votre mot de passe : <a href="${env.appUrl}/reset-password?token=${passwordResetToken}">lien de réinitialisation</a></p><p>Ce lien expire dans 1h.</p>`,
+    html: `<p>Bonjour,</p><p>Vous avez demandé à réinitialiser le mot de passe de votre compte IN NETWORK.</p>${emailButton('Choisir un nouveau mot de passe', `${env.appUrl}/reset-password?token=${passwordResetToken}`)}<p>Ce lien est valable 1 heure. Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé.</p><p>L’équipe IN NETWORK</p>`,
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de reset mdp", err));
 }
 

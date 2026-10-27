@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { sendEmail } from './email';
 import { env } from '../config/env';
+import { emailButton, emailPanel, escapeHtml } from './emailLayout';
 
 // Provisioning de comptes à mot de passe généré (jamais choisi par le
 // créateur, jamais renvoyé par l'API) — mutualisé entre les « Utilisateurs
@@ -34,11 +35,10 @@ export function sendCredentialsEmail({
   sendEmail({
     to,
     subject,
-    html: `<p>Bonjour ${name},</p>
+    html: `<p>Bonjour ${escapeHtml(name)},</p>
 <p>${intro}</p>
-<p><strong>Identifiant :</strong> ${to}<br>
-<strong>Mot de passe :</strong> ${password}</p>
-<p>Connexion : <a href="${env.appUrl}${loginPath}">${env.appUrl}${loginPath}</a></p>
+${emailPanel(`<p style="margin:0;"><strong>Identifiant :</strong> ${escapeHtml(to)}<br><strong>Mot de passe :</strong> ${escapeHtml(password)}</p>`)}
+${emailButton('Me connecter', `${env.appUrl}${loginPath}`)}
 <p>Nous vous recommandons de changer ce mot de passe après votre première connexion.</p>
 <p>L’équipe IN NETWORK</p>`,
   }).catch((err) => console.error('[provisioning] échec envoi email des accès', err));
