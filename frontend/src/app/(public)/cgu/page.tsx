@@ -1,6 +1,9 @@
 import { Container } from '@/components/ui/container';
 
-export const metadata = { title: "Conditions d'utilisation" };
+export const metadata = {
+  title: 'Conditions d’utilisation',
+  description: 'Conditions d’utilisation du site et de l’espace membre IN NETWORK.',
+};
 
 export default function CguPage() {
   return (

@@ -47,7 +47,7 @@ export default function LoginPage() {
     <Card>
       <CardContent className="pt-6">
         <h1 className="font-heading text-2xl font-bold text-ink-900">Connexion</h1>
-        <p className="mt-1 text-sm text-ink-500">Accède à ton espace membre IN NETWORK.</p>
+        <p className="mt-1 text-sm text-ink-500">Accédez à votre espace membre IN NETWORK.</p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div>

@@ -56,7 +56,7 @@ export class ApiError extends Error {
   static conflict(message: string, details?: unknown) {
     return new ApiError(409, 'CONFLICT', message, details);
   }
-  static rateLimited(message = 'Trop de requêtes, réessaie plus tard') {
+  static rateLimited(message = 'Trop de requêtes, réessayez plus tard') {
     return new ApiError(429, 'RATE_LIMITED', message);
   }
 }

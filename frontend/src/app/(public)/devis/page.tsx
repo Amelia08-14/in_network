@@ -2,7 +2,11 @@ import { Container } from '@/components/ui/container';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { QuoteCart } from '@/components/features/QuoteCart';
 
-export const metadata = { title: 'Ma demande de devis' };
+export const metadata = {
+  title: 'Ma demande de devis',
+  description: 'Rassemblez formules, bureaux, salles et services dans une seule demande de devis IN NETWORK.',
+  robots: { index: false, follow: true },
+};
 
 export default function QuotePage() {
   return (

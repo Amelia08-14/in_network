@@ -46,7 +46,7 @@ export async function createServiceRequest(userId: string, items: CartItemInput[
   const lines: Prisma.ServiceRequestItemCreateWithoutRequestInput[] = unique.map((item) => {
     if (item.targetType === 'SERVICE') {
       const service = services.find((s) => s.id === item.targetId);
-      if (!service) throw ApiError.notFound('Un des services de ta demande n’est plus disponible');
+      if (!service) throw ApiError.notFound('Un des services de votre demande n’est plus disponible');
       if (!item.tierLabel) {
         return { targetType: 'SERVICE', service: { connect: { id: service.id } }, title: service.title };
       }
@@ -62,11 +62,11 @@ export async function createServiceRequest(userId: string, items: CartItemInput[
     }
     if (item.targetType === 'SPACE') {
       const space = spaces.find((s) => s.id === item.targetId);
-      if (!space) throw ApiError.notFound('Une des salles de ta demande n’est plus disponible');
+      if (!space) throw ApiError.notFound('Une des salles de votre demande n’est plus disponible');
       return { targetType: 'SPACE', space: { connect: { id: space.id } }, title: space.name };
     }
     const plan = plans.find((p) => p.id === item.targetId);
-    if (!plan) throw ApiError.notFound('Une des formules de ta demande n’est plus disponible');
+    if (!plan) throw ApiError.notFound('Une des formules de votre demande n’est plus disponible');
     return {
       targetType: 'PLAN',
       plan: { connect: { id: plan.id } },

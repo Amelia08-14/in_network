@@ -6,7 +6,7 @@ export const authRateLimit = rateLimit({
   limit: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: { code: 'RATE_LIMITED', message: 'Trop de tentatives, réessaie dans une minute' } },
+  message: { error: { code: 'RATE_LIMITED', message: 'Trop de tentatives, réessayez dans une minute' } },
 });
 
 // Connexion : on ne limite que les ÉCHECS (skipSuccessfulRequests), par couple
@@ -43,7 +43,7 @@ export const refreshRateLimit = rateLimit({
   limit: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: { code: 'RATE_LIMITED', message: 'Trop de requêtes, réessaie dans une minute' } },
+  message: { error: { code: 'RATE_LIMITED', message: 'Trop de requêtes, réessayez dans une minute' } },
 });
 
 // Création de compte : plafond horaire large (postes d'un même lieu derrière la même IP).
@@ -60,7 +60,7 @@ export const paymentsRateLimit = rateLimit({
   limit: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: { code: 'RATE_LIMITED', message: 'Trop de requêtes de paiement, réessaie dans une minute' } },
+  message: { error: { code: 'RATE_LIMITED', message: 'Trop de requêtes de paiement, réessayez dans une minute' } },
 });
 
 export const apiRateLimit = rateLimit({
@@ -78,5 +78,5 @@ export const inquiryRateLimit = rateLimit({
   limit: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: { code: 'RATE_LIMITED', message: 'Trop de demandes envoyées, réessaie dans une minute' } },
+  message: { error: { code: 'RATE_LIMITED', message: 'Trop de demandes envoyées, réessayez dans une minute' } },
 });

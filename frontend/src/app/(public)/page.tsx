@@ -26,14 +26,13 @@ import { ScrollReveal } from '@/components/ui/scroll-motion';
 import { TestimonialReels } from '@/components/features/TestimonialReels';
 import { buttonVariants } from '@/components/ui/button';
 import { ServiceCard } from '@/components/features/ServiceCard';
-import { ServicesCarousel } from '@/components/features/ServicesCarousel';
 import { EventCard } from '@/components/features/EventCard';
 import { EmptyState } from '@/components/ui/empty-state';
 import { NetworkMotif } from '@/components/ui/network-motif';
 import { cn } from '@/lib/utils';
 import { BrandTexture } from '@/components/ui/brand-texture';
 import { serverGet } from '@/lib/server-api';
-import { sortServices } from '@/lib/services-order';
+import { displayCategory, sortServices } from '@/lib/services-order';
 import { VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
 import { uniqueTestimonials, type Testimonial } from '@/lib/testimonials';
 import type { ServiceCatalogItem, EventItem } from '@/types';
@@ -121,6 +120,26 @@ const CTA_POINTS: { icon: typeof Building2; title: string; text: string }[] = [
 ];
 
 export const revalidate = 3600;
+
+// Services mis en avant sur l'accueil (audit 27/10/2026 : les 22 services
+// faisaient doublon avec /services) : un par famille du catalogue. Si un slug
+// n'existe plus, on prend le premier service de la même famille.
+const FEATURED: [category: string, slug: string][] = [
+  ['SECRETARIAT', 'service-secretariat'],
+  ['CREATION_ENTREPRISE', 'creation-entreprise'],
+  ['ADMINISTRATION', 'ressources-humaines'],
+  ['COMPTABILITE', 'comptabilite'],
+  ['MARKETING', 'strategie-communication'],
+  ['INCUBATION', 'in-cubator'],
+];
+
+function featuredServices(services: ServiceCatalogItem[]): ServiceCatalogItem[] {
+  const ordered = sortServices(services);
+  return FEATURED.flatMap(([category, slug]) => {
+    const pick = ordered.find((s) => s.slug === slug) ?? ordered.find((s) => displayCategory(s.category) === category);
+    return pick ? [pick] : [];
+  });
+}
 
 /** Trois prochains rendez-vous et trois derniers événements passés (page en ISR : l'heure du rendu fait foi). */
 function splitEvents(events: EventItem[]) {
@@ -442,13 +461,18 @@ export default async function HomePage() {
         {services.length === 0 ? (
           <EmptyState className="mt-12" title="Catalogue en préparation" />
         ) : (
-          <div className="mt-12">
-            <ServicesCarousel label="Services IN NETWORK">
-              {sortServices(services).map((service) => (
+          <>
+            <ScrollReveal stagger={80} className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredServices(services).map((service) => (
                 <ServiceCard key={service.id} service={service} />
               ))}
-            </ServicesCarousel>
-          </div>
+            </ScrollReveal>
+            <div className="mt-8 flex justify-center">
+              <Link href="/services#services" className={cn(buttonVariants({ variant: 'primary', size: 'lg' }), 'gap-2')}>
+                Voir les {services.filter((s) => !['OFFRE', 'DIASPORA'].includes(s.category)).length} services <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </>
         )}
       </Section>
 

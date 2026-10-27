@@ -12,7 +12,10 @@ import { serverGet } from '@/lib/server-api';
 import type { EventItem, EventOrigin } from '@/types';
 
 export const revalidate = 900;
-export const metadata = { title: 'Événements' };
+export const metadata = {
+  title: 'Événements',
+  description: 'Conférences, ateliers, masterclasses et rencontres networking d’IN NETWORK à Hydra, Alger : les prochains rendez-vous et les événements passés.',
+};
 
 const TABS: { label: string; value: EventOrigin | undefined }[] = [
   { label: 'Tous', value: undefined },

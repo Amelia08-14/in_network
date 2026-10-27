@@ -39,7 +39,7 @@ export async function markPaymentCompleted(paymentId: string, providerRef?: stri
         userId: payment.userId,
         type: 'payment_completed',
         title: 'Paiement confirmé',
-        body: `Ton paiement de ${payment.amount} ${payment.currency} a été confirmé.`,
+        body: `Votre paiement de ${payment.amount} ${payment.currency} a été confirmé.`,
       },
     });
 

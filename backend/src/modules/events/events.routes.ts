@@ -111,7 +111,7 @@ eventsRouter.post(
     const existing = await prisma.eventRegistration.findUnique({
       where: { eventId_userId: { eventId: event.id, userId: req.user.id } },
     });
-    if (existing) throw ApiError.conflict('Tu es déjà inscrit à cet événement');
+    if (existing) throw ApiError.conflict('Vous êtes déjà inscrit à cet événement');
 
     const registration = await prisma.eventRegistration.create({
       data: { eventId: event.id, userId: req.user.id },

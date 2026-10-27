@@ -8,7 +8,7 @@ const SITE_TIME_ZONE = 'Africa/Algiers';
 const DATE_FMT = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: SITE_TIME_ZONE });
 
 function bookingEmailBody(spaceName: string, start: Date, end: Date, statusLabel: string): string {
-  return `<p>Ta réservation pour <strong>${spaceName}</strong> le ${DATE_FMT.format(start)} (jusqu'à ${new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short', timeZone: SITE_TIME_ZONE }).format(end)}) est <strong>${statusLabel}</strong>.</p>`;
+  return `<p>Votre réservation pour <strong>${spaceName}</strong> le ${DATE_FMT.format(start)} (jusqu'à ${new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short', timeZone: SITE_TIME_ZONE }).format(end)}) est <strong>${statusLabel}</strong>.</p>`;
 }
 
 // Notification (email + in-app) — retour QA : aucune confirmation n'était

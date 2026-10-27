@@ -51,7 +51,7 @@ function ResetPasswordContent() {
 
         {status === 'success' ? (
           <p className="mt-6 text-sm text-accent-green">
-            Ton mot de passe a été mis à jour. Tu peux te{' '}
+            Votre mot de passe a été mis à jour. Vous pouvez vous{' '}
             <Link href="/login" className="font-medium underline">
               connecter
             </Link>

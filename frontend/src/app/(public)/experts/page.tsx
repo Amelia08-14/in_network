@@ -8,7 +8,10 @@ import { serverGet } from '@/lib/server-api';
 import type { ExpertSummary } from '@/types';
 
 export const revalidate = 3600;
-export const metadata = { title: 'Nos experts' };
+export const metadata = {
+  title: 'Nos experts',
+  description: 'Les experts du réseau IN NETWORK : gestion, finance, stratégie, numérique… des professionnels à solliciter pour faire avancer vos projets.',
+};
 
 const EXPERTISE_LABELS = [
   'Entrepreneuriat',

@@ -8,7 +8,10 @@ import { serverGet } from '@/lib/server-api';
 import type { Partner } from '@/types';
 
 export const revalidate = 3600;
-export const metadata = { title: 'Partenaires' };
+export const metadata = {
+  title: 'Partenaires',
+  description: 'Les partenaires d’IN NETWORK et de son écosystème entrepreneurial à Hydra, Alger.',
+};
 
 export default async function PartenairesPage() {
   const partners = await serverGet<Partner[]>('/api/partners', 3600, [], 'partners');

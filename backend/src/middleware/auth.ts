@@ -29,7 +29,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
     req.user = { id: payload.sub, role: payload.role };
     next();
   } catch {
-    throw ApiError.unauthorized('Session expirée, reconnecte-toi');
+    throw ApiError.unauthorized('Session expirée, reconnectez-vous');
   }
 }
 

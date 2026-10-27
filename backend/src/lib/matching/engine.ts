@@ -62,11 +62,11 @@ function buildReason(a: MatchCandidate, b: MatchCandidate): { type: string; deta
   const wantedByB = new Set(b.skillsWanted.map(normalize));
   const needMatch = a.skillsWanted.find((skill) => offeredByB.has(normalize(skill)));
   if (needMatch) {
-    return { type: 'skill_match', detail: `Tu recherches "${needMatch}", que ce membre propose` };
+    return { type: 'skill_match', detail: `Vous recherchez « ${needMatch} », que ce membre propose` };
   }
   const offerMatch = a.skillsOffered.find((skill) => wantedByB.has(normalize(skill)));
   if (offerMatch) {
-    return { type: 'skill_match', detail: `Ce membre recherche "${offerMatch}", que tu proposes` };
+    return { type: 'skill_match', detail: `Ce membre recherche « ${offerMatch} », que vous proposez` };
   }
   if (sectorOverlap(a, b)) {
     return { type: 'sector_match', detail: 'Vous partagez le même secteur d\'activité' };

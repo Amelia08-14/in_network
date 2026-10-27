@@ -8,7 +8,10 @@ import { serverGet } from '@/lib/server-api';
 import type { EventMediaItem } from '@/types';
 
 export const revalidate = 900;
-export const metadata = { title: 'Galerie des événements' };
+export const metadata = {
+  title: 'Galerie des événements',
+  description: 'Photos et vidéos des rencontres, ateliers et temps forts du réseau IN NETWORK.',
+};
 
 export default async function EvenementsGaleriePage() {
   const items = await serverGet<EventMediaItem[]>('/api/events/gallery', 900, [], 'events');

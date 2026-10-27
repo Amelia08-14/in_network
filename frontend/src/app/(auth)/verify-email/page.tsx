@@ -34,7 +34,7 @@ function VerifyEmailContent() {
         {status === 'loading' && <p className="mt-4 text-sm text-ink-500">Vérification en cours...</p>}
         {status === 'success' && (
           <p className="mt-4 text-sm text-accent-green">
-            Ton email est confirmé ! Tu peux te{' '}
+            Votre e-mail est confirmé ! Vous pouvez vous{' '}
             <Link href="/login" className="font-medium underline">
               connecter
             </Link>

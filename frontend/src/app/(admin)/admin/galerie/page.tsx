@@ -79,7 +79,7 @@ export default function AdminGaleriePage() {
           {isLoading ? (
             <p className="p-5 text-sm text-ink-500">Chargement...</p>
           ) : !images || images.length === 0 ? (
-            <EmptyState title="Aucune photo pour le moment" description="Ajoute la première photo réelle du lieu ci-dessus." className="py-12" />
+            <EmptyState title="Aucune photo pour le moment" description="Ajoutez la première photo réelle du lieu ci-dessus." className="py-12" />
           ) : (
             <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3 lg:grid-cols-4">
               {images.map((image) => (

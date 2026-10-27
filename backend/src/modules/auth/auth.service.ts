@@ -203,7 +203,7 @@ export async function refresh(refreshToken: string) {
   const tokenHash = hashToken(refreshToken);
   const stored = await prisma.refreshToken.findUnique({ where: { tokenHash } });
   if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
-    throw ApiError.unauthorized('Session expirée, reconnecte-toi');
+    throw ApiError.unauthorized('Session expirée, reconnectez-vous');
   }
 
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
@@ -234,7 +234,7 @@ export async function adminRefresh(refreshToken: string) {
   const tokenHash = hashToken(refreshToken);
   const stored = await prisma.refreshToken.findUnique({ where: { tokenHash } });
   if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
-    throw ApiError.unauthorized('Session expirée, reconnecte-toi');
+    throw ApiError.unauthorized('Session expirée, reconnectez-vous');
   }
 
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
@@ -280,7 +280,7 @@ export async function verifyEmail(token: string) {
   sendEmail({
     to: user.email,
     subject: 'Bienvenue dans l\'espace IN NETWORK',
-    html: `<p>Bonjour ${user.profile?.firstName ?? ''},</p><p>Ton email est confirmé et ton espace membre IN NETWORK est maintenant actif. Tu peux te connecter et accéder à ton espace dès maintenant.</p><p>À très vite,<br/>L'équipe IN NETWORK</p>`,
+    html: `<p>Bonjour ${user.profile?.firstName ?? ''},</p><p>Votre e-mail est confirmé et votre espace membre IN NETWORK est maintenant actif. Vous pouvez vous connecter et accéder à votre espace dès maintenant.</p><p>À très vite,<br/>L'équipe IN NETWORK</p>`,
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de bienvenue", err));
 }
 
@@ -297,8 +297,8 @@ export async function resendVerification(userId: string) {
 
   sendEmail({
     to: user.email,
-    subject: 'IN NETWORK — confirme ton email',
-    html: `<p>Confirme ton adresse email : <a href="${verifyLink(emailVerifyToken)}">${verifyLink(emailVerifyToken)}</a></p>`,
+    subject: 'IN NETWORK — confirmez votre e-mail',
+    html: `<p>Confirmez votre adresse e-mail : <a href="${verifyLink(emailVerifyToken)}">${verifyLink(emailVerifyToken)}</a></p>`,
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de vérification", err));
 }
 
@@ -319,7 +319,7 @@ export async function forgotPassword(email: string) {
   sendEmail({
     to: user.email,
     subject: 'IN NETWORK — réinitialisation de mot de passe',
-    html: `<p>Réinitialise ton mot de passe : <a href="${env.appUrl}/reset-password?token=${passwordResetToken}">lien de réinitialisation</a></p><p>Ce lien expire dans 1h.</p>`,
+    html: `<p>Réinitialisez votre mot de passe : <a href="${env.appUrl}/reset-password?token=${passwordResetToken}">lien de réinitialisation</a></p><p>Ce lien expire dans 1h.</p>`,
   }).catch((err) => console.error("[auth] échec d'envoi de l'email de reset mdp", err));
 }
 

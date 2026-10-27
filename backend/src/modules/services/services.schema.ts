@@ -16,7 +16,7 @@ const cartItemSchema = z.object({
 });
 
 export const createInquirySchema = z.object({
-  items: z.array(cartItemSchema).min(1, 'Ajoute au moins un service à ta demande').max(MAX_CART_ITEMS),
+  items: z.array(cartItemSchema).min(1, 'Ajoutez au moins un service à votre demande').max(MAX_CART_ITEMS),
   notes: z.string().max(2000).optional(),
   attribution: attributionSchema.optional(),
 });
