@@ -3,22 +3,19 @@ import { ArrowRight, Clock, Coffee, Mail, MapPin, Navigation, Phone, ShieldCheck
 import { ContactForm } from '@/components/features/ContactForm';
 import { VENUE_PHOTOS } from '@/lib/venue-photos';
 import { BrandTexture } from '@/components/ui/brand-texture';
+import { ADDRESS_LINE, ADDRESS_REGION, EMAIL, MAPS_DIRECTIONS, MAPS_EMBED_SRC, PHONE } from '@/lib/site-info';
 
 export const metadata = {
   title: 'Contact',
   description: 'Une question, une visite, un devis ? Contactez IN NETWORK à Hydra, Alger : téléphone, e-mail, itinéraire et formulaire.',
 };
 
-// Coordonnées réelles — brief client §2.1. Coordonnées GPS de l'iframe
-// résolues depuis le lien Maps fourni (36.73847, 3.029172, Hydra, Alger) ;
-// le libellé d'adresse en toutes lettres (numéro de rue) reste à confirmer.
-const MAPS_EMBED_SRC = 'https://www.google.com/maps?q=36.73847,3.029172&hl=fr&z=16&output=embed';
-const MAPS_DIRECTIONS = 'https://www.google.com/maps/dir/?api=1&destination=36.73847,3.029172';
+// Coordonnées réelles (lib/site-info.ts) : adresse exacte confirmée le 27/10/2026.
 
 const CONTACTS = [
-  { icon: MapPin, title: 'Notre adresse', lines: ['Hydra, Alger, Algérie'], action: { label: 'Voir l’itinéraire', href: MAPS_DIRECTIONS, external: true } },
-  { icon: Phone, title: 'Téléphone', lines: ['+213 5 60 06 74 86'], action: { label: 'Nous appeler', href: 'tel:+213560067486' } },
-  { icon: Mail, title: 'E-mail', lines: ['contact@in-network.dz'], action: { label: 'Nous écrire', href: 'mailto:contact@in-network.dz' } },
+  { icon: MapPin, title: 'Notre adresse', lines: [ADDRESS_LINE, ADDRESS_REGION], action: { label: 'Voir l’itinéraire', href: MAPS_DIRECTIONS, external: true } },
+  { icon: Phone, title: 'Téléphone', lines: [PHONE.display], action: { label: 'Nous appeler', href: PHONE.href } },
+  { icon: Mail, title: 'E-mail', lines: [EMAIL], action: { label: 'Nous écrire', href: `mailto:${EMAIL}` } },
   { icon: Clock, title: 'Horaires', lines: ['09h00 – 17h00 (heures administratives)', 'Accès 24h/24, 7j/7 pour les membres'] },
 ];
 
@@ -63,7 +60,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
                     {item.action && (
                       <a
                         href={item.action.href}
-                        {...(item.action.external ? { target: '_blank', rel: 'noreferrer' } : {})}
+                        {...(item.action.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                         className="mt-auto inline-flex items-center gap-1 pt-1 text-sm font-semibold text-brand-orange hover:underline"
                       >
                         {item.action.label} <ArrowRight className="h-3.5 w-3.5" />
@@ -74,7 +71,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
               </ul>
               <div className="relative">
                 <iframe
-                  title="Localisation IN NETWORK — Hydra, Alger"
+                  title={`Localisation IN NETWORK — ${ADDRESS_LINE}`}
                   src={MAPS_EMBED_SRC}
                   className="h-72 w-full"
                   style={{ border: 0 }}
@@ -84,12 +81,20 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
                 <a
                   href={MAPS_DIRECTIONS}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink-900 shadow-soft-lg hover:bg-brand-paper"
                 >
                   <Navigation className="h-4 w-4 text-brand-orange" /> Voir l’itinéraire
                 </a>
               </div>
+              {/* Adresse sous la carte (catalogue : « à placer sous la carte »). */}
+              <address className="flex items-start gap-3 border-t border-ink-900/8 px-5 py-4 not-italic">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" />
+                <span className="text-sm">
+                  <span className="block font-semibold text-ink-900">IN NETWORK — {ADDRESS_LINE}</span>
+                  <span className="text-ink-500">{ADDRESS_REGION}</span>
+                </span>
+              </address>
             </div>
 
             <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">

@@ -113,7 +113,9 @@ Quand une réponse arrive, elle sera ajoutée sous la tâche (`→ réponse : ..
 - [ ] **3.13 🔒 [Audit] Ambition géographique** (À propos) : « Une vision nationale dès le départ » vs « écosystème de référence en Afrique du Nord et au-delà ». Garder la version validée.
 
 **Contenus manquants**
-- [ ] **3.14 🔒 [Catalogue + Audit] Adresse postale exacte** (catalogue : « À CONFIRMER, à placer sous la carte »). À afficher sur `/contact` sous la carte + pied de page + lien itinéraire. Ajouter aussi les données structurées `LocalBusiness` (JSON-LD) une fois l'adresse connue.
+- [x] **3.14 🔒 [Catalogue + Audit] Adresse postale exacte** (catalogue : « À CONFIRMER, à placer sous la carte »). À afficher sur `/contact` sous la carte + pied de page + lien itinéraire. Ajouter aussi les données structurées `LocalBusiness` (JSON-LD) une fois l'adresse connue.
+  → réponse (27/10/2026) : N°08, Parc Paradou, Hydra 16035.
+  → fait : frontend/src/lib/site-info.ts (nouveau, coordonnées uniques + JSON-LD LocalBusiness), contact/page.tsx (adresse dans la carte « Notre adresse » et sous la carte, lien itinéraire), Footer.tsx (adresse cliquable vers l'itinéraire), (public)/layout.tsx (données structurées LocalBusiness sur toutes les pages publiques). Le « Siège social » des mentions légales n'est pas modifié (à confirmer, tâche 3.15).
 - [ ] **3.15 🔒 [Audit] Mentions légales** (`/mentions-legales`) : remplacer tous les « en cours de mise à jour » (forme juridique, RC, NIF, directeur de la publication, hébergeur : nom, adresse, site).
 - [ ] **3.16 🔒 [Audit] Politique de confidentialité** : page inexistante. *Possible dès maintenant : créer la route `/confidentialite` avec la structure (données collectées, finalités, durée, droits loi 18-07, contact) et les liens depuis le pied de page et les mentions légales ; contenu final à valider.*
   → préparé : frontend/src/app/(public)/confidentialite/page.tsx (données réellement collectées d'après le code, finalités, cookies et stockage du navigateur, destinataires, droits loi 18-07, contact ; durées de conservation et hébergeur « en cours de mise à jour », bandeau « Document en cours de validation »), liens depuis le pied de page (Footer.tsx) et les mentions légales. Contenu final à valider.
@@ -124,6 +126,8 @@ Quand une réponse arrive, elle sera ajoutée sous la tâche (`→ réponse : ..
   → préparé : backend/prisma/schema.prisma + migration 20261027120000_temoignage_contexte (champ `authorContext` ; l'activité existait déjà : `authorRole`), backend/src/modules/admin/admin.schema.ts, frontend/src/app/(admin)/admin/temoignages/page.tsx (champs « Activité » et « Contexte »), TestimonialReels.tsx et accueil (légende prénom · activité · contexte).
 - [ ] **3.20 🔒 [Audit] Maison IN Groupe** (À propos) : logos officiels des 10 filiales (aujourd'hui icônes génériques), un lien par filiale et le bouton « Découvrir toutes les filiales → » de la maquette. *Possible dès maintenant : prévoir les champs `logo` et `url` par filiale.*
   → préparé : frontend/src/app/(public)/a-propos/page.tsx (champs `logo` et `url` par filiale dans GROUP_BRANDS : le logo remplace l'icône, la carte devient un lien ; bouton « Découvrir toutes les filiales → » affiché dès que `GROUP_SITE_URL` est renseigné).
+  → réponse partielle (27/10/2026) : sites en ligne — IN ACADEMY https://in-academy.dz/, IN BEAUTY & HEALTH https://imh.dz/, IN DENTAL CARE https://in-dentalcare.dz/ (le lien http redirige vers https), IN DEV https://www.indevtech.dev/.
+  → fait : a-propos/page.tsx (cartes cliquables « Visiter le site »). Restent : logos officiels des 10 filiales, sites des autres filiales, lien « Découvrir toutes les filiales ».
 - [ ] **3.21 🔒 [Constat] Envoi du devis** : il faut être connecté pour envoyer une demande. Voulu ? Sinon, permettre l'envoi avec nom / e-mail / téléphone sans compte.
 
 ---

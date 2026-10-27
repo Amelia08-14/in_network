@@ -4,6 +4,7 @@ import { Container } from '@/components/ui/container';
 import { Logo } from './Logo';
 import { NetworkMotif } from '@/components/ui/network-motif';
 import { BrandTexture } from '@/components/ui/brand-texture';
+import { ADDRESS_LINE, ADDRESS_REGION, EMAIL, MAPS_DIRECTIONS, PHONE } from '@/lib/site-info';
 
 // Mêmes regroupements que le menu principal : l'offre, le réseau, puis
 // l'entreprise et le légal.
@@ -57,16 +58,19 @@ export function Footer() {
             Le lieu et le réseau qui font avancer les entrepreneurs, freelances et PME — Hydra, Alger.
           </p>
           <ul className="mt-5 space-y-2 text-sm text-white/70">
-            <li className="flex items-center gap-2.5">
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-orange" /> Hydra, Alger, Algérie
+            <li className="flex items-start gap-2.5">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-orange" />
+              <a href={MAPS_DIRECTIONS} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                {ADDRESS_LINE}, {ADDRESS_REGION}
+              </a>
             </li>
             <li className="flex items-center gap-2.5">
               <Phone className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
-              <a href="tel:+213560067486" className="hover:text-white">+213 5 60 06 74 86</a>
+              <a href={PHONE.href} className="hover:text-white">{PHONE.display}</a>
             </li>
             <li className="flex items-center gap-2.5">
               <Mail className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
-              <a href="mailto:contact@in-network.dz" className="hover:text-white">contact@in-network.dz</a>
+              <a href={`mailto:${EMAIL}`} className="hover:text-white">{EMAIL}</a>
             </li>
           </ul>
         </div>

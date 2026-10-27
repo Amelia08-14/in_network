@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {
   Armchair,
   ArrowRight,
+  ExternalLink,
   BarChart3,
   Flower2,
   Building2,
@@ -109,20 +110,21 @@ const COMMUNITY = [
 ];
 
 // La Maison IN Groupe — filiales et expertises (proposition de l'audit du site).
-// En attente du client (tâche 3.20) : logos officiels (fichier dans public/,
-// ex. '/filiales/in-com.svg') et site de chaque filiale. Tant que `logo` est
-// vide, l'icône générique s'affiche ; une filiale avec `url` devient un lien.
+// Sites des filiales déjà en ligne fournis le 27/10/2026 (IN ACADEMY, IN BEAUTY &
+// HEALTH, IN DENTAL CARE, IN DEV) ; les autres et les logos officiels (fichier
+// dans public/, ex. '/filiales/in-com.svg') restent à fournir (tâche 3.20).
+// Tant que `logo` est vide, l'icône générique s'affiche ; avec `url`, la carte devient un lien.
 /** Page « toutes les filiales » de la maquette (bouton masqué tant qu'elle n'est pas fournie). */
 const GROUP_SITE_URL: string | null = null;
 
 const GROUP_BRANDS: { name: string; role: string; icon: typeof Users2; logo?: string; url?: string }[] = [
   { name: 'IN CAPITAL', role: 'Finance & investissement', icon: BarChart3 },
-  { name: 'IN DEV', role: 'Développement digital', icon: Code2 },
+  { name: 'IN DEV', role: 'Développement digital', icon: Code2, url: 'https://www.indevtech.dev/' },
   { name: 'IN COM', role: 'Communication 360°', icon: Megaphone },
   { name: 'IN NETWORK', role: 'Coworking & incubation', icon: Network },
-  { name: 'IN ACADEMY', role: 'Formation certifiée', icon: GraduationCap },
-  { name: 'IN DENTAL CARE', role: 'Soins dentaires', icon: Smile },
-  { name: 'IN BEAUTY & HEALTH', role: 'Beauté & bien-être', icon: Flower2 },
+  { name: 'IN ACADEMY', role: 'Formation certifiée', icon: GraduationCap, url: 'https://in-academy.dz/' },
+  { name: 'IN DENTAL CARE', role: 'Soins dentaires', icon: Smile, url: 'https://in-dentalcare.dz/' },
+  { name: 'IN BEAUTY & HEALTH', role: 'Beauté & bien-être', icon: Flower2, url: 'https://imh.dz/' },
   { name: 'IN CUBATOR', role: 'Incubation & startups', icon: Rocket },
   { name: 'IN ARTS', role: 'Art & culture', icon: Palette },
   { name: 'IN TEXTILE', role: 'Couture & broderie', icon: Shirt },
@@ -371,6 +373,11 @@ export default function AProposPage() {
                   <span aria-hidden className="h-0.5 w-6 rounded-full bg-brand-orange" />
                   <p className="font-heading text-sm font-bold text-ink-900">{brand.name}</p>
                   <p className="-mt-2 text-xs text-ink-500">{brand.role}</p>
+                  {brand.url && (
+                    <span className="mt-auto inline-flex items-center gap-1 pt-1 text-xs font-semibold text-brand-orange">
+                      Visiter le site <ExternalLink className="h-3 w-3" />
+                    </span>
+                  )}
                 </>
               );
               const cardClass = cn('flex h-full flex-col gap-3 rounded-2xl border bg-white p-5 shadow-soft', brand.name === 'IN NETWORK' ? 'border-brand-orange/40 ring-1 ring-brand-orange/20' : 'border-ink-900/8');
