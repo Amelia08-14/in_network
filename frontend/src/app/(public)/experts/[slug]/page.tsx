@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { BadgeCheck } from 'lucide-react';
 import { Container } from '@/components/ui/container';
@@ -5,9 +6,18 @@ import { Badge } from '@/components/ui/badge';
 import { AvatarPlaceholder } from '@/components/ui/avatar-placeholder';
 import { ExpertConnectionRequest } from '@/components/features/ExpertConnectionRequest';
 import { serverGet } from '@/lib/server-api';
+import { formatDa } from '@/lib/money';
+import { metaDescription } from '@/lib/seo';
 import type { ExpertSummary } from '@/types';
 
 export const revalidate = 3600;
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const expert = await serverGet<ExpertSummary | null>(`/api/experts/${slug}`, 3600, null, 'experts');
+  if (!expert) return { title: 'Expert introuvable' };
+  return { title: `${expert.displayName} — ${expert.expertiseArea}`, description: metaDescription(expert.bio) ?? `${expert.displayName}, ${expert.expertiseArea} : expert du réseau IN NETWORK.` };
+}
 
 export default async function ExpertDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -49,7 +59,7 @@ export default async function ExpertDetailPage({ params }: { params: Promise<{ s
       )}
 
       {expert.hourlyRate && (
-        <p className="mt-6 font-heading text-2xl font-bold text-brand-orange">{expert.hourlyRate} DZD / heure</p>
+        <p className="mt-6 font-heading text-2xl font-bold text-brand-orange">{formatDa(expert.hourlyRate)} / heure</p>
       )}
 
       <div className="mt-8">

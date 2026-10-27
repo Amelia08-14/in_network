@@ -28,7 +28,8 @@ import { cn } from '@/lib/utils';
 import { VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
 
 export const metadata = {
-  title: 'À propos — IN NETWORK',
+  // Le suffixe « — IN NETWORK » vient du gabarit du layout racine.
+  title: 'À propos',
   description:
     'Née à Hydra, Alger, IN NETWORK associe un lieu de travail, une communauté professionnelle et des services pour accompagner les ambitions entrepreneuriales. La Maison IN Groupe.',
 };

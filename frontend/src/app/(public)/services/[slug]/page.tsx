@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Container } from '@/components/ui/container';
@@ -6,9 +7,20 @@ import { buttonVariants } from '@/components/ui/button';
 import { AddToCartButton } from '@/components/features/AddToCartButton';
 import { CATEGORY_LABEL } from '@/components/features/ServiceCard';
 import { serverGet } from '@/lib/server-api';
+import { formatDa } from '@/lib/money';
+import { metaDescription } from '@/lib/seo';
 import type { ServiceCatalogItem } from '@/types';
 
 export const revalidate = 3600;
+
+// Titre propre à chaque service (« Service secrétariat — IN NETWORK ») : sans
+// generateMetadata, les fiches reprenaient le titre de l'accueil.
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const service = await serverGet<ServiceCatalogItem | null>(`/api/services/${slug}`, 3600, null, 'services');
+  if (!service) return { title: 'Service introuvable' };
+  return { title: service.title, description: metaDescription(service.description) };
+}
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -28,7 +40,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             <li key={tier.label} className="flex items-center gap-4 rounded-xl bg-ink-900/3 py-3 pl-4 pr-3">
               <span className="min-w-0 flex-1 text-ink-700">{tier.label}</span>
               <span className="shrink-0 whitespace-nowrap font-heading text-xl font-bold tabular-nums text-brand-orange">
-                {tier.price.toLocaleString('fr-FR')} DZD
+                {formatDa(tier.price)}
               </span>
               <AddToCartButton
                 item={{

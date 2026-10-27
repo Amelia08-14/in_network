@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { CalendarDays, MapPin, Users } from 'lucide-react';
@@ -5,10 +6,18 @@ import { Container } from '@/components/ui/container';
 import { Badge, EventOriginBadge } from '@/components/ui/badge';
 import { ImageGallery } from '@/components/features/gallery/ImageGallery';
 import { serverGet } from '@/lib/server-api';
+import { metaDescription } from '@/lib/seo';
 import type { EventItem } from '@/types';
 import { EventRegisterButton } from './register-button';
 
 export const revalidate = 900;
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const event = await serverGet<EventItem | null>(`/api/events/${slug}`, 900, null, 'events');
+  if (!event) return { title: 'Événement introuvable' };
+  return { title: event.title, description: metaDescription(event.description) };
+}
 
 export default async function EventDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -23,7 +32,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       {event.videoUrl ? (
         <div className="relative mb-8 aspect-video overflow-hidden rounded-card bg-ink-900">
           <video src={event.videoUrl} controls playsInline className="h-full w-full object-cover">
-            Ton navigateur ne prend pas en charge la lecture vidéo.
+            Votre navigateur ne prend pas en charge la lecture vidéo.
           </video>
         </div>
       ) : (

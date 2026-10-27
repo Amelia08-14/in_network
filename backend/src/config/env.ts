@@ -61,7 +61,7 @@ export const env = {
     name: process.env.COMPANY_NAME ?? 'IN NETWORK — La Maison IN Groupe',
     address: process.env.COMPANY_ADDRESS ?? 'Hydra, Alger, Algérie',
     phone: process.env.COMPANY_PHONE ?? '+213 5 60 06 74 86',
-    email: process.env.COMPANY_EMAIL ?? 'Contact@in-network.dz',
+    email: process.env.COMPANY_EMAIL ?? 'contact@in-network.dz',
     nif: process.env.COMPANY_NIF ?? '',
     rc: process.env.COMPANY_RC ?? '',
     ai: process.env.COMPANY_AI ?? '',
