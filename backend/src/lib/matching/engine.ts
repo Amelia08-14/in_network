@@ -43,16 +43,19 @@ function coverage(needs: string[], offers: string[]): number {
 }
 
 /**
- * Domaines en commun, pondérés par la taille des deux listes (similarité
- * cosinus) : un membre qui coche des familles entières ne « matche » pas pour
- * autant avec tout le monde.
+ * Domaines en commun, vus de mon côté : la part des domaines de l'autre que je
+ * couvre, légèrement atténuée si je coche beaucoup de domaines. C'est
+ * volontairement asymétrique : cocher « tous les domaines » me montre tous les
+ * membres de ces domaines (retour client 04/11/2026 : une première version
+ * pénalisait les listes larges, ce qui vidait les suggestions), mais ne
+ * m'impose pas à eux, car pour eux je ne couvre qu'une petite part de mes domaines.
  */
-function sharedSectors(a: string[], b: string[]): number {
-  const left = uniq(a);
-  const right = new Set(uniq(b));
-  if (left.length === 0 || right.size === 0) return 0;
-  const common = left.filter((s) => right.has(s)).length;
-  return common / Math.sqrt(left.length * right.size);
+function sharedSectors(mine: string[], theirs: string[]): number {
+  const left = new Set(uniq(mine));
+  const right = uniq(theirs);
+  if (left.size === 0 || right.length === 0) return 0;
+  const covered = right.filter((s) => left.has(s)).length / right.length;
+  return covered * (0.5 + 0.5 * specificity(mine));
 }
 
 /**

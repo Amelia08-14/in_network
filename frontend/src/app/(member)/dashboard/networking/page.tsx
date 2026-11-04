@@ -99,9 +99,18 @@ export default function ConnexionsPage() {
   });
 
   const refreshMatchingMutation = useMutation({
-    mutationFn: () => api.post('/api/connections/matching/refresh'),
-    onSuccess: () => {
-      setFeedback({ type: 'success', text: 'Vos suggestions networking ont été recalculées.' });
+    mutationFn: () =>
+      api.post<{ data: { suggestionsWritten: number; inPool: boolean; othersInPool: number } }>('/api/connections/matching/refresh').then((r) => r.data),
+    // Le recalcul dit pourquoi la liste reste vide, le cas échéant.
+    onSuccess: (result) => {
+      const text = !result.inPool
+        ? 'Vos suggestions s’activent dès que votre profil est validé par l’équipe IN NETWORK.'
+        : result.othersInPool === 0
+          ? 'Aucun autre membre validé pour le moment : vos suggestions apparaîtront dès que d’autres membres rejoindront le réseau.'
+          : result.suggestionsWritten === 0
+            ? 'Aucun membre ne correspond encore à vos domaines et compétences. Ajoutez des « domaines recherchés » ou des compétences dans votre profil pour élargir vos suggestions.'
+            : `${result.suggestionsWritten} suggestion${result.suggestionsWritten > 1 ? 's' : ''} trouvée${result.suggestionsWritten > 1 ? 's' : ''}.`;
+      setFeedback({ type: result.suggestionsWritten > 0 ? 'success' : 'error', text });
       queryClient.invalidateQueries({ queryKey: ['my-suggestions'] });
     },
     onError: showError,
@@ -174,7 +183,11 @@ export default function ConnexionsPage() {
           {suggestionsLoading ? (
             <p className="py-8 text-center text-sm text-ink-500">Calcul des suggestions...</p>
           ) : activeSuggestions.length === 0 ? (
-            <EmptyState icon={Sparkles} title="Aucune suggestion active" description="Complétez vos compétences recherchées et proposées pour améliorer le matching." />
+            <EmptyState
+              icon={Sparkles}
+              title="Aucune suggestion active"
+              description="Les suggestions croisent vos domaines d’activité, vos domaines recherchés et vos compétences avec ceux des membres validés. Complétez votre profil, puis cliquez sur « Recalculer mes suggestions »."
+            />
           ) : (
             <ul className="grid gap-3 lg:grid-cols-2">
               {activeSuggestions.map((suggestion) => (

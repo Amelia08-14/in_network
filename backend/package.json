@@ -19,6 +19,7 @@
     "taxonomy:sync": "tsx prisma/sync-taxonomy.ts",
     "sectors:migrate": "tsx prisma/migrate-sectors.ts",
     "emails:preview": "tsx prisma/preview-emails.ts",
+    "matching:diagnostic": "tsx prisma/matching-diagnostic.ts",
     "lint": "eslint src --ext .ts"
   },
   "prisma": {

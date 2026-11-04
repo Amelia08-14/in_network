@@ -75,10 +75,17 @@ async function writeSuggestionsForUser(userId: string, pool: MatchCandidate[]) {
   return suggestions.length;
 }
 
+/**
+ * Recalcul pour un membre. Le résultat dit aussi POURQUOI la liste peut rester
+ * vide : profil pas encore validé (hors réservoir), aucun autre membre validé,
+ * ou aucun point commun suffisant — l'espace membre l'explique au lieu d'un
+ * message générique.
+ */
 export async function runMatchingForUser(userId: string) {
   const pool = await buildCandidatePool();
-  const suggestionsWritten = await writeSuggestionsForUser(userId, pool);
-  return { suggestionsWritten };
+  const inPool = pool.some((c) => c.userId === userId);
+  const suggestionsWritten = inPool ? await writeSuggestionsForUser(userId, pool) : 0;
+  return { suggestionsWritten, inPool, othersInPool: pool.filter((c) => c.userId !== userId).length };
 }
 
 // CDC §8.3 — recalcul planifié (nuit) plutôt qu'à la volée à chaque visite,
