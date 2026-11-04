@@ -92,11 +92,10 @@ const PROCESS_STEPS = [
 // Aperçu légendé des espaces (photos réelles du lieu).
 const SPACE_GALLERY: { photo: VenuePhoto; caption: string; detail: string }[] = [
   { photo: VENUE_PHOTOS.terrasse, caption: 'La terrasse', detail: 'Un espace détente pour échanger et faire une pause' },
-  { photo: VENUE_PHOTOS.grandeSalle, caption: 'Salle de réunion', detail: 'Idéale pour vos réunions professionnelles' },
+  { photo: VENUE_PHOTOS.salleReunion, caption: 'Salle de réunion', detail: 'Idéale pour vos rendez-vous, de 6 à 8 personnes' },
   { photo: VENUE_PHOTOS.postes, caption: 'Espace de travail', detail: 'Un cadre motivant au quotidien' },
-  // Photo de la cuisine retirée (jugée de mauvaise qualité, 27/10/2026) en attendant une nouvelle prise de vue.
-  { photo: VENUE_PHOTOS.detente, caption: 'Le salon d’accueil', detail: 'Pour recevoir vos visiteurs et souffler entre deux rendez-vous' },
-  { photo: VENUE_PHOTOS.salleReunion, caption: 'Salle de réunion compacte', detail: 'Un espace adapté à vos rendez-vous' },
+  { photo: VENUE_PHOTOS.detente, caption: 'L’espace détente', detail: 'Pour souffler entre deux rendez-vous' },
+  { photo: VENUE_PHOTOS.cafe, caption: 'Le coin café', detail: 'Café, thé et terrasse conviviale' },
 ];
 
 const SPACE_FEATURES: { icon: typeof Building2; label: string }[] = [
@@ -333,7 +332,7 @@ export default async function HomePage() {
         <ScrollReveal className="mt-10 grid gap-3 md:grid-cols-4 md:grid-rows-2">
           {SPACE_GALLERY.map((item, i) => (
             <figure key={item.caption} className={cn('relative overflow-hidden rounded-2xl', i === 0 ? 'aspect-[4/3] md:col-span-2 md:row-span-2 md:aspect-auto' : 'aspect-[4/3]')}>
-              <Image src={item.photo.src} alt={item.photo.alt} fill sizes={i === 0 ? '(min-width: 768px) 50vw, 100vw' : '(min-width: 768px) 25vw, 100vw'} className="object-cover" />
+              <Image src={item.photo.src} alt={item.photo.alt} fill sizes={i === 0 ? '(min-width: 768px) 50vw, 100vw' : '(min-width: 768px) 25vw, 100vw'} className={cn('object-cover', item.photo.position)} />
               <figcaption className="absolute bottom-3 left-3 right-3 rounded-xl bg-white/92 px-3 py-2 shadow-soft backdrop-blur-sm sm:right-auto">
                 <span className="block text-sm font-semibold text-ink-900">{item.caption}</span>
                 <span className="block text-xs text-ink-500">{item.detail}</span>

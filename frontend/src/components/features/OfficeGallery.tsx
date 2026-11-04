@@ -30,7 +30,7 @@ export function OfficeGallery({ shots, sizes, className }: { shots: OfficeShot[]
             alt={shot.photo.alt}
             fill
             sizes={sizes}
-            className={cn('object-cover transition-opacity duration-300', i === index ? 'opacity-100' : 'opacity-0')}
+            className={cn('object-cover transition-opacity duration-300', shot.photo.position, i === index ? 'opacity-100' : 'opacity-0')}
             aria-hidden={i !== index}
           />
         ))}

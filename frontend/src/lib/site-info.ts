@@ -33,7 +33,7 @@ export const LOCAL_BUSINESS_JSON_LD = {
   url: SITE_URL,
   telephone: PHONE.href.replace('tel:', ''),
   email: EMAIL,
-  image: `${SITE_URL}/espaces/open-space-lumineux.webp`,
+  image: `${SITE_URL}/espaces/open-space-chaleureux.webp`,
   address: {
     '@type': 'PostalAddress',
     streetAddress: SITE_ADDRESS.street,

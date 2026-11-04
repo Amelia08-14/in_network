@@ -39,7 +39,7 @@ import { byPrice } from '@/lib/services-order';
 import { cn } from '@/lib/utils';
 import { CURRENCY, formatDa, formatNumber } from '@/lib/money';
 import { HUE, planHue, type Hue } from '@/lib/palette';
-import { OFFICE_PHOTOS, ROOF_PHOTOS, VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
+import { OFFICE_INTERIORS, OFFICE_PHOTOS, ROOF_PHOTOS, VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
 import { OfficeGallery, type OfficeShot } from '@/components/features/OfficeGallery';
 import { BrandTexture } from '@/components/ui/brand-texture';
 import type { CardAccent } from '@/components/ui/card';
@@ -113,12 +113,17 @@ const ROOF_SHOTS: OfficeShot[] = [
 ];
 const isRoofOffice = (name: string) => name === 'IN Network Roof' || name === 'Bureau Roof';
 const officeLabel = (name: string) => (isRoofOffice(name) ? 'IN Network Roof' : name.replace(/^Bureau /, ''));
-const officeShots = (names: string[]): OfficeShot[] =>
-  names.flatMap((name) => {
+// L'intérieur type de la taille (photo du 04/11/2026) passe en premier, puis
+// chaque bureau sous son nom.
+const officeShots = (names: string[], capacity: number): OfficeShot[] => {
+  const interior = OFFICE_INTERIORS[capacity];
+  const named = names.flatMap((name) => {
     if (isRoofOffice(name)) return ROOF_SHOTS;
     const photo = OFFICE_PHOTOS[name];
     return photo ? [{ name: officeLabel(name), photo }] : [];
   });
+  return interior ? [{ name: 'Intérieur', photo: interior }, ...named] : named;
+};
 
 // Photo de chaque salle (sélection de la galerie du lieu).
 const ROOM_PHOTOS: Record<string, VenuePhoto> = {
@@ -253,7 +258,7 @@ function BlockHeading({ title, lead, hue, n }: { title: React.ReactNode; lead: s
 function Photo({ photo, className, sizes, priority = false }: { photo: VenuePhoto; className?: string; sizes: string; priority?: boolean }) {
   return (
     <div className={cn('relative overflow-hidden', className)}>
-      <Image src={photo.src} alt={photo.alt} fill sizes={sizes} priority={priority} className="object-cover" />
+      <Image src={photo.src} alt={photo.alt} fill sizes={sizes} priority={priority} className={cn('object-cover', photo.position)} />
     </div>
   );
 }
@@ -609,7 +614,7 @@ export default async function ServicesPage() {
                 {officePlans.map((plan) => {
                   const named = officesFor(plan);
                   const capacity = named[0]?.capacity ?? Number(plan.name.match(/(\d+) personnes/)?.[1] ?? 0);
-                  const shots = officeShots(named.map((o) => o.name));
+                  const shots = officeShots(named.map((o) => o.name), capacity);
                   return (
                     <Card key={plan.id} accent="ink" className="h-full">
                       <CardContent className="flex h-full flex-col gap-4">
