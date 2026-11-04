@@ -21,6 +21,7 @@ import { servicesRouter } from './modules/services/services.routes';
 import { eventsRouter } from './modules/events/events.routes';
 import { connectionsRouter } from './modules/connections/connections.routes';
 import { messagesRouter } from './modules/messages/messages.routes';
+import { supportMemberRouter } from './modules/support/support.routes';
 import { notificationsRouter } from './modules/notifications/notifications.routes';
 import { paymentsRouter } from './modules/payments/payments.routes';
 import { adminRouter } from './modules/admin/admin.routes';
@@ -99,6 +100,8 @@ app.use('/api/services', servicesRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/connections', connectionsRouter);
 app.use('/api/messages', messagesRouter);
+// Messagerie membre ↔ équipe IN NETWORK (le pendant backoffice est /api/admin/support).
+app.use('/api/support', supportMemberRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/admin', adminRouter);

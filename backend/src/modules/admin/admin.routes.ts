@@ -73,6 +73,7 @@ import * as companiesService from '../companies/companies.service';
 import { adminUpdateCompanySchema, setMemberActiveSchema } from '../companies/companies.schema';
 import { getIdDocumentFile, removeIdentityFile } from '../profiles/profiles.service';
 import { identityAbsolutePath } from '../situation/proofs.storage';
+import { supportAdminRouter } from '../support/support.routes';
 
 export const adminRouter = Router();
 
@@ -97,6 +98,8 @@ adminRouter.use('/home', homeRouter);
 adminRouter.use('/commissions', commissionsRouter);
 adminRouter.use('/member-services', memberAdminRouter);
 adminRouter.use('/settings', settingsRouter);
+// Messagerie avec les membres : chaque rôle ne voit que les conversations de son service.
+adminRouter.use('/support', supportAdminRouter);
 // Justificatifs de paiement envoyés par les membres (vérification par l'équipe).
 adminRouter.use('/payment-proofs', paymentProofsAdminRouter);
 

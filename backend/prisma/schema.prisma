@@ -246,6 +246,8 @@ model User {
   sentConnectionRequests     ConnectionRequest[]       @relation("SentRequests")
   receivedConnectionRequests ConnectionRequest[]       @relation("ReceivedRequests")
   sentMessages               Message[]                 @relation("MessageSender")
+  supportThreads             SupportThread[]           @relation("SupportThreadMember")
+  supportMessages            SupportMessage[]          @relation("SupportMessageSender")
   suggestionsFor             ConnectionSuggestion[]    @relation("SuggestionOwner")
   suggestionsAs              ConnectionSuggestion[]    @relation("SuggestedMember")
   expertConnectionRequests   ExpertConnectionRequest[]
@@ -718,6 +720,63 @@ model Message {
   @@index([connectionId, createdAt])
   @@index([senderId])
   @@map("messages")
+}
+
+// ============================================
+// MESSAGERIE MEMBRE ↔ ÉQUIPE (demande cliente 04/11/2026)
+// ============================================
+
+// Service destinataire choisi par le membre : chaque conversation n'est reçue
+// que par les comptes du backoffice concernés (cf. support.service.ts) ; la
+// Direction (ADMIN, SUPER_ADMIN) voit tout.
+enum SupportDepartment {
+  OFFICE_MANAGER
+  ADMINISTRATION
+  COMMERCIAL
+}
+
+enum SupportThreadStatus {
+  OPEN
+  CLOSED
+}
+
+model SupportThread {
+  id                  String              @id @default(cuid())
+  memberId            String
+  department          SupportDepartment
+  subject             String
+  status              SupportThreadStatus @default(OPEN)
+  // Dernier message de chaque côté et dernière lecture de chaque côté : les
+  // pastilles « non lu » se déduisent de ces quatre dates.
+  lastMemberMessageAt DateTime?
+  lastStaffMessageAt  DateTime?
+  memberReadAt        DateTime?
+  staffReadAt         DateTime?
+  lastMessageAt       DateTime            @default(now())
+  createdAt           DateTime            @default(now())
+
+  member   User             @relation("SupportThreadMember", fields: [memberId], references: [id], onDelete: Cascade)
+  messages SupportMessage[]
+
+  @@index([memberId, lastMessageAt])
+  @@index([department, status, lastMessageAt])
+  @@map("support_threads")
+}
+
+model SupportMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  // Auteur (membre ou compte de l'équipe) ; conservé à null si le compte est supprimé.
+  senderId  String?
+  fromStaff Boolean
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  thread SupportThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User?         @relation("SupportMessageSender", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([threadId, createdAt])
+  @@map("support_messages")
 }
 
 // ============================================

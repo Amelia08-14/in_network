@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, UserRound, CalendarDays, Users2, Building2, MessageCircle, ShoppingBag, PackageCheck, ReceiptText, History } from 'lucide-react';
+import { LayoutDashboard, UserRound, CalendarDays, Users2, Building2, MessageCircle, ShoppingBag, PackageCheck, ReceiptText, History, Headset } from 'lucide-react';
 import { DashboardShell, type NavItem } from '@/components/layout/DashboardShell';
 import { ProfileCompletionBanner } from '@/components/features/ProfileCompletionBanner';
 import { useAuthStore } from '@/store/auth';
@@ -11,6 +11,8 @@ import { api } from '@/lib/api';
 
 const DOCUMENTS_HREF = '/dashboard/documents';
 const CATALOGUE_HREF = '/dashboard/catalogue';
+// Messagerie avec l'équipe (office manager, administration, commercial).
+const SUPPORT_HREF = '/dashboard/equipe-in-network';
 
 // Espace client (processus v1.3) : d'abord ses services et ce qui les entoure
 // (demander, devis et factures, historique), puis la vie du lieu et du réseau.
@@ -24,6 +26,7 @@ const BASE_NAV: NavItem[] = [
   { href: '/dashboard/networking', label: 'Networking', icon: Users2 },
   // Messagerie : la suite d'une mise en relation acceptée (pastille = messages non lus).
   { href: '/dashboard/messages', label: 'Messages', icon: MessageCircle },
+  { href: SUPPORT_HREF, label: 'Équipe IN NETWORK', icon: Headset },
   { href: '/dashboard/profil', label: 'Mon profil', icon: UserRound },
 ];
 
@@ -36,7 +39,8 @@ const COMPANY_NAV: NavItem = { href: '/dashboard/equipe', label: 'Mon entreprise
 // ouverts : la demande de devis et « Devis et factures » (devis, proforma,
 // justificatif). Le reste est visible mais verrouillé ; tout s'ouvre
 // automatiquement dès que l'équipe enregistre le paiement.
-const OPEN_WHILE_PENDING = [CATALOGUE_HREF, DOCUMENTS_HREF];
+// La messagerie avec l'équipe reste ouverte : c'est là qu'on pose ses questions avant de payer.
+const OPEN_WHILE_PENDING = [CATALOGUE_HREF, DOCUMENTS_HREF, SUPPORT_HREF];
 
 const PENDING_POLL_MS = 30_000;
 
@@ -83,7 +87,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     refetchInterval: 20_000,
   });
 
-  const withBadges = BASE_NAV.map((item) => (item.href === '/dashboard/messages' && unread ? { ...item, badge: unread } : item));
+  // Réponses de l'équipe non lues (y compris avant le premier paiement).
+  const { data: supportUnread } = useQuery({
+    queryKey: ['support-unread'],
+    queryFn: () => api.get<{ data: { count: number } }>('/api/support/unread-count').then((r) => r.data.count),
+    enabled: status === 'authenticated' && user?.role === 'MEMBER',
+    refetchInterval: 20_000,
+  });
+
+  const withBadges = BASE_NAV.map((item) =>
+    item.href === '/dashboard/messages' && unread ? { ...item, badge: unread } : item.href === SUPPORT_HREF && supportUnread ? { ...item, badge: supportUnread } : item,
+  );
   const base = user?.company ? [...withBadges, user.company.isOwner ? TEAM_NAV : COMPANY_NAV] : withBadges;
   const navItems: NavItem[] = pending
     ? base.map((item) => ({ ...item, locked: !OPEN_WHILE_PENDING.includes(item.href), highlight: item.href === DOCUMENTS_HREF }))

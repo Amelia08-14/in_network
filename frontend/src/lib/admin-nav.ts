@@ -1,4 +1,5 @@
 import {
+  MessagesSquare,
   Sun,
   BarChart3,
   Users,
@@ -57,6 +58,8 @@ export const NAV_ITEMS: NavEntry[] = [
   { href: '/admin/factures', alsoMatch: ['/admin/paiements'], label: 'Proformas et factures', icon: Receipt, resource: 'invoices', section: 'Ventes' },
   // Clients : activation, livraison, échéances, fiche membre
   { href: '/admin/lancements', label: 'Services clients', icon: PackageCheck, resource: 'fulfilment', section: 'Clients' },
+  // Messagerie avec les membres : visible de tous, chaque rôle n'y voit que son service.
+  { href: '/admin/messagerie', label: 'Messagerie membres', icon: MessagesSquare, alwaysVisible: true, section: 'Clients' },
   { href: '/admin/membres', label: 'Membres', icon: Users, resource: 'members', section: 'Clients' },
   { href: '/admin/entreprises', label: 'Entreprises', icon: Landmark, resource: 'companies', section: 'Clients' },
   { href: '/admin/reservations', label: 'Réservations', icon: CalendarCheck, resource: 'bookings', section: 'Clients' },

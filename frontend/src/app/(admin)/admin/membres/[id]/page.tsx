@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CalendarCheck, FileText, History, IdCard, Mail, PackageCheck, Phone, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, FileText, History, IdCard, Mail, MessagesSquare, PackageCheck, Phone, UserRound } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -151,7 +151,15 @@ export default function MemberFilePage() {
               )}
             </p>
           </div>
-          <Pill tone={member.profile?.isPublic ? 'green' : 'amber'}>{member.profile?.isPublic ? 'Espace actif' : 'Avant paiement'}</Pill>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/admin/messagerie?membre=${member.id}&nom=${encodeURIComponent(name)}&email=${encodeURIComponent(member.email)}`}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-ink-900/12 px-3 py-1.5 text-sm font-semibold text-ink-800 hover:bg-ink-900/5"
+            >
+              <MessagesSquare className="h-4 w-4" /> Écrire au membre
+            </Link>
+            <Pill tone={member.profile?.isPublic ? 'green' : 'amber'}>{member.profile?.isPublic ? 'Espace actif' : 'Avant paiement'}</Pill>
+          </div>
         </div>
       </div>
 

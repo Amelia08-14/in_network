@@ -73,6 +73,9 @@ const PREFIX_TO_RESOURCE: Record<string, DashboardResource | 'system_users' | 'h
   spaces: 'spaces',
   plans: 'plans',
   'contact-messages': 'contact',
+  // Messagerie membres : ouverte à tous les comptes du backoffice, le service
+  // filtre selon le rôle (cf. support.service.ts, departmentsForRole).
+  support: 'home',
   crm: 'crm',
   quotes: 'quotes',
   invoices: 'invoices',

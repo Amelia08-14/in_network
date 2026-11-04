@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -12,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/layout/Logo';
 import { AdminShell, type AdminNavItem } from '@/components/layout/AdminShell';
 import { useAdminAuthStore } from '@/store/admin-auth';
-import { ApiRequestError } from '@/lib/admin-api';
+import { api as adminApi, ApiRequestError } from '@/lib/admin-api';
 import { isStaffRole } from '@/types';
 
 function visibleNavItems(
@@ -112,6 +113,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (status === 'idle') hydrate();
   }, [status, hydrate]);
 
+  // Conversations de membres non lues dans le(s) service(s) du compte connecté.
+  const { data: supportUnread } = useQuery({
+    queryKey: ['admin-support-unread'],
+    queryFn: () => adminApi.get<{ data: { count: number } }>('/api/admin/support/unread-count').then((r) => r.data.count),
+    enabled: status === 'authenticated' && Boolean(user && isStaffRole(user.role)),
+    refetchInterval: 20_000,
+  });
+
   if (status === 'idle' || status === 'loading') {
     return <div className="flex min-h-screen items-center justify-center" />;
   }
@@ -126,7 +135,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const blocked = user.role !== 'SUPER_ADMIN' && isHiddenPath(pathname, hidden);
   return (
-    <AdminShell navItems={visibleNavItems(user.role, user.permissions ?? null, user.crmAccess, hidden)}>
+    <AdminShell
+      navItems={visibleNavItems(user.role, user.permissions ?? null, user.crmAccess, hidden).map((item) =>
+        item.href === '/admin/messagerie' && supportUnread ? { ...item, badge: supportUnread } : item,
+      )}
+    >
       {blocked ? <EmptyState title="Rubrique désactivée" description="Cette rubrique a été retirée du dashboard par le super administrateur." /> : children}
     </AdminShell>
   );
