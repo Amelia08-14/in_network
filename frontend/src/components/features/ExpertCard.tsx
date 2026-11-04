@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowUpRight, BadgeCheck } from 'lucide-react';
+import { BadgeCheck, MapPin } from 'lucide-react';
+import { LinkedInLink } from '@/components/features/LinkedInLink';
 import { cn } from '@/lib/utils';
 import type { ExpertSummary } from '@/types';
 
+// Toute la carte ouvre le profil de l'expert (lien étiré sur le nom) ; le bouton
+// LinkedIn, posé au-dessus, ouvre son profil LinkedIn — grisé s'il n'est pas
+// renseigné (demande cliente 04/11/2026).
 export function ExpertCard({
   expert,
   featured = false,
@@ -19,10 +23,9 @@ export function ExpertCard({
     .join('');
 
   return (
-    <Link
-      href={`/experts/${expert.id}`}
+    <article
       className={cn(
-        'group block h-full overflow-hidden rounded-[1.35rem] border bg-white p-2 shadow-soft transition-all duration-300 hover:-translate-y-1.5 hover:shadow-soft-lg',
+        'group relative h-full overflow-hidden rounded-[1.35rem] border bg-white p-2 shadow-soft transition-all duration-300 focus-within:ring-2 focus-within:ring-brand-orange/40 hover:-translate-y-1.5 hover:shadow-soft-lg',
         featured ? 'border-ink-900 bg-ink-900' : 'border-ink-900/8',
       )}
     >
@@ -51,27 +54,27 @@ export function ExpertCard({
       <div className="flex items-start justify-between gap-4 px-3 pb-3 pt-4">
         <div className="min-w-0">
           <h3 className={cn('truncate font-heading text-lg font-bold', featured ? 'text-white' : 'text-ink-900')}>
-            {expert.displayName}
+            <Link href={`/experts/${expert.id}`} className="outline-hidden after:absolute after:inset-0 after:content-['']">
+              {expert.displayName}
+            </Link>
           </h3>
           <p className={cn('mt-1 line-clamp-2 text-sm leading-snug', featured ? 'text-white/65' : 'text-ink-500')}>
             {expert.expertiseArea}
           </p>
-          {expert.companyName && (
-            <p className={cn('mt-2 text-[11px] font-semibold uppercase tracking-wide', featured ? 'text-white/45' : 'text-ink-500')}>
-              {expert.companyName}
+          {(expert.companyName || expert.location) && (
+            <p className={cn('mt-2 flex flex-wrap items-center gap-x-2 text-[11px] font-semibold uppercase tracking-wide', featured ? 'text-white/45' : 'text-ink-500')}>
+              {expert.companyName && <span>{expert.companyName}</span>}
+              {expert.location && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> {expert.location}
+                </span>
+              )}
             </p>
           )}
         </div>
 
-        <span
-          className={cn(
-            'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform group-hover:rotate-12',
-            featured ? 'bg-brand-orange text-white' : 'bg-ink-900/6 text-ink-900',
-          )}
-        >
-          <ArrowUpRight className="h-4 w-4" />
-        </span>
+        <LinkedInLink url={expert.linkedinUrl} name={expert.displayName} variant="icon" className="relative z-10 mt-0.5" />
       </div>
-    </Link>
+    </article>
   );
 }

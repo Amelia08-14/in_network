@@ -53,6 +53,8 @@ expertsRouter.get(
       hourlyRate: e.hourlyRate,
       isVerified: e.isVerified,
       companyName: e.user?.profile?.companyName,
+      linkedinUrl: e.linkedinUrl ?? e.user?.profile?.linkedinUrl ?? null,
+      location: e.location,
     }));
 
     okPaginated(res, data, buildPaginationMeta(page, limit, total));
@@ -78,6 +80,9 @@ expertsRouter.get(
       hourlyRate: expert.hourlyRate,
       isVerified: expert.isVerified,
       companyName: expert.user?.profile?.companyName,
+      linkedinUrl: expert.linkedinUrl ?? expert.user?.profile?.linkedinUrl ?? null,
+      location: expert.location ?? expert.user?.profile?.city ?? null,
+      languages: expert.languages,
     });
   }),
 );

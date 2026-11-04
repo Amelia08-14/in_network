@@ -316,6 +316,9 @@ export interface ExpertSummary {
   hourlyRate: string | null;
   isVerified: boolean;
   companyName?: string | null;
+  linkedinUrl?: string | null;
+  location?: string | null;
+  languages?: string | null;
 }
 
 export interface EventMediaItem {

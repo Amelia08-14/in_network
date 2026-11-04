@@ -167,13 +167,26 @@ export const updateTestimonialSchema = z.object({
   isPublished: z.boolean().optional(),
 });
 
+// Lien de profil LinkedIn uniquement (pas un lien quelconque) ; null efface le champ.
+const linkedinUrl = z
+  .string()
+  .trim()
+  .url('Lien LinkedIn invalide')
+  .refine((url) => /^https?:\/\/([a-z]{2,3}\.)?(www\.)?linkedin\.com\//i.test(url), 'Le lien doit pointer vers un profil linkedin.com')
+  .nullable()
+  .optional();
+const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
+
 export const createExpertSchema = z.object({
   displayName: z.string().min(1),
-  photoUrl: z.string().url().optional(),
-  bio: z.string().optional(),
+  photoUrl: z.string().url().nullable().optional(),
+  bio: optionalText(5000),
   expertiseArea: z.string().min(1),
-  servicesOffered: z.array(z.string()).default([]),
-  hourlyRate: z.number().nonnegative().optional(),
+  servicesOffered: z.array(z.string().trim().min(1).max(200)).max(30).default([]),
+  hourlyRate: z.number().nonnegative().nullable().optional(),
+  linkedinUrl,
+  location: optionalText(120),
+  languages: optionalText(190),
   order: z.number().int().min(0).default(0),
 });
 export const updateExpertSchema = createExpertSchema.partial().extend({

@@ -374,6 +374,11 @@ model ExpertProfile {
   expertiseArea   String
   servicesOffered Json // string[] (MySQL: pas de scalar list natif)
   hourlyRate      Decimal? @db.Decimal(10, 2)
+  // Profil complet de l'expert (demande cliente 04/11/2026) : lien LinkedIn
+  // (affiché grisé s'il manque), ville et langues de travail.
+  linkedinUrl     String?
+  location        String?
+  languages       String?
   isVerified      Boolean  @default(false)
   isPublic        Boolean  @default(true)
   order           Int      @default(0)
