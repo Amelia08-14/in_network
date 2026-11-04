@@ -61,6 +61,7 @@ export function TagPicker({
   hint,
   tone = 'ink',
   closed = false,
+  bulk = false,
 }: {
   label: string;
   category: 'SKILL' | 'SECTOR';
@@ -72,6 +73,8 @@ export function TagPicker({
   tone?: 'ink' | 'orange' | 'blue';
   /** Liste fermée : seulement les libellés du référentiel, pas de saisie libre (domaines d'activité). */
   closed?: boolean;
+  /** Bouton « Tout ajouter » par famille : choisir plusieurs libellés d'un coup (domaines d'activité). */
+  bulk?: boolean;
 }) {
   const id = useId();
   const { data: allOptions = [], isLoading } = useTagOptions(category);
@@ -116,6 +119,12 @@ export function TagPicker({
     onChange([...value, clean]);
     setQuery('');
     setActive(0);
+  }
+
+  /** Ajoute d'un coup plusieurs libellés (une famille entière), dans la limite du maximum. */
+  function addMany(labels: string[]) {
+    const fresh = labels.filter((l) => !selected.has(normalize(l))).slice(0, Math.max(max - value.length, 0));
+    if (fresh.length) onChange([...value, ...fresh]);
   }
 
   const chipClass = {
@@ -208,7 +217,21 @@ export function TagPicker({
             {!isLoading && rows.length === 0 && <li className="px-4 py-3 text-sm text-ink-500">{full ? `Vous avez atteint le maximum (${max}).` : 'Aucun résultat dans la liste.'}</li>}
             {indexed.map(([group, items]) => (
               <li key={group} role="presentation">
-                <p className="sticky top-0 bg-ink-900/[0.04] px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-ink-500">{group}</p>
+                <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-ink-900/6 bg-white px-4 py-1.5">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-500">{group}</p>
+                  {bulk && !full && items.length > 1 && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        addMany(items.map(({ item }) => item.label));
+                      }}
+                      className="shrink-0 rounded-pill bg-white px-2.5 py-0.5 text-[11px] font-semibold text-brand-blue ring-1 ring-brand-blue/25 hover:bg-brand-blue/10"
+                    >
+                      Tout ajouter ({Math.min(items.length, max - value.length)})
+                    </button>
+                  )}
+                </div>
                 <ul role="presentation">
                   {items.map(({ item, index }) => {
                     const isActive = index === active;

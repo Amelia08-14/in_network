@@ -53,6 +53,7 @@ export const updateProfileSchema = z.object({
   isPublic: z.boolean().optional(),
   skillsOffered: profileTags(20, 'compétences proposées'),
   skillsWanted: profileTags(20, 'compétences recherchées'),
-  sectors: profileTags(10, 'secteurs d’activité'),
+  // 30 : un membre peut choisir une famille entière d'un coup (« Tout ajouter »).
+  sectors: profileTags(30, 'secteurs d’activité'),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
