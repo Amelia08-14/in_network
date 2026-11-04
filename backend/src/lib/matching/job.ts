@@ -19,8 +19,13 @@ async function buildCandidatePool(): Promise<MatchCandidate[]> {
     skillsWanted: profile.tags
       .filter((t) => t.tag.category === 'SKILL' && t.relation === 'NEED')
       .map((t) => t.tag.label),
+    // Domaines d'activité (OFFER) et domaines recherchés (NEED) : avant
+    // l'audit du 04/11/2026, les deux relations étaient confondues.
     sectors: profile.tags
-      .filter((t) => t.tag.category === 'SECTOR')
+      .filter((t) => t.tag.category === 'SECTOR' && t.relation === 'OFFER')
+      .map((t) => t.tag.label),
+    sectorsWanted: profile.tags
+      .filter((t) => t.tag.category === 'SECTOR' && t.relation === 'NEED')
       .map((t) => t.tag.label),
   }));
 }
@@ -43,6 +48,13 @@ async function writeSuggestionsForUser(userId: string, pool: MatchCandidate[]) {
     .filter((suggestion) => suggestion.score >= env.matchingScoreThreshold)
     .filter((suggestion) => !blockedUserIds.has(suggestion.suggestedUserId))
     .slice(0, TOP_N_PER_MEMBER);
+
+  // Les suggestions encore « nouvelles » qui ne font plus partie du classement
+  // (profil modifié, membre parti) sont retirées ; celles que le membre a déjà
+  // vues, contactées ou écartées sont conservées.
+  await prisma.connectionSuggestion.deleteMany({
+    where: { userId, status: 'NEW', suggestedUserId: { notIn: suggestions.map((s) => s.suggestedUserId) } },
+  });
 
   for (const suggestion of suggestions) {
     await prisma.connectionSuggestion.upsert({

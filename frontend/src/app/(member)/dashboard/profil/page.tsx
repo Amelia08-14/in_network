@@ -39,6 +39,7 @@ const FIELD_LABELS: Record<string, string> = {
   skillsOffered: 'Compétences proposées',
   skillsWanted: 'Compétences recherchées',
   sectors: 'Domaines d’activité',
+  sectorsWanted: 'Domaines recherchés',
 };
 
 function profileErrorMessage(error: unknown) {
@@ -120,6 +121,7 @@ function ProfilForm({ profile }: { profile: MemberProfileSummary }) {
   const [skillsOffered, setSkillsOffered] = useState<string[]>(profile.skillsOffered ?? []);
   const [skillsWanted, setSkillsWanted] = useState<string[]>(profile.skillsWanted ?? []);
   const [sectors, setSectors] = useState<string[]>(profile.sectors ?? []);
+  const [sectorsWanted, setSectorsWanted] = useState<string[]>(profile.sectorsWanted ?? []);
   const [message, setMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -154,6 +156,7 @@ function ProfilForm({ profile }: { profile: MemberProfileSummary }) {
         skillsOffered,
         skillsWanted,
         sectors,
+        sectorsWanted,
       }),
     onSuccess: () => {
       setMessage({ text: 'Profil enregistré.', kind: 'success' });
@@ -247,6 +250,18 @@ function ProfilForm({ profile }: { profile: MemberProfileSummary }) {
 
           <Section icon={Wrench} title="Compétences et domaines" description="Ces choix alimentent le moteur de mise en relation : soyez précis.">
             <TagPicker label="Domaine(s) d’activité *" category="SECTOR" value={sectors} onChange={setSectors} max={30} tone="ink" closed bulk hint="Choisissez dans la liste, un par un ou toute une famille d’un coup (« Tout ajouter ») : elle est commune à tous les membres, pour que l’annuaire et les mises en relation vous retrouvent." placeholder="Ex. Services numériques (ESN), Commerce de détail, BTP…" />
+            <TagPicker
+              label="Domaines recherchés"
+              category="SECTOR"
+              value={sectorsWanted}
+              onChange={setSectorsWanted}
+              max={30}
+              tone="blue"
+              closed
+              bulk
+              hint="Les secteurs dans lesquels vous cherchez des clients, des partenaires ou des fournisseurs : les membres qui y travaillent vous seront suggérés."
+              placeholder="Ex. BTP & construction, Santé, E-commerce…"
+            />
             <TagPicker label="Compétences proposées" category="SKILL" value={skillsOffered} onChange={setSkillsOffered} max={20} tone="orange" hint="Ce que vous savez faire et pouvez apporter aux autres membres." placeholder="Ex. Développement Web, Comptabilité, Design UI/UX…" />
             <TagPicker label="Compétences recherchées" category="SKILL" value={skillsWanted} onChange={setSkillsWanted} max={20} tone="blue" hint="Ce que vous cherchez chez un partenaire, un prestataire ou une recrue." placeholder="Ex. Marketing Digital, Droit des affaires, Levée de fonds…" />
           </Section>

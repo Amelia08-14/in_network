@@ -55,5 +55,7 @@ export const updateProfileSchema = z.object({
   skillsWanted: profileTags(20, 'compétences recherchées'),
   // 30 : un membre peut choisir une famille entière d'un coup (« Tout ajouter »).
   sectors: profileTags(30, 'secteurs d’activité'),
+  // Domaines où le membre cherche clients ou partenaires (matching, 04/11/2026).
+  sectorsWanted: profileTags(30, 'domaines recherchés'),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

@@ -202,6 +202,7 @@ export interface MemberProfileSummary {
   linkedinUrl?: string | null;
   skillsOffered?: string[];
   skillsWanted?: string[];
+  sectorsWanted?: string[];
   email?: string;
   isPublic?: boolean;
   updatedAt?: string;

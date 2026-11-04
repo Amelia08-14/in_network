@@ -1,6 +1,7 @@
 import { Prisma, TagCategory, TagRelationType } from '../../generated/prisma/client';
 import fs from 'node:fs';
 import { prisma } from '../../lib/prisma';
+import { runMatchingForUser } from '../../lib/matching/job';
 import { identityAbsolutePath } from '../situation/proofs.storage';
 import { ApiError } from '../../utils/apiResponse';
 import { buildPaginationMeta } from '../../utils/apiResponse';
@@ -59,6 +60,7 @@ function serializeProfile(
     linkedinUrl: profile.linkedinUrl,
     skillsOffered: tagsByRelation(profile, 'SKILL', 'OFFER'),
     skillsWanted: tagsByRelation(profile, 'SKILL', 'NEED'),
+    sectorsWanted: tagsByRelation(profile, 'SECTOR', 'NEED'),
     // Email masqué tant qu'aucune demande de mise en relation n'a été acceptée
     // entre le visiteur et ce membre (CDC §6.2), sauf pour le propriétaire du profil.
     email: isOwner || contactUnlocked ? profile.user.email : undefined,
@@ -86,7 +88,8 @@ export async function listProfiles(query: ListProfilesQuery, viewerId: string | 
       : {}),
     // Chaque critère (secteur, compétence proposée) doit être satisfait.
     AND: [
-      ...(tag ? [{ tags: { some: { tag: { label: { equals: tag } } } } }] : []),
+      // Filtre « secteur » : domaines d'activité seulement, pas les domaines recherchés.
+      ...(tag ? [{ tags: { some: { relation: 'OFFER' as const, tag: { label: { equals: tag } } } } }] : []),
       ...(skill ? [{ tags: { some: { relation: 'OFFER' as const, tag: { label: { equals: skill } } } } }] : []),
     ],
   };
@@ -237,7 +240,7 @@ export async function updateProfile(userId: string, input: UpdateProfileInput) {
   const profile = await prisma.memberProfile.findUnique({ where: { userId } });
   if (!profile) throw ApiError.notFound('Profil introuvable');
 
-  const { skillsOffered, skillsWanted, sectors, phone, ...rest } = input;
+  const { skillsOffered, skillsWanted, sectors, sectorsWanted, phone, ...rest } = input;
 
   await prisma.$transaction(async (tx) => {
     await tx.memberProfile.update({ where: { userId }, data: rest });
@@ -246,7 +249,11 @@ export async function updateProfile(userId: string, input: UpdateProfileInput) {
     if (skillsOffered) await replaceProfileTags(tx, profile.id, 'SKILL', 'OFFER', skillsOffered);
     if (skillsWanted) await replaceProfileTags(tx, profile.id, 'SKILL', 'NEED', skillsWanted);
     if (sectors) await replaceProfileTags(tx, profile.id, 'SECTOR', 'OFFER', sectors);
+    if (sectorsWanted) await replaceProfileTags(tx, profile.id, 'SECTOR', 'NEED', sectorsWanted);
   });
+
+  // Suggestions recalculées tout de suite (sans attendre le calcul de nuit) ; non bloquant.
+  runMatchingForUser(userId).catch((err) => console.error('[matching] recalcul après mise à jour du profil impossible', err));
 
   return getMyProfile(userId);
 }
