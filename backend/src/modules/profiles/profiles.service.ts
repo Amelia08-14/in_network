@@ -70,6 +70,21 @@ function serializeProfile(
   };
 }
 
+/**
+ * Mots d'une recherche dans l'annuaire : chacun doit se retrouver dans au moins
+ * un champ (prénom, nom, entreprise, poste, ville, présentation, domaines et
+ * compétences). Avant le 05/11/2026, seuls le prénom, le nom et l'entreprise
+ * étaient lus, en bloc : « marketing », « Alger » ou « Yacine Ouali » ne
+ * trouvaient personne, alors que la barre de recherche promet les compétences.
+ */
+function searchTerms(search: string | undefined): string[] {
+  return (search ?? '')
+    .split(/\s+/)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 2)
+    .slice(0, 6);
+}
+
 export async function listProfiles(query: ListProfilesQuery, viewerId: string | undefined) {
   const { page, limit, search, memberType, tag, skill } = query;
 
@@ -77,17 +92,19 @@ export async function listProfiles(query: ListProfilesQuery, viewerId: string | 
     isPublic: true,
     user: { isActive: true },
     ...(memberType ? { memberType } : {}),
-    ...(search
-      ? {
-          OR: [
-            { firstName: { contains: search } },
-            { lastName: { contains: search } },
-            { companyName: { contains: search } },
-          ],
-        }
-      : {}),
-    // Chaque critère (secteur, compétence proposée) doit être satisfait.
+    // Chaque critère (mots recherchés, secteur, compétence proposée) doit être satisfait.
     AND: [
+      ...searchTerms(search).map((term) => ({
+        OR: [
+          { firstName: { contains: term } },
+          { lastName: { contains: term } },
+          { companyName: { contains: term } },
+          { jobTitle: { contains: term } },
+          { city: { contains: term } },
+          { bio: { contains: term } },
+          { tags: { some: { relation: 'OFFER' as const, tag: { label: { contains: term } } } } },
+        ],
+      })),
       // Filtre « secteur » : domaines d'activité seulement, pas les domaines recherchés.
       ...(tag ? [{ tags: { some: { relation: 'OFFER' as const, tag: { label: { equals: tag } } } } }] : []),
       ...(skill ? [{ tags: { some: { relation: 'OFFER' as const, tag: { label: { equals: skill } } } } }] : []),

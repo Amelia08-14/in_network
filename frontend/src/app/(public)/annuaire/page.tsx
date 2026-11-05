@@ -1,9 +1,10 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { RotateCcw, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -11,7 +12,7 @@ import { MemberCard } from '@/components/features/MemberCard';
 import { groupTagOptions, useTagOptions } from '@/components/features/TagPicker';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { api } from '@/lib/api';
+import { api, ApiRequestError } from '@/lib/api';
 import type { ApiListResponse, MemberProfileSummary } from '@/types';
 
 const MEMBER_TYPES = [
@@ -37,17 +38,23 @@ function Annuaire() {
   const [memberType, setMemberType] = useState('');
   const [sector, setSector] = useState('');
   const [skill, setSkill] = useState('');
+  // Requête lancée 300 ms après la dernière frappe (et non à chaque lettre).
+  const [query, setQuery] = useState(initialSearch);
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // Brief client §4.3 — recherche avancée : filtre par secteur d'activité,
   // en plus du texte libre et du type de profil déjà en place.
   const { data: sectors } = useTagOptions('SECTOR');
   const { data: skills } = useTagOptions('SKILL');
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['profiles', search, memberType, sector, skill],
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
+    queryKey: ['profiles', query, memberType, sector, skill],
     queryFn: () =>
       api.get<ApiListResponse<MemberProfileSummary>>(
-        `/api/profiles?limit=24${search ? `&search=${encodeURIComponent(search)}` : ''}${
+        `/api/profiles?limit=48${query ? `&search=${encodeURIComponent(query)}` : ''}${
           memberType ? `&memberType=${memberType}` : ''
         }${sector ? `&tag=${encodeURIComponent(sector)}` : ''}${skill ? `&skill=${encodeURIComponent(skill)}` : ''}`,
       ),
@@ -65,7 +72,7 @@ function Annuaire() {
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500/60" />
           <Input
-            placeholder="Rechercher un nom, une entreprise..."
+            placeholder="Nom, entreprise, poste, ville, compétence…"
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -123,14 +130,34 @@ function Annuaire() {
             </div>
           ))}
         </div>
+      ) : isError ? (
+        // Une erreur (session expirée, coupure réseau) ne doit pas passer pour un annuaire vide.
+        <EmptyState
+          title="L’annuaire n’a pas pu être chargé"
+          description={error instanceof ApiRequestError && error.status === 401 ? 'Votre session a expiré : reconnectez-vous pour consulter l’annuaire.' : 'Vérifiez votre connexion puis réessayez.'}
+          action={
+            <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+              <RotateCcw className="h-4 w-4" /> Réessayer
+            </Button>
+          }
+        />
       ) : !data || data.data.length === 0 ? (
-        <EmptyState title="Aucun membre ne correspond à votre recherche" />
+        <EmptyState
+          title="Aucun membre ne correspond à votre recherche"
+          description={query || memberType || sector || skill ? 'Essayez avec moins de mots ou retirez un filtre.' : 'Les membres apparaissent ici une fois leur compte validé par l’équipe IN NETWORK.'}
+        />
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {data.data.map((profile) => (
-            <MemberCard key={profile.id} profile={profile} />
-          ))}
-        </div>
+        <>
+          <p className="mb-4 text-sm text-ink-500">
+            {data.meta.total} membre{data.meta.total > 1 ? 's' : ''}
+            {data.meta.total > data.data.length ? ` · ${data.data.length} affichés, affinez la recherche pour voir les autres` : ''}
+          </p>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {data.data.map((profile) => (
+              <MemberCard key={profile.id} profile={profile} />
+            ))}
+          </div>
+        </>
       )}
     </Container>
   );
