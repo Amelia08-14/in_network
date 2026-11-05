@@ -1,6 +1,7 @@
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { env } from '../src/config/env';
+import { SECTOR_MAPPING } from '../src/lib/matching/sectorAliases';
 
 // Domaines d'activité saisis librement → libellés du référentiel
 // (prisma/taxonomy.ts). Table PROPOSÉE (audit 27/10/2026, tâche 4.3), à
@@ -14,47 +15,8 @@ import { env } from '../src/config/env';
 // du référentiel (sans doublon), puis l'étiquette libre est retirée. `null` =
 // saisie de test ou vide de sens, simplement retirée des profils.
 
-export const SECTOR_MAPPING: Record<string, string | null> = {
-  'Accompagnement Stratégique & Financier': 'Conseil & stratégie',
-  Agro: 'Agroalimentaire',
-  Audiovisuel: 'Audiovisuel & cinéma',
-  Beauté: 'Beauté & esthétique',
-  'Bien-être': 'Bien-être & spa',
-  Commecial: 'Commerce de détail',
-  'Conseil et accompagnement des entreprises': 'Conseil & stratégie',
-  Cosmétiques: 'Cosmétique & hygiène',
-  'Création numérique': 'Design & création',
-  'développement économique': 'Conseil & stratégie',
-  'économie bleue': 'Pêche & aquaculture',
-  'économie sociale et solidaire': 'Économie sociale & solidaire',
-  'embeeded systems development': 'Objets connectés (secteur)',
-  'Foires & Événementiels': 'Événementiel',
-  Formation: 'Formation & développement des compétences',
-  HBVVJVHIBKHB: null,
-  'incubation de startups': 'Incubateurs & accélérateurs',
-  industrie: 'Industrie manufacturière',
-  'Industrie pharmaceutique': 'Pharmaceutique & parapharmacie',
-  Informatique: 'Services numériques (ESN)',
-  Innovation: 'Startups & innovation',
-  IT: 'Services numériques (ESN)',
-  'Marketing et Publicité': 'Marketing & publicité',
-  Média: 'Médias & presse',
-  Médias: 'Médias & presse',
-  'Projets Immobiliers': 'Promotion & développement immobilier',
-  'Prospection commerciale et acquisition de clients': 'Marketing & publicité',
-  'Services aux entreprises': 'Conseil & stratégie',
-  'Services aux entreprises (B2B)': 'Conseil & stratégie',
-  'Services Digitaux et Publicitaires': 'Marketing & publicité',
-  'Software engineering': 'Édition de logiciels & SaaS',
-  technique: 'Autre secteur',
-  technologie: 'Tech',
-  test: null,
-  'test sec 1': null,
-  'test sec 2': null,
-  'tous les domaines': 'Autre secteur',
-  TRANING: 'Formation & développement des compétences',
-  xxxxxxxxxxx: null,
-};
+// Table : src/lib/matching/sectorAliases.ts (partagée avec le matching).
+
 
 const apply = process.argv.includes('--apply');
 

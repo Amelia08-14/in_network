@@ -1,7 +1,8 @@
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { env } from '../src/config/env';
-import { scoreMatch, type MatchCandidate } from '../src/lib/matching/engine';
+import { scoreMatch } from '../src/lib/matching/engine';
+import { toCandidate } from '../src/lib/matching/job';
 
 // Diagnostic du matching, en LECTURE SEULE : pour chaque membre, ce que le moteur
 // voit (domaines, compétences, profil validé ou non) et ses meilleurs scores.
@@ -24,14 +25,6 @@ async function main() {
         tags: { select: { relation: true, tag: { select: { label: true, category: true } } } },
         user: { select: { email: true, isActive: true, role: true } },
       },
-    });
-    const toCandidate = (p: (typeof profiles)[number]): MatchCandidate => ({
-      userId: p.userId,
-      memberType: p.memberType,
-      skillsOffered: p.tags.filter((t) => t.tag.category === 'SKILL' && t.relation === 'OFFER').map((t) => t.tag.label),
-      skillsWanted: p.tags.filter((t) => t.tag.category === 'SKILL' && t.relation === 'NEED').map((t) => t.tag.label),
-      sectors: p.tags.filter((t) => t.tag.category === 'SECTOR' && t.relation === 'OFFER').map((t) => t.tag.label),
-      sectorsWanted: p.tags.filter((t) => t.tag.category === 'SECTOR' && t.relation === 'NEED').map((t) => t.tag.label),
     });
     // Même réservoir que le calcul réel (lib/matching/job.ts).
     const pool = profiles.filter((p) => p.isPublic && p.user.isActive);

@@ -1,33 +1,46 @@
 import { prisma } from '../prisma';
 import { env } from '../../config/env';
 import { matchingEngine, type MatchCandidate } from './engine';
+import { canonicalSector } from './sectorAliases';
 
-const TOP_N_PER_MEMBER = 5;
+// Suggestions gardées par membre (10 depuis le 05/11/2026 : « tout ce qui peut les relier »).
+const TOP_N_PER_MEMBER = 10;
+
+type ProfileWithTags = {
+  userId: string;
+  memberType: MatchCandidate['memberType'];
+  tags: { relation: string; tag: { label: string; category: string } }[];
+};
+
+/** Domaines d'un profil, anciennes saisies libres traduites vers le référentiel. */
+const sectorLabels = (profile: ProfileWithTags, relation: 'OFFER' | 'NEED') => [
+  ...new Set(
+    profile.tags
+      .filter((t) => t.tag.category === 'SECTOR' && t.relation === relation)
+      .map((t) => canonicalSector(t.tag.label))
+      .filter((label): label is string => Boolean(label)),
+  ),
+];
+
+/** Ce que le moteur voit d'un profil (partagé avec prisma/matching-diagnostic.ts). */
+export function toCandidate(profile: ProfileWithTags): MatchCandidate {
+  return {
+    userId: profile.userId,
+    memberType: profile.memberType,
+    skillsOffered: profile.tags.filter((t) => t.tag.category === 'SKILL' && t.relation === 'OFFER').map((t) => t.tag.label),
+    skillsWanted: profile.tags.filter((t) => t.tag.category === 'SKILL' && t.relation === 'NEED').map((t) => t.tag.label),
+    // Domaines d'activité (OFFER) et domaines recherchés (NEED), distingués depuis le 04/11/2026.
+    sectors: sectorLabels(profile, 'OFFER'),
+    sectorsWanted: sectorLabels(profile, 'NEED'),
+  };
+}
 
 async function buildCandidatePool(): Promise<MatchCandidate[]> {
   const profiles = await prisma.memberProfile.findMany({
     where: { isPublic: true, user: { isActive: true } },
-    include: { tags: { include: { tag: true } } },
+    select: { userId: true, memberType: true, tags: { select: { relation: true, tag: { select: { label: true, category: true } } } } },
   });
-
-  return profiles.map((profile) => ({
-    userId: profile.userId,
-    memberType: profile.memberType,
-    skillsOffered: profile.tags
-      .filter((t) => t.tag.category === 'SKILL' && t.relation === 'OFFER')
-      .map((t) => t.tag.label),
-    skillsWanted: profile.tags
-      .filter((t) => t.tag.category === 'SKILL' && t.relation === 'NEED')
-      .map((t) => t.tag.label),
-    // Domaines d'activité (OFFER) et domaines recherchés (NEED) : avant
-    // l'audit du 04/11/2026, les deux relations étaient confondues.
-    sectors: profile.tags
-      .filter((t) => t.tag.category === 'SECTOR' && t.relation === 'OFFER')
-      .map((t) => t.tag.label),
-    sectorsWanted: profile.tags
-      .filter((t) => t.tag.category === 'SECTOR' && t.relation === 'NEED')
-      .map((t) => t.tag.label),
-  }));
+  return profiles.map(toCandidate);
 }
 
 async function writeSuggestionsForUser(userId: string, pool: MatchCandidate[]) {

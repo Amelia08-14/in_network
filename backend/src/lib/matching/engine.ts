@@ -28,107 +28,87 @@ function normalize(value: string): string {
   return value
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
+    .replace(/[’']/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
 }
 
-const uniq = (values: string[]) => [...new Set(values.map(normalize))];
-
-/** Part de mes besoins couverte par l'offre de l'autre (0 à 1). */
-function coverage(needs: string[], offers: string[]): number {
-  const wanted = uniq(needs);
-  if (wanted.length === 0 || offers.length === 0) return 0;
-  const offered = new Set(uniq(offers));
-  return wanted.filter((need) => offered.has(need)).length / wanted.length;
+/**
+ * Éléments de `mine` qui trouvent un écho dans `theirs`. Domaines : libellés
+ * identiques (liste fermée). Compétences, saisies plus librement : un libellé
+ * contenu dans l'autre suffit (« Marketing digital » ↔ « marketing »).
+ */
+function linked(mine: string[], theirs: string[], loose = false): string[] {
+  const others = [...new Set(theirs.map(normalize))];
+  const seen = new Set<string>();
+  return mine.filter((value) => {
+    const key = normalize(value);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return others.some((other) => other === key || (loose && Math.min(other.length, key.length) >= 4 && (other.includes(key) || key.includes(other))));
+  });
 }
 
-/**
- * Domaines en commun, vus de mon côté : la part des domaines de l'autre que je
- * couvre, légèrement atténuée si je coche beaucoup de domaines. C'est
- * volontairement asymétrique : cocher « tous les domaines » me montre tous les
- * membres de ces domaines (retour client 04/11/2026 : une première version
- * pénalisait les listes larges, ce qui vidait les suggestions), mais ne
- * m'impose pas à eux, car pour eux je ne couvre qu'une petite part de mes domaines.
- */
-function sharedSectors(mine: string[], theirs: string[]): number {
-  const left = new Set(uniq(mine));
-  const right = uniq(theirs);
-  if (left.size === 0 || right.length === 0) return 0;
-  const covered = right.filter((s) => left.has(s)).length / right.length;
-  return covered * (0.5 + 0.5 * specificity(mine));
-}
+// Liens entre deux membres (retour client 05/11/2026 : « tout ce qui peut les
+// relier »). Chaque lien trouvé rapporte des points — le premier suffit à
+// dépasser le seuil de suggestion (40), les suivants font remonter la
+// suggestion (plafond 100). La version précédente faisait une MOYENNE des
+// critères : plus un membre remplissait son profil, plus ses scores baissaient
+// (un membre qui propose exactement la compétence recherchée obtenait 8/100).
+const LINKS = {
+  skillNeed: { first: 50, extra: 10 }, // je recherche une compétence qu'il propose
+  sectorNeed: { first: 45, extra: 5 }, // il travaille dans un domaine que je recherche
+  skillGive: { first: 45, extra: 5 }, // il recherche une compétence que je propose
+  sectorGive: { first: 40, extra: 5 }, // il recherche un domaine dans lequel je travaille
+  sharedSector: { first: 40, extra: 5 }, // nous travaillons dans les mêmes domaines
+} as const;
+const MAX_EXTRA_LINKS = 3;
 
-/**
- * Spécificité d'une liste de domaines : pleine jusqu'à 5 domaines, puis
- * décroissante. Un membre qui coche 30 domaines répond à toutes les recherches,
- * mais moins nettement qu'un spécialiste (30 domaines → 0,41).
- */
-const specificity = (sectors: string[]) => Math.sqrt(Math.min(1, 5 / Math.max(uniq(sectors).length, 1)));
-
-const firstCommon = (a: string[], b: string[]) => {
-  const right = new Set(uniq(b));
-  return a.find((value) => right.has(normalize(value)));
-};
-
-// Table de bonus fixe (CDC §8.2) — point de départ, à ajuster après
-// observation des taux d'acceptation réels par tranche de score.
+// Bonus léger de complémentarité des profils (CDC §8.2), seulement s'il existe
+// déjà un lien réel.
 const COMPLEMENTARITY: Record<string, number> = {
-  'FREELANCE|STARTUP': 1,
-  'FREELANCE|ENTREPRISE': 0.7,
-  'FREELANCE|FREELANCE': 0.3,
-  'STARTUP|STARTUP': 0.3,
-  'STARTUP|ENTREPRISE': 0.8,
-  'ENTREPRISE|ENTREPRISE': 0.3,
+  'FREELANCE|STARTUP': 5,
+  'ENTREPRISE|FREELANCE': 4,
+  'ENTREPRISE|STARTUP': 4,
 };
 
-function memberTypeComplementarity(a: MemberType, b: MemberType): number {
-  const key = [a, b].sort().join('|');
-  return COMPLEMENTARITY[key] ?? 0.5;
+function memberTypeBonus(a: MemberType, b: MemberType): number {
+  return COMPLEMENTARITY[[a, b].sort().join('|')] ?? 2;
 }
 
-// Poids des critères (audit du matching, 04/11/2026). Un critère ne compte que
-// si l'information existe (ex. « compétences recherchées » renseignées) : le
-// score est ramené aux seuls critères applicables. Sans cela, un membre qui ne
-// renseigne que ses domaines d'activité — le cas le plus courant — plafonnait
-// à 30/100, sous le seuil de 40 : il ne recevait jamais de suggestion.
-const WEIGHTS = {
-  skillNeed: 0.3, // je recherche une compétence que l'autre propose
-  sectorNeed: 0.25, // je recherche un domaine dans lequel l'autre travaille
-  skillGive: 0.15, // l'autre recherche une compétence que je propose
-  sectorGive: 0.2, // l'autre recherche mon domaine
-  sharedSector: 0.15, // nous travaillons dans les mêmes domaines
-  memberType: 0.05, // profils complémentaires (freelance ↔ startup…)
-};
+function links(me: MatchCandidate, other: MatchCandidate) {
+  return {
+    skillNeed: linked(me.skillsWanted, other.skillsOffered, true),
+    sectorNeed: linked(me.sectorsWanted, other.sectors),
+    skillGive: linked(me.skillsOffered, other.skillsWanted, true),
+    sectorGive: linked(me.sectors, other.sectorsWanted),
+    sharedSector: linked(me.sectors, other.sectors),
+  };
+}
 
 export function scoreMatch(me: MatchCandidate, other: MatchCandidate): number {
-  const parts: [weight: number, value: number, applicable: boolean][] = [
-    [WEIGHTS.skillNeed, coverage(me.skillsWanted, other.skillsOffered), me.skillsWanted.length > 0],
-    [WEIGHTS.sectorNeed, coverage(me.sectorsWanted, other.sectors) * specificity(other.sectors), me.sectorsWanted.length > 0],
-    [WEIGHTS.skillGive, coverage(other.skillsWanted, me.skillsOffered), other.skillsWanted.length > 0],
-    [WEIGHTS.sectorGive, coverage(other.sectorsWanted, me.sectors) * specificity(me.sectors), other.sectorsWanted.length > 0],
-    [WEIGHTS.sharedSector, sharedSectors(me.sectors, other.sectors), me.sectors.length > 0 && other.sectors.length > 0],
-    [WEIGHTS.memberType, memberTypeComplementarity(me.memberType, other.memberType), true],
-  ];
-  const applicable = parts.filter(([, , ok]) => ok);
-  const total = applicable.reduce((sum, [w]) => sum + w, 0);
-  const value = applicable.reduce((sum, [w, v]) => sum + w * v, 0);
-  // Aucun point commun réel (seul le type de profil joue) : pas de suggestion.
-  const substantive = applicable.some(([w, v]) => w !== WEIGHTS.memberType && v > 0);
-  return substantive && total > 0 ? Math.round((value / total) * 100) : 0;
+  const found = links(me, other);
+  let score = 0;
+  for (const [key, values] of Object.entries(found) as [keyof typeof LINKS, string[]][]) {
+    if (values.length === 0) continue;
+    score += LINKS[key].first + LINKS[key].extra * Math.min(values.length - 1, MAX_EXTRA_LINKS);
+  }
+  if (score === 0) return 0;
+  return Math.min(100, score + memberTypeBonus(me.memberType, other.memberType));
 }
 
-function buildReason(a: MatchCandidate, b: MatchCandidate): { type: string; detail: string } {
-  const needMatch = firstCommon(a.skillsWanted, b.skillsOffered);
-  if (needMatch) return { type: 'skill_match', detail: `Vous recherchez « ${needMatch} », que ce membre propose` };
-  const sectorNeed = firstCommon(a.sectorsWanted, b.sectors);
-  if (sectorNeed) return { type: 'sector_need', detail: `Vous recherchez des contacts en « ${sectorNeed} » : c’est son domaine` };
-  const offerMatch = firstCommon(a.skillsOffered, b.skillsWanted);
-  if (offerMatch) return { type: 'skill_match', detail: `Ce membre recherche « ${offerMatch} », que vous proposez` };
-  const sectorGive = firstCommon(a.sectors, b.sectorsWanted);
-  if (sectorGive) return { type: 'sector_need', detail: `Ce membre recherche des contacts en « ${sectorGive} », votre domaine` };
-  const shared = firstCommon(a.sectors, b.sectors);
-  if (shared) return { type: 'sector_match', detail: `Vous travaillez tous deux en « ${shared} »` };
-  return { type: 'profile_complementarity', detail: 'Profils complémentaires' };
+function buildReason(me: MatchCandidate, other: MatchCandidate): { type: string; detail: string } {
+  const found = links(me, other);
+  const list = (values: string[]) => values.slice(0, 2).map((v) => `« ${v} »`).join(', ') + (values.length > 2 ? '…' : '');
+  const parts: string[] = [];
+  if (found.skillNeed.length) parts.push(`propose ${list(found.skillNeed)}, que vous recherchez`);
+  if (found.sectorNeed.length) parts.push(`travaille en ${list(found.sectorNeed)}, un domaine que vous recherchez`);
+  if (found.skillGive.length) parts.push(`recherche ${list(found.skillGive)}, que vous proposez`);
+  if (found.sectorGive.length) parts.push(`recherche des contacts en ${list(found.sectorGive)}, votre domaine`);
+  if (found.sharedSector.length && parts.length < 2) parts.push(`travaille comme vous en ${list(found.sharedSector)}`);
+  const type = found.skillNeed.length || found.skillGive.length ? 'skill_match' : found.sectorNeed.length || found.sectorGive.length ? 'sector_need' : 'sector_match';
+  return parts.length ? { type, detail: `Ce membre ${parts.slice(0, 2).join(' ; ')}` } : { type: 'profile_complementarity', detail: 'Profils complémentaires' };
 }
 
 export class RuleBasedMatchingEngine implements MatchingEngine {
