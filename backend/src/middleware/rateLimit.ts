@@ -63,11 +63,18 @@ export const paymentsRateLimit = rateLimit({
   message: { error: { code: 'RATE_LIMITED', message: 'Trop de requêtes de paiement, réessayez dans une minute' } },
 });
 
+// Les appels du serveur du site lui-même (rendu des pages, rafraîchissement du
+// cache) arrivent par la boucle locale (INTERNAL_API_URL) : ils ne sont pas
+// limités — sinon un build ou une vague de rafraîchissements dépassait le
+// plafond et des pages se construisaient avec des listes vides.
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+
 export const apiRateLimit = rateLimit({
   windowMs: 60 * 1000,
   limit: 120,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => LOOPBACK.has(req.ip ?? ''),
 });
 
 // Formulaires "Demander" ouverts aux visiteurs non connectés (services,

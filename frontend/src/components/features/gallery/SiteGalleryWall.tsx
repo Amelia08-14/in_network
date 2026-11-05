@@ -31,7 +31,8 @@ export function SiteGalleryWall({ items }: { items: GalleryImageItem[] }) {
           >
             {item.type === 'VIDEO' ? (
               <MotionSafeVideo
-                src={item.url}
+                src={item.url.includes('#') ? item.url : `${item.url}#t=0.1`}
+                playOn="hover"
                 playsInline
                 showControlsOnReducedMotion={false}
                 className="absolute inset-0 h-full w-full object-cover opacity-90 transition-opacity duration-300 group-hover:opacity-100"

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import { apiRateLimit } from './middleware/rateLimit';
@@ -68,20 +69,29 @@ app.use(
 app.use(morgan(env.isProduction ? 'combined' : 'dev'));
 app.use(express.json());
 app.use(cookieParser());
-app.use(apiRateLimit);
+// Réponses JSON compressées (gzip) : 30 Ko d'événements → ≈ 5 Ko sur le réseau.
+app.use(compression());
 
-app.get('/health', (_req, res) => res.json({ status: 'ok', env: env.nodeEnv }));
-
-// Images uploadées (événements, experts, partenaires) — servies en statique,
-// avec CORP ouvert pour que le frontend (autre origine en dev) puisse les charger.
+// Images et vidéos uploadées (événements, experts, partenaires, membres) —
+// servies en statique, avec CORP ouvert pour que le frontend (autre origine en
+// dev) puisse les charger. Audit de performance du 05/11/2026 :
+// - avant le limiteur de requêtes : une galerie (images + vidéos lues par
+//   morceaux) épuisait vite le quota de 120 requêtes/minute d'un visiteur ;
+// - cache navigateur de 30 jours : chaque fichier porte un nom unique
+//   (remplacer un média crée un nouveau fichier), il n'a pas à être revalidé
+//   à chaque visite.
 app.use(
   '/uploads',
   (req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     next();
   },
-  express.static(UPLOADS_DIR),
+  express.static(UPLOADS_DIR, { maxAge: '30d' }),
 );
+
+app.use(apiRateLimit);
+
+app.get('/health', (_req, res) => res.json({ status: 'ok', env: env.nodeEnv }));
 
 app.use('/api/auth', authRouter);
 // Espace membre : « Situation du compte » (devis, justificatifs de paiement).

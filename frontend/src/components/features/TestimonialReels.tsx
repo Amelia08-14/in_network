@@ -44,6 +44,7 @@ export function TestimonialReels({ items }: { items: Testimonial[] }) {
               <MotionSafeVideo
                 src={thumbnailSrc(t.videoUrl)}
                 poster={t.thumbnailUrl ?? undefined}
+                playOn="hover"
                 aria-hidden
                 tabIndex={-1}
                 playsInline

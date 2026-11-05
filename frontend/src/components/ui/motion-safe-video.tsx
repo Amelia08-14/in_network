@@ -12,10 +12,16 @@ import { useEffect, useRef, useState } from 'react';
 // showControlsOnReducedMotion: false quand la vidéo est une simple vignette
 // cliquable vers un lecteur complet ailleurs (ex. lightbox) — des contrôles
 // natifs dans une vignette qui ouvre déjà un lecteur créent un conflit de clic.
+// playOn="hover" (vignettes : cartes d'événements, témoignages) : pas de lecture
+// automatique ni de préchargement complet — seule la première image est
+// chargée, la vidéo démarre au survol. En lecture automatique, chaque vignette
+// téléchargeait sa vidéo entière dès l'ouverture de la page (≈ 40 Mo sur
+// l'accueil, audit de performance du 05/11/2026).
 export function MotionSafeVideo({
   showControlsOnReducedMotion = true,
+  playOn = 'auto',
   ...props
-}: React.VideoHTMLAttributes<HTMLVideoElement> & { showControlsOnReducedMotion?: boolean }) {
+}: React.VideoHTMLAttributes<HTMLVideoElement> & { showControlsOnReducedMotion?: boolean; playOn?: 'auto' | 'hover' }) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const ref = useRef<HTMLVideoElement>(null);
 
@@ -32,7 +38,7 @@ export function MotionSafeVideo({
   // l'autoplay `muted` tout seuls. `playsInline` évite le passage en
   // plein écran sur iOS qui bloquerait la lecture inline.
   useEffect(() => {
-    if (reducedMotion) return;
+    if (reducedMotion || playOn === 'hover') return;
     const el = ref.current;
     if (!el) return;
     const tryPlay = () => el.play().catch(() => undefined);
@@ -40,6 +46,21 @@ export function MotionSafeVideo({
     document.addEventListener('visibilitychange', tryPlay);
     return () => document.removeEventListener('visibilitychange', tryPlay);
   }, [reducedMotion]);
+
+  if (playOn === 'hover') {
+    return (
+      <video
+        ref={ref}
+        {...props}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        onMouseEnter={() => !reducedMotion && ref.current?.play().catch(() => undefined)}
+        onMouseLeave={() => ref.current?.pause()}
+      />
+    );
+  }
 
   return reducedMotion ? (
     <video

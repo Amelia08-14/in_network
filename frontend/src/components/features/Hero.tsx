@@ -81,7 +81,10 @@ export function Hero() {
             vidéo. Le flottement (transform) est porté par la vidéo elle-même. */}
         <div className="relative mx-auto w-full max-w-[660px] lg:mx-0 lg:-ml-[4%] lg:-mr-[18%] lg:w-[122%] lg:max-w-none">
           <MotionSafeVideo
-            src="/network-hero.mp4"
+            // Vidéo ramenée de 2880 px / 7,2 Mo à 1280 px / 0,6 Mo (affichée sur 800 px au plus) ;
+            // l'image d'attente s'affiche tout de suite, pendant le chargement.
+            src="/network-hero-1280.mp4"
+            poster="/network-hero-poster.webp"
             className="hero-float aspect-[6/5] w-full object-cover object-[50%_40%] mix-blend-multiply"
             showControlsOnReducedMotion={false}
             aria-label="Réseau IN NETWORK : entrepreneurs, experts, partenaires, coworking, événements et services reliés à travers l'Algérie"

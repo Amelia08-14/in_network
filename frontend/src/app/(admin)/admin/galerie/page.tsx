@@ -86,7 +86,7 @@ export default function AdminGaleriePage() {
                 <div key={image.id} className="group relative aspect-square overflow-hidden rounded-card bg-ink-900/5">
                   {image.type === 'VIDEO' ? (
                     <>
-                      <MotionSafeVideo src={image.url} playsInline className="absolute inset-0 h-full w-full object-cover" />
+                      <MotionSafeVideo src={`${image.url}#t=0.1`} playOn="hover" playsInline className="absolute inset-0 h-full w-full object-cover" />
                       <div className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white">
                         <Play className="h-3 w-3 fill-white" />
                       </div>

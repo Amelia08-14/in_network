@@ -26,7 +26,8 @@ export function EventCard({ event }: { event: EventItem }) {
             <Image src={event.coverImage} alt="" fill sizes="400px" className="object-cover" />
           ) : event.videoUrl ? (
             <MotionSafeVideo
-              src={event.videoUrl}
+              src={event.videoUrl.includes('#') ? event.videoUrl : `${event.videoUrl}#t=0.1`}
+              playOn="hover"
               playsInline
               className="absolute inset-0 h-full w-full object-cover"
             />

@@ -1,4 +1,8 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+// Côté serveur, l'API tourne sur la même machine : INTERNAL_API_URL (ex.
+// http://127.0.0.1:5001 sur le VPS) évite à chaque rendu de page le détour par
+// l'adresse publique (DNS, TLS, Nginx) et le plafond de requêtes par IP
+// (audit de performance du 05/11/2026). À défaut, l'adresse publique.
+const API_URL = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 // Fetch côté serveur pour les Server Components publics (pages catalogue en
 // ISR — CDC §5.2). Ne jamais faire échouer le build/rendu si l'API est
