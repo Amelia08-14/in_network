@@ -3,7 +3,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   AlertCircle,
-  Camera,
   MapPin,
   ArrowRight,
   Briefcase,
@@ -614,18 +613,7 @@ export default async function ServicesPage() {
                   return (
                     <Card key={plan.id} accent="ink" className="h-full">
                       <CardContent className="flex h-full flex-col gap-4">
-                        {shots.length > 0 ? (
-                          <OfficeGallery shots={shots} sizes="(min-width: 640px) 45vw, 100vw" />
-                        ) : (
-                          // Pas de vraie photo de ce bureau pour l'instant : on ne montre pas celle d'un autre.
-                          <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-ink-900/15 bg-ink-900/[0.03] p-6 text-center">
-                            <Camera className="h-6 w-6 text-ink-400" />
-                            <p className="text-sm font-semibold text-ink-700">Photos de ce bureau à venir</p>
-                            <Link href={VISIT_HREF} className="text-sm font-semibold text-brand-orange hover:underline">
-                              Visiter sur rendez-vous
-                            </Link>
-                          </div>
-                        )}
+                        {shots.length > 0 && <OfficeGallery shots={shots} sizes="(min-width: 640px) 45vw, 100vw" />}
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-orange">{capacity > 0 ? `Jusqu’à ${capacity} personnes · bureau fermé` : 'Bureau fermé'}</p>
                           <h3 className="mt-1 font-heading text-lg font-bold text-ink-900">
