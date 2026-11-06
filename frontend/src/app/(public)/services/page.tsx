@@ -44,6 +44,7 @@ import { ROOF_SITE } from '@/lib/site-info';
 import { CURRENCY, formatDa, formatNumber } from '@/lib/money';
 import { HUE, planHue, type Hue } from '@/lib/palette';
 import { OFFICE_INTERIORS, OFFICE_PHOTOS, ROOF_PHOTOS, VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
+import { SectionNav } from '@/components/features/SectionNav';
 import { OfficeGallery, type OfficeShot } from '@/components/features/OfficeGallery';
 import { BrandTexture } from '@/components/ui/brand-texture';
 import type { CardAccent } from '@/components/ui/card';
@@ -342,21 +343,7 @@ export default async function ServicesPage() {
       </section>
 
       <Container className="pb-24">
-        <nav aria-label="Sur cette page" className="sticky top-24 z-30 mb-14 md:top-28">
-          <ul className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-full border border-ink-900/10 bg-white/85 p-1.5 shadow-soft backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {sections.map((section) => (
-              <li key={section.id} className="shrink-0">
-                <a
-                  href={`#${section.id}`}
-                  className="flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-900 hover:text-white"
-                >
-                  <span aria-hidden className={cn('h-2 w-2 rounded-full', HUE[section.hue].solid)} />
-                  {section.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <SectionNav sections={sections.map((section) => ({ id: section.id, label: section.label, dotClass: HUE[section.hue].solid }))} />
 
         <section id="offres" className={blockClass()}>
           <BlockHeading
