@@ -20,6 +20,14 @@ export const GEO = { lat: 36.73847, lng: 3.029172 } as const;
 export const MAPS_EMBED_SRC = `https://www.google.com/maps?q=${GEO.lat},${GEO.lng}&hl=fr&z=16&output=embed`;
 export const MAPS_DIRECTIONS = `https://www.google.com/maps/dir/?api=1&destination=${GEO.lat},${GEO.lng}`;
 
+// IN Network Roof : bureaux situés au niveau de l'espace IN ART (retours
+// cliente du 05/11/2026). Lien Google Maps / coordonnées GPS à renseigner dès
+// réception : tant qu'il est vide, le lien « Localisation » ne s'affiche pas.
+export const ROOF_SITE = {
+  name: 'espace IN ART',
+  mapsUrl: null as string | null,
+};
+
 export const PHONE = { display: '+213 5 60 06 74 86', href: 'tel:+213560067486' } as const;
 export const EMAIL = 'contact@in-network.dz';
 export const SITE_URL = 'https://in-network.dz';

@@ -16,9 +16,8 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { SERVICE_CATEGORY_ACCENT } from '@/components/ui/badge';
-import { AddToCartButton } from '@/components/features/AddToCartButton';
+import { AddTierRow, AddToCartButton } from '@/components/features/AddToCartButton';
 import { HUE, SERVICE_HUE } from '@/lib/palette';
-import { CURRENCY, formatNumber } from '@/lib/money';
 import { displayCategory, SERVICE_OPTION } from '@/lib/services-order';
 import { cn } from '@/lib/utils';
 import type { ServiceCatalogItem } from '@/types';
@@ -111,17 +110,12 @@ export function ServiceCard({ service }: { service: ServiceCatalogItem }) {
         {tiers.length > 0 ? (
           <ul className="mt-1 flex flex-col gap-2">
             {tiers.map((tier) => (
-              <li
-                key={tier.label}
-                className={cn('flex items-center gap-3 rounded-xl border py-2 pl-3.5 pr-2', hue.soft, hue.border)}
-              >
-                <span className="min-w-0 flex-1 text-sm font-medium text-ink-700">{tier.label}</span>
-                <span className="shrink-0 whitespace-nowrap font-heading font-bold tabular-nums text-ink-900">
-                  {formatNumber(tier.price)}
-                  <span className={cn('ml-1 text-xs font-semibold', hue.text)}>{CURRENCY}</span>
-                </span>
-                <AddToCartButton
-                  compact
+              <li key={tier.label}>
+                {/* Toute la ligne ajoute le palier ; « Ajouter » en toutes lettres (retours cliente du 05/11/2026). */}
+                <AddTierRow
+                  tone={category === 'CREATION_ENTREPRISE' ? 'orange' : 'ink'}
+                  label={tier.label}
+                  price={tier.price}
                   item={{
                     targetType: 'SERVICE',
                     targetId: service.id,

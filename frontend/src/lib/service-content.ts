@@ -236,7 +236,7 @@ export const SERVICE_CONTENT: Record<string, ServiceContent> = {
     family: 'creation',
     tagline: 'Je comprends et je fais.',
     intro: [
-      'Une session pratique pour maîtriser chaque étape de la création de votre entreprise et gagner du temps dans vos démarches.',
+      'Une formation d’une heure en one-to-one sur les étapes de la création de votre entreprise : connaître les différentes démarches, avoir un parcours clair et éviter les pertes de temps.',
     ],
     steps: CREATION_STEPS,
   },

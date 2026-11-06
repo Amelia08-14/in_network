@@ -130,7 +130,7 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
     office('Bureau Rouge', 8, 105000, eightPeople),
     office('Bureau Vert', 8, 105000, eightPeople),
     office('Bureau Orange', 8, 105000, eightPeople),
-    office('IN Network Roof', 14, 205000, 'Bureau fermé IN Network Roof, jusqu’à 14 personnes, avec balcon et accès à la terrasse rooftop : six bureaux et un meuble de rangement.'),
+    office('IN Network Roof', 14, 205000, 'Bureau fermé IN Network Roof, au niveau de l’espace IN ART, jusqu’à 14 personnes, avec balcon et accès à la terrasse rooftop : six bureaux et un meuble de rangement.'),
   ];
   for (const space of spaces) {
     const data = { siteId, isActive: true, ...space };
@@ -192,7 +192,7 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
       // Le catalogue ne détaille pas les prestations de l'open space Roof : seules
       // celles qu'il indique sont reprises (à compléter dans Admin › Tarifs).
       features: [
-        'Poste de travail individuel dans l’open space IN Network Roof',
+        'Poste de travail individuel dans l’open space IN Network Roof, au niveau de l’espace IN ART',
         '1 personne',
         "Accès sécurisé à l'espace 24h/24, 7j/7",
       ],
@@ -401,8 +401,8 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
       // Option 1 de la création d'entreprise (catalogue) : présentée avec la création déléguée.
       category: 'CREATION_ENTREPRISE',
       description:
-        'Je comprends et je fais : une session pratique pour maîtriser chaque étape de la création de votre entreprise et gagner du temps dans vos démarches.',
-      tiers: [{ label: 'Atelier pratique', price: 10000 }],
+        'Je comprends et je fais : une formation d’une heure en one-to-one sur les étapes de la création, pour connaître les différentes démarches, avoir un parcours clair et éviter les pertes de temps.',
+      tiers: [{ label: 'Formation one-to-one (1 h)', price: 10000 }],
     },
     {
       slug: 'ressources-humaines',
@@ -556,11 +556,13 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
     // --- Offres regroupées par besoin ---
     {
       slug: 'offre-starter',
-      title: 'Offre STARTER — Coworking flexible',
+      // Retours cliente du 05/11/2026 : « Starter » devient « Pack Découverte »,
+      // validité ramenée à 1 mois (affichée en rouge : ligne « ! »).
+      title: 'Pack DÉCOUVERTE — Coworking flexible',
       category: 'OFFRE',
       description: bullets('Un espace professionnel, une adresse crédible, une connexion et une communauté — sans engagement, pour nous découvrir.', [
         'Pour : freelances, télétravailleurs, indépendants débutants',
-        'Offre valable 2 mois au maximum',
+        '! Offre valable 1 mois au maximum',
         '« Travaillez comme un professionnel dès demain, sans les contraintes d’un bureau fixe. »',
       ]),
       tiers: [
@@ -589,7 +591,9 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
       description: bullets(
         'Un environnement complet : espace dédié, accompagnement stratégique, accès aux experts du groupe et au réseau partenaires.',
         [
-          'Pour : startups early stage, PME digitales — accessible aux startups labellisées uniquement',
+          // Réservée exclusivement aux startups (retours cliente du 05/11/2026).
+          'Pour : startups uniquement — early stage et startups labellisées',
+          '! Offre réservée exclusivement aux startups',
           'Bureau en open space, accès à l’espace pour 2 personnes 24h/24, 7j/7',
           '1 h de consulting avec un expert, et -20 % sur le pack IN CUBATOR',
           'Accès au réseau et à l’annuaire',
@@ -604,12 +608,13 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
       category: 'OFFRE',
       description: bullets('Une adresse professionnelle à Hydra, réception du courrier, attestation de domiciliation — activable en 48 h.', [
         'Pour : indépendants, e-commerçants, consultants à distance, diaspora',
-        'Formation à la création d’entreprise incluse',
-        '2 jours de bureau en open space et 1 h de salle de réunion',
-        'Accès à l’espace 24h/24, 7j/7',
+        // Contenu et tarif revus le 05/11/2026 (160 000 → 200 000 DA).
+        'Domiciliation professionnelle',
+        'Accès à l’espace : boîte aux lettres accessible 24h/24, 7j/7',
+        'Une demi-journée de salle de réunion par semaine, à déterminer, non cumulable',
         '« Votre crédibilité à moindre coût. »',
       ]),
-      tiers: [{ label: 'Par an', price: 160000 }],
+      tiers: [{ label: 'Par an', price: 200000 }],
     },
     {
       slug: 'offre-evenement-com',
@@ -628,11 +633,12 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
     // --- Entreprendre depuis l'étranger (packs diaspora) ---
     {
       slug: 'pack-diaspora-01',
-      title: 'Pack 01 — Domiciliation + atelier de création',
+      // « Atelier de création » remplacé par la formation one-to-one (05/11/2026).
+      title: 'Pack 01 — Domiciliation + formation à la création',
       category: 'DIASPORA',
       description: bullets('Pour entreprendre en Algérie depuis l’étranger : une présence légale à Hydra et la maîtrise des étapes de création.', [
         'Domiciliation annuelle (contrat de location d’une année)',
-        'Workshop création juridique d’entreprise : atelier pratique pour comprendre les étapes de création',
+        'Formation d’une heure en one-to-one sur les étapes de la création : connaître les différentes étapes, avoir un parcours clair et éviter les pertes de temps',
       ]),
       tiers: [{ label: 'Pack 01', price: 185652 }],
     },
@@ -714,8 +720,8 @@ export async function syncCatalogue(prisma: Prisma.TransactionClient, { siteId, 
     },
     {
       name: "Formation à la création d'entreprise",
-      description: 'Atelier pratique',
-      lines: [{ description: "Formation à la création juridique d'entreprise — atelier pratique", unitPrice: 10000, serviceSlug: 'formation-creation-entreprise', tierLabel: 'Atelier pratique' }],
+      description: 'Formation one-to-one (1 h)',
+      lines: [{ description: "Formation à la création juridique d'entreprise — formation one-to-one (1 h)", unitPrice: 10000, serviceSlug: 'formation-creation-entreprise', tierLabel: 'Formation one-to-one (1 h)' }],
     },
     {
       name: 'Secrétariat — formule NET',

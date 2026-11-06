@@ -119,7 +119,7 @@ export function suggestCircuit(lead: { pipeline: LeadPipeline | null; channel: L
 
 /** Offres vers lesquelles orienter le prospect (phase 2 du processus). */
 export const OFFER_OPTIONS = [
-  'Starter',
+  'Pack Découverte',
   'Builder',
   'Accelerator',
   'Domiciliation Pro',

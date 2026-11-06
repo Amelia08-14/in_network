@@ -28,7 +28,7 @@ export const OPTION_LISTS = {
     label: 'CRM — offres vers lesquelles orienter un prospect',
     hint: 'Proposées à la création, à la qualification et sur la fiche d’un lead.',
     defaults: [
-      'Starter',
+      'Pack Découverte',
       'Builder',
       'Accelerator',
       'Domiciliation Pro',

@@ -19,8 +19,10 @@ export const VENUE_PHOTOS = {
   detente: { src: '/espaces/espace-detente-violet.webp', alt: 'L’espace détente : fauteuils violets, échiquier et éclairage tamisé' },
 } as const satisfies Record<string, VenuePhoto>;
 
-// Bureaux nommés (public/espaces/cowork_espace : rez-de-chaussée, cowork_colors :
-// bureaux de couleur à l'étage). Une photo = un bureau précis : on l'associe par
+// Bureaux nommés (public/espaces/cowork_espace). Seules de vraies photos : les
+// visuels générés (bureaux Julia, Rouge, Vert, Orange, terrasse du Roof) ont
+// été retirés à la demande de la cliente (05/11/2026) ; un bureau sans photo
+// affiche « photos à venir ». Une photo = un bureau précis : on l'associe par
 // le nom du bureau en base (« Bureau Alpha »…), jamais à un autre. Les entrées
 // photographiées portent l'enseigne en haut : cadrage sur le haut de l'image.
 export const OFFICE_PHOTOS: Record<string, VenuePhoto> = {
@@ -29,10 +31,6 @@ export const OFFICE_PHOTOS: Record<string, VenuePhoto> = {
   'Bureau Gamma': { src: '/espaces/cowork_espace/gamma-entree.webp', alt: 'L’entrée vitrée du Bureau Gamma', position: 'object-top' },
   'Bureau Delta': { src: '/espaces/cowork_espace/delta-entree.webp', alt: 'L’entrée vitrée du Bureau Delta', position: 'object-top' },
   'Bureau Lamda': { src: '/espaces/cowork_espace/lamda-entree.webp', alt: 'L’entrée vitrée du Bureau Lamda', position: 'object-top' },
-  'Bureau Julia': { src: '/espaces/cowork_espace/bureau-julia.webp', alt: 'Le Bureau Julia : quatre postes le long des murs, tons terracotta et bois' },
-  'Bureau Rouge': { src: '/espaces/cowork_colors/bureau-rouge.webp', alt: 'Le Bureau Rouge : postes de travail face à face et balcon ouvert sur la verdure' },
-  'Bureau Vert': { src: '/espaces/cowork_colors/bureau-vert.webp', alt: 'Le Bureau Vert : îlots de postes de travail et balcon, tons vert et bois' },
-  'Bureau Orange': { src: '/espaces/cowork_colors/bureau-orange.webp', alt: 'Le Bureau Orange : postes alignés le long des murs et balcon, tons orange' },
 };
 
 // Intérieur type de chaque taille de bureau (photo du 04/11/2026), montré en
@@ -44,5 +42,4 @@ export const OFFICE_INTERIORS: Record<number, VenuePhoto> = {
 
 export const ROOF_PHOTOS = {
   openSpace: { src: '/espaces/cowork_roof/in-network-roof.webp', alt: 'L’espace IN Network Roof : postes de travail en bois, verdure et bureaux vitrés' },
-  terrasse: { src: '/espaces/cowork_roof/terrasse-rooftop.webp', alt: 'La terrasse rooftop d’IN Network Roof, avec ses salons et tables extérieures' },
 } as const satisfies Record<string, VenuePhoto>;

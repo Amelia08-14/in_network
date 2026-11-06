@@ -2,6 +2,9 @@ import { Fragment } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
+  AlertCircle,
+  Camera,
+  MapPin,
   ArrowRight,
   Briefcase,
   Building2,
@@ -31,12 +34,13 @@ import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ScrollReveal } from '@/components/ui/scroll-motion';
 import { capacityText, hasMemberRate } from '@/lib/spaces';
-import { AddToCartButton } from '@/components/features/AddToCartButton';
+import { AddTierRow, AddToCartButton } from '@/components/features/AddToCartButton';
 import { ServicesFilterGrid } from '@/components/features/ServicesFilterGrid';
 import { Faq, type FaqItem } from '@/components/features/Faq';
 import { serverGet } from '@/lib/server-api';
 import { byPrice } from '@/lib/services-order';
 import { cn } from '@/lib/utils';
+import { ROOF_SITE } from '@/lib/site-info';
 import { CURRENCY, formatDa, formatNumber } from '@/lib/money';
 import { HUE, planHue, type Hue } from '@/lib/palette';
 import { OFFICE_INTERIORS, OFFICE_PHOTOS, ROOF_PHOTOS, VENUE_PHOTOS, type VenuePhoto } from '@/lib/venue-photos';
@@ -82,7 +86,7 @@ const PLAN_STYLE: { match: string; tagline: string; photo: VenuePhoto }[] = [
   { match: 'casier', tagline: 'Une solution pratique et sécurisée pour vos effets personnels.', photo: VENUE_PHOTOS.casiers },
   { match: 'domiciliation', tagline: 'Une adresse à Hydra qui inspire confiance à vos clients et partenaires dès le premier contact.', photo: VENUE_PHOTOS.detente },
   { match: 'open space rdc', tagline: 'Un poste dédié au cœur d’une communauté active, pour travailler, échanger et collaborer.', photo: VENUE_PHOTOS.openSpace },
-  { match: 'roof', tagline: 'Votre poste de travail individuel dans l’espace IN Network Roof.', photo: ROOF_PHOTOS.openSpace },
+  { match: 'roof', tagline: 'Votre poste de travail individuel dans l’espace IN Network Roof, au niveau de l’espace IN ART.', photo: ROOF_PHOTOS.openSpace },
   { match: 'open space', tagline: 'Un poste dédié au cœur d’une communauté active, pour travailler, échanger et collaborer.', photo: VENUE_PHOTOS.openSpace },
 ];
 const planStyle = (name: string) => PLAN_STYLE.find((style) => name.toLowerCase().includes(style.match));
@@ -94,7 +98,7 @@ const OFFICE_TAGLINES: Record<number, string> = {
   2: 'Idéal pour travailler à deux, structurer votre activité et recevoir vos clients en toute discrétion.',
   4: 'Plus d’espace pour accueillir votre équipe et vos clients, avec deux demi-journées de salle de réunion par semaine.',
   8: 'Un bureau d’équipe avec balcon, pour une structure qui grandit.',
-  14: 'IN Network Roof : le plus grand espace du lieu, avec balcon et accès à la terrasse rooftop.',
+  14: 'IN Network Roof : bureaux situés au niveau de l’espace IN ART — le plus grand espace, avec balcon et accès à la terrasse rooftop.',
 };
 
 // Ordre des bureaux dans le catalogue (l'API les trie par nom).
@@ -105,12 +109,8 @@ const officeRank = (name: string) => {
 };
 
 // Visuels des bureaux d'une même taille, chacun sous son nom. IN Network Roof
-// (« Bureau Roof » avant le renommage en base) : l'espace d'abord, puis la
-// terrasse rooftop à laquelle il donne accès (demande cliente 27/10/2026).
-const ROOF_SHOTS: OfficeShot[] = [
-  { name: 'IN Network Roof', photo: ROOF_PHOTOS.openSpace },
-  { name: 'Terrasse rooftop', photo: ROOF_PHOTOS.terrasse },
-];
+// (« Bureau Roof » avant le renommage en base) : la photo de l'espace.
+const ROOF_SHOTS: OfficeShot[] = [{ name: 'IN Network Roof', photo: ROOF_PHOTOS.openSpace }];
 const isRoofOffice = (name: string) => name === 'IN Network Roof' || name === 'Bureau Roof';
 const officeLabel = (name: string) => (isRoofOffice(name) ? 'IN Network Roof' : name.replace(/^Bureau /, ''));
 // L'intérieur type de la taille (photo du 04/11/2026) passe en premier, puis
@@ -163,7 +163,7 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'Quelles formules propose IN NETWORK ?',
     answer:
-      'Des offres regroupées par besoin (Starter, Builder, Accelerator, Domiciliation Pro, Événement & Com), l’abonnement annuel (Access, Premium, Elite), des formules au mois — poste en open space, bureau privé de 2 à 14 personnes, domiciliation, casier — ainsi que les salles de réunion et les services aux entreprises.',
+      'Des offres regroupées par besoin (Pack Découverte, Builder, Accelerator, Domiciliation Pro, Événement & Com), l’abonnement annuel (Access, Premium, Elite), des formules au mois — poste en open space, bureau privé de 2 à 14 personnes, domiciliation, casier — ainsi que les salles de réunion et les services aux entreprises.',
   },
   {
     question: 'Qu’est-ce que la domiciliation chez IN NETWORK ?',
@@ -369,44 +369,53 @@ export default async function ServicesPage() {
           {offers.length === 0 ? (
             <EmptyState title="Offres en cours de finalisation" description="Contactez-nous pour connaître nos offres actuelles." />
           ) : (
-            <ScrollReveal stagger={80} className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
+            // Une offre par bloc (retours cliente du 05/11/2026 : présentation plus
+            // claire qu'une grille de cartes de hauteurs inégales). Lignes « ! » du
+            // catalogue = mention importante, en rouge (validité, public réservé).
+            <ScrollReveal stagger={80} className="flex flex-col gap-5">
               {offers.map((offer) => {
                 const { intro, bullets } = splitDescription(offer.description);
                 const quote = bullets.find((line) => line.startsWith('«'));
                 const audience = bullets.find((line) => line.startsWith('Pour :'));
-                const points = bullets.filter((line) => line !== quote && line !== audience);
+                const alerts = bullets.filter((line) => line.startsWith('!')).map((line) => line.replace(/^!\s*/, ''));
+                const points = bullets.filter((line) => line !== quote && line !== audience && !line.startsWith('!'));
                 return (
-                  <Card key={offer.id} accent="orange" className="h-full">
-                    <CardContent className="flex h-full flex-col gap-4">
-                      <div>
-                        <h3 className="font-heading text-lg font-bold text-ink-900">{offer.title}</h3>
-                        {audience && <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-brand-orange">{audience.replace('Pour : ', 'Pour ')}</p>}
-                        <p className="mt-2 text-sm text-ink-600">{intro}</p>
+                  <Card key={offer.id} accent="orange" className="overflow-hidden">
+                    <div className="grid lg:grid-cols-[1fr_1.2fr_340px]">
+                      <div className="flex flex-col gap-3 p-5 md:p-6">
+                        <h3 className="font-heading text-xl font-bold text-ink-900">{offer.title}</h3>
+                        {audience && <p className="text-xs font-semibold uppercase tracking-wide text-brand-orange">{audience.replace('Pour : ', 'Pour ')}</p>}
+                        <p className="text-sm leading-relaxed text-ink-600">{intro}</p>
+                        {alerts.map((alert) => (
+                          <p key={alert} className="flex items-start gap-2 rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 ring-1 ring-red-200">
+                            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> {alert}
+                          </p>
+                        ))}
                       </div>
-                      <ul className="space-y-2 border-t border-dashed border-ink-900/10 pt-4 text-sm text-ink-600">
-                        {points.map((point) => (
-                          <li key={point} className="flex items-start gap-2">
-                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" /> {point}
-                          </li>
-                        ))}
-                      </ul>
-                      {quote && <p className="text-sm italic text-ink-500">{quote}</p>}
-                      <ul className="mt-auto flex flex-col gap-2">
+                      <div className="flex flex-col gap-3 border-t border-dashed border-ink-900/10 p-5 md:p-6 lg:border-l lg:border-t-0">
+                        {points.length > 0 && (
+                          <ul className="space-y-2 text-sm text-ink-600">
+                            {points.map((point) => (
+                              <li key={point} className="flex items-start gap-2">
+                                <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" /> {point}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {quote && <p className="mt-auto text-sm italic text-ink-500">{quote}</p>}
+                      </div>
+                      <div className="flex flex-col justify-center gap-2 border-t border-ink-900/8 bg-brand-orange/[0.04] p-5 md:p-6 lg:border-l lg:border-t-0">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-500">Tarif</p>
                         {(offer.pricingTiers ?? []).map((tier) => (
-                          <li key={tier.label} className="flex items-center gap-3 rounded-xl border border-brand-orange/25 bg-brand-orange/10 py-2 pl-3.5 pr-2">
-                            <span className="min-w-0 flex-1 text-sm font-medium text-ink-700">{tier.label}</span>
-                            <span className="shrink-0 whitespace-nowrap font-heading font-bold tabular-nums text-ink-900">
-                              {tier.price.toLocaleString('fr-FR')}
-                              <span className="ml-1 text-xs font-semibold text-brand-orange">DA</span>
-                            </span>
-                            <AddToCartButton
-                              compact
-                              item={{ targetType: 'SERVICE', targetId: offer.id, title: offer.title, tierLabel: tier.label, price: tier.price, category: offer.category }}
-                            />
-                          </li>
+                          <AddTierRow
+                            key={tier.label}
+                            label={tier.label}
+                            price={tier.price}
+                            item={{ targetType: 'SERVICE', targetId: offer.id, title: offer.title, tierLabel: tier.label, price: tier.price, category: offer.category }}
+                          />
                         ))}
-                      </ul>
-                    </CardContent>
+                      </div>
+                    </div>
                   </Card>
                 );
               })}
@@ -618,13 +627,29 @@ export default async function ServicesPage() {
                   return (
                     <Card key={plan.id} accent="ink" className="h-full">
                       <CardContent className="flex h-full flex-col gap-4">
-                        {shots.length > 0 && <OfficeGallery shots={shots} sizes="(min-width: 640px) 45vw, 100vw" />}
+                        {shots.length > 0 ? (
+                          <OfficeGallery shots={shots} sizes="(min-width: 640px) 45vw, 100vw" />
+                        ) : (
+                          // Pas de vraie photo de ce bureau pour l'instant : on ne montre pas celle d'un autre.
+                          <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-ink-900/15 bg-ink-900/[0.03] p-6 text-center">
+                            <Camera className="h-6 w-6 text-ink-400" />
+                            <p className="text-sm font-semibold text-ink-700">Photos de ce bureau à venir</p>
+                            <Link href={VISIT_HREF} className="text-sm font-semibold text-brand-orange hover:underline">
+                              Visiter sur rendez-vous
+                            </Link>
+                          </div>
+                        )}
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-orange">{capacity > 0 ? `Jusqu’à ${capacity} personnes · bureau fermé` : 'Bureau fermé'}</p>
                           <h3 className="mt-1 font-heading text-lg font-bold text-ink-900">
                             {named.length > 0 ? named.map((o) => officeLabel(o.name)).join(' · ') : plan.name}
                           </h3>
                           {OFFICE_TAGLINES[capacity] && <p className="mt-1 text-sm text-ink-500">{OFFICE_TAGLINES[capacity]}</p>}
+                          {named.some((o) => isRoofOffice(o.name)) && ROOF_SITE.mapsUrl && (
+                            <a href={ROOF_SITE.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-brand-blue hover:underline">
+                              <MapPin className="h-4 w-4" /> Localisation de l’{ROOF_SITE.name}
+                            </a>
+                          )}
                           <p className="mt-3 flex items-baseline gap-1.5">
                             <span className="font-heading text-3xl font-bold text-ink-900">{Number(plan.price).toLocaleString('fr-FR')}</span>
                             <span className="rounded-pill bg-ink-900/8 px-2 py-0.5 text-xs font-semibold text-ink-800">{CURRENCY} HT / mois</span>
@@ -829,37 +854,37 @@ export default async function ServicesPage() {
               title="De l’étranger à l’Algérie, faites grandir votre projet ici"
               lead="Vous vivez à l’étranger et souhaitez créer votre entreprise, développer une activité ou investir en Algérie ? IN NETWORK vous accompagne pour franchir les premières étapes de votre implantation, avec des solutions adaptées à votre projet et à votre niveau d’avancement."
             />
-            <ScrollReveal stagger={80} className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {/* Un pack par bloc, comme les offres (retours cliente du 05/11/2026). */}
+            <ScrollReveal stagger={80} className="flex flex-col gap-4">
               {packs.map((pack) => {
                 const { intro, bullets } = splitDescription(pack.description);
                 const tier = pack.pricingTiers?.[0];
                 return (
-                  <Card key={pack.id} accent="ink" className="h-full">
-                    <CardContent className="flex h-full flex-col gap-4">
-                      <div>
+                  <Card key={pack.id} accent="ink" className="overflow-hidden">
+                    <div className="grid lg:grid-cols-[1fr_1.2fr_340px]">
+                      <div className="flex flex-col gap-2 p-5 md:p-6">
                         <h3 className="font-heading text-lg font-bold text-ink-900">{pack.title}</h3>
-                        <p className="mt-2 text-sm text-ink-600">{intro}</p>
+                        <p className="text-sm leading-relaxed text-ink-600">{intro}</p>
                       </div>
-                      {bullets.length > 0 && (
-                        <ul className="space-y-2 border-t border-dashed border-ink-900/10 pt-4 text-sm text-ink-600">
-                          {bullets.map((point) => (
-                            <li key={point} className="flex items-start gap-2">
-                              <Globe2 className="mt-0.5 h-4 w-4 shrink-0 text-ink-700" /> {point}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <div className="mt-auto">
+                      <div className="border-t border-dashed border-ink-900/10 p-5 md:p-6 lg:border-l lg:border-t-0">
+                        {bullets.length > 0 && (
+                          <ul className="space-y-2 text-sm text-ink-600">
+                            {bullets.map((point) => (
+                              <li key={point} className="flex items-start gap-2">
+                                <Globe2 className="mt-0.5 h-4 w-4 shrink-0 text-ink-700" /> {point}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                      <div className="flex flex-col justify-center gap-2 border-t border-ink-900/8 bg-ink-900/[0.03] p-5 md:p-6 lg:border-l lg:border-t-0">
                         {tier ? (
-                          <p className="flex items-center gap-3 rounded-xl border border-ink-900/15 bg-ink-900/8 py-2 pl-3.5 pr-2">
-                            <span className="flex-1 font-heading font-bold tabular-nums text-ink-900">
-                              {formatNumber(tier.price)} <span className="text-xs font-semibold text-ink-600">{CURRENCY}</span>
-                            </span>
-                            <AddToCartButton
-                              compact
-                              item={{ targetType: 'SERVICE', targetId: pack.id, title: pack.title, tierLabel: tier.label, price: tier.price, category: pack.category }}
-                            />
-                          </p>
+                          <AddTierRow
+                            tone="ink"
+                            label={tier.label}
+                            price={tier.price}
+                            item={{ targetType: 'SERVICE', targetId: pack.id, title: pack.title, tierLabel: tier.label, price: tier.price, category: pack.category }}
+                          />
                         ) : (
                           <AddToCartButton
                             variant="outline"
@@ -869,7 +894,7 @@ export default async function ServicesPage() {
                           />
                         )}
                       </div>
-                    </CardContent>
+                    </div>
                   </Card>
                 );
               })}
