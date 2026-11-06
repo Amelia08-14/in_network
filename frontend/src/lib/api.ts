@@ -20,15 +20,27 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   skipAuthRetry?: boolean;
 }
 
-export async function tryRefreshAccessToken(): Promise<boolean> {
-  const response = await fetch(`${getClientApiUrl()}/api/auth/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-  });
-  if (!response.ok) return false;
-  const json = await response.json();
-  setAccessTokenCookie(json.data.accessToken);
-  return true;
+// Un seul renouvellement à la fois : quand plusieurs requêtes reçoivent un 401
+// en même temps, elles attendent le même renouvellement au lieu d'en lancer
+// chacune un (la rotation du jeton faisait alors échouer les suivants).
+let refreshInFlight: Promise<boolean> | null = null;
+
+export function tryRefreshAccessToken(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const response = await fetch(`${getClientApiUrl()}/api/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) return false;
+      const json = await response.json();
+      setAccessTokenCookie(json.data.accessToken);
+      return true;
+    })().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
 }
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {

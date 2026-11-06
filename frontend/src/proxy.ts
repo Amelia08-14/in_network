@@ -2,11 +2,11 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { jwtDecode } from 'jwt-decode';
 
 // Rôles autorisés dans /admin (miroir de STAFF_ROLES côté API).
-const STAFF_ROLES = ['SUPER_ADMIN', 'ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT'];
+const STAFF_ROLES = ['SUPER_ADMIN', 'ADMIN', 'OFFICE_MANAGER', 'SALES_MANAGER', 'SALES_AGENT', 'ADMIN_SUPPORT'];
 
 interface AccessTokenPayload {
   sub: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'OFFICE_MANAGER' | 'SALES_MANAGER' | 'SALES_AGENT' | 'MEMBER';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'OFFICE_MANAGER' | 'SALES_MANAGER' | 'SALES_AGENT' | 'ADMIN_SUPPORT' | 'MEMBER';
   exp: number;
 }
 

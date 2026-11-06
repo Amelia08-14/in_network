@@ -193,6 +193,17 @@ export async function adminLogin(input: LoginInput) {
   return { user: await publicUser(user), ...tokens };
 }
 
+// Délai de grâce de la rotation : plusieurs requêtes (ou onglets) peuvent
+// demander un renouvellement au même instant avec le même jeton. Le premier le
+// révoque ; sans tolérance, les suivants échouaient et la session était
+// coupée. Un jeton révoqué depuis moins de 30 s reste donc accepté une fois de plus.
+const ROTATION_GRACE_MS = 30 * 1000;
+
+function isUsableRefreshToken(stored: { revokedAt: Date | null; expiresAt: Date }) {
+  if (stored.expiresAt < new Date()) return false;
+  return !stored.revokedAt || Date.now() - stored.revokedAt.getTime() < ROTATION_GRACE_MS;
+}
+
 export async function refresh(refreshToken: string) {
   let payload: { sub: string };
   try {
@@ -203,7 +214,7 @@ export async function refresh(refreshToken: string) {
 
   const tokenHash = hashToken(refreshToken);
   const stored = await prisma.refreshToken.findUnique({ where: { tokenHash } });
-  if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
+  if (!stored || !isUsableRefreshToken(stored)) {
     throw ApiError.unauthorized('Session expirée, reconnectez-vous');
   }
 
@@ -211,10 +222,10 @@ export async function refresh(refreshToken: string) {
   if (!user || !user.isActive) throw ApiError.unauthorized();
 
   // Rotation: on révoque l'ancien refresh token et on en émet un nouveau
-  await prisma.refreshToken.update({
-    where: { id: stored.id },
-    data: { revokedAt: new Date() },
-  });
+  // Rotation : l'ancien jeton est révoqué (sauf s'il l'était déjà, dans le délai de grâce).
+  if (!stored.revokedAt) {
+    await prisma.refreshToken.update({ where: { id: stored.id }, data: { revokedAt: new Date() } });
+  }
 
   const tokens = await issueTokenPair(user.id, user.role);
   return { user: await publicUser(user), ...tokens };
@@ -234,22 +245,25 @@ export async function adminRefresh(refreshToken: string) {
 
   const tokenHash = hashToken(refreshToken);
   const stored = await prisma.refreshToken.findUnique({ where: { tokenHash } });
-  if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
+  if (!stored || !isUsableRefreshToken(stored)) {
     throw ApiError.unauthorized('Session expirée, reconnectez-vous');
   }
 
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
   if (!user || !user.isActive) throw ApiError.unauthorized();
 
-  if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+  // Tous les comptes du backoffice (office manager, commerciaux, support…),
+  // pas seulement ADMIN / SUPER_ADMIN : avant le 06/11/2026, la session d'un
+  // office manager tombait au premier renouvellement (10 à 15 minutes).
+  if (!isStaffRole(user.role)) {
     await prisma.refreshToken.update({ where: { id: stored.id }, data: { revokedAt: new Date() } });
-    throw ApiError.forbidden('Ce compte ne dispose plus des droits administrateur');
+    throw ApiError.forbidden('Ce compte ne dispose plus des droits d’accès au backoffice');
   }
 
-  await prisma.refreshToken.update({
-    where: { id: stored.id },
-    data: { revokedAt: new Date() },
-  });
+  // Rotation : l'ancien jeton est révoqué (sauf s'il l'était déjà, dans le délai de grâce).
+  if (!stored.revokedAt) {
+    await prisma.refreshToken.update({ where: { id: stored.id }, data: { revokedAt: new Date() } });
+  }
 
   const tokens = await issueTokenPair(user.id, user.role);
   return { user: await publicUser(user), ...tokens };

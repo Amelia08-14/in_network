@@ -18,15 +18,27 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
 // sur 401 via refresh) mais branché sur le cookie/refresh admin séparés, pour
 // ne jamais mélanger une session admin et une session membre dans le même
 // navigateur.
-export async function tryRefreshAdminAccessToken(): Promise<boolean> {
-  const response = await fetch(`${getClientApiUrl()}/api/auth/admin/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-  });
-  if (!response.ok) return false;
-  const json = await response.json();
-  setAdminAccessTokenCookie(json.data.accessToken);
-  return true;
+// Un seul renouvellement à la fois : quand plusieurs requêtes reçoivent un 401
+// en même temps, elles attendent le même renouvellement au lieu d'en lancer
+// chacune un (la rotation du jeton faisait alors échouer les suivants).
+let adminRefreshInFlight: Promise<boolean> | null = null;
+
+export function tryRefreshAdminAccessToken(): Promise<boolean> {
+  if (!adminRefreshInFlight) {
+    adminRefreshInFlight = (async () => {
+      const response = await fetch(`${getClientApiUrl()}/api/auth/admin/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) return false;
+      const json = await response.json();
+      setAdminAccessTokenCookie(json.data.accessToken);
+      return true;
+    })().finally(() => {
+      adminRefreshInFlight = null;
+    });
+  }
+  return adminRefreshInFlight;
 }
 
 export async function adminApiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
