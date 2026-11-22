@@ -24,6 +24,7 @@ import {
   Coins,
   SlidersHorizontal,
   ShieldCheck,
+  LayoutDashboard,
 } from 'lucide-react';
 import type { AdminNavItem } from '@/components/layout/AdminShell';
 
@@ -48,7 +49,10 @@ export type NavEntry = AdminNavItem & {
 // paiement), les clients (membres, services livrés, échéances), les
 // commissions, et enfin le pilotage, le contenu du site et le système.
 export const NAV_ITEMS: NavEntry[] = [
+  // Administrateurs : « /admin » est le tableau de bord de la Direction (libellé
+  // remplacé dans le layout) et « Ma journée » a sa propre page.
   { href: '/admin', label: 'Ma journée', icon: Sun, alwaysVisible: true, section: 'Accueil' },
+  { href: '/admin/ma-journee', label: 'Ma journée', icon: Sun, superOnly: true, section: 'Accueil' },
   // Prospects : du lead entrant à la visite confirmée
   // Depuis le 22/11/2026 les prospects vont directement chez l'Office Manager :
   // cette page ne garde que les leads sans intervenant et ceux à confier.
@@ -96,3 +100,6 @@ export const isHiddenPath = (pathname: string, hidden: string[]) =>
   HIDEABLE_NAV_ITEMS.some(
     (item) => hidden.includes(item.href) && [item.href, ...(item.alsoMatch ?? [])].some((p) => pathname === p || (p !== '/admin' && pathname.startsWith(`${p}/`))),
   );
+
+/** Entrée d'accueil des administrateurs : le tableau de bord de la Direction. */
+export const DIRECTION_HOME = { label: 'Tableau de bord', icon: LayoutDashboard } as const;

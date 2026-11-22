@@ -10,6 +10,7 @@ import * as invoices from './invoices.service';
 import * as fulfilment from './fulfilment.service';
 import * as commissions from './commissions.service';
 import { getCrmDashboard, getHome } from './home.service';
+import { getOverview, type OverviewPeriod } from './overview.service';
 import { AUTOMATION_RULES, runAutomations } from './automations.service';
 import { listStaff } from './staff';
 import { assertCanManage, assertLeadAccess, attachScope, requireScope } from './scope';
@@ -55,6 +56,15 @@ export const crmRouter = Router();
 crmRouter.use(attachScope);
 
 crmRouter.get('/dashboard', asyncHandler(async (req, res) => ok(res, await getCrmDashboard(requireScope(req)))));
+// Tableau de bord de la Direction (page d'accueil des administrateurs).
+crmRouter.get(
+  '/overview',
+  asyncHandler(async (req, res) => {
+    if (!requireScope(req).direction) throw ApiError.forbidden('Tableau de bord réservé à la Direction.');
+    const period = (['30d', '90d', '12m'] as const).find((p) => p === req.query.period) ?? '30d';
+    ok(res, await getOverview(period as OverviewPeriod));
+  }),
+);
 crmRouter.get('/staff', asyncHandler(async (_req, res) => ok(res, await listStaff())));
 crmRouter.get(
   '/search',

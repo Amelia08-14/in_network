@@ -439,3 +439,44 @@ export interface ApprovalsData {
   toApprove: ApprovalItem[];
   waiting: ApprovalItem[];
 }
+
+/** Tableau de bord de la Direction (GET /api/admin/crm/overview). */
+export type OverviewPeriod = '30d' | '90d' | '12m';
+export interface ComparedValue {
+  value: number;
+  previous: number;
+}
+export interface Overview {
+  period: OverviewPeriod;
+  from: string;
+  to: string;
+  kpis: {
+    revenue: ComparedValue;
+    paidInvoices: ComparedValue;
+    averageBasket: ComparedValue;
+    newLeads: ComparedValue;
+    won: ComparedValue;
+    conversion: ComparedValue & { closed: number };
+    quotesSent: ComparedValue & { amount: number };
+    newMembers: ComparedValue;
+  };
+  snapshot: {
+    receivable: number;
+    receivableCount: number;
+    overdue: number;
+    overdueCount: number;
+    pipelineAmount: number;
+    openLeads: number;
+    activeMembers: number;
+    occupancy: number | null;
+    activeSubs: number;
+    capacity: number;
+    expiringSoon: number;
+  };
+  monthly: { month: string; label: string; revenue: number; leads: number; won: number }[];
+  funnel: { stage: LeadStage; label: string; count: number; amount: number }[];
+  sources: { pipeline: LeadPipeline | null; label: string; count: number }[];
+  byPole: { pole: DeliveryPole; label: string; amount: number }[];
+  team: { id: string; name: string; role: string; open: number; won: number; revenue: number }[];
+  alerts: { key: string; label: string; count: number; href: string }[];
+}

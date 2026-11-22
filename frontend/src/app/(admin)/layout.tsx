@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { NAV_ITEMS, isHiddenPath } from '@/lib/admin-nav';
+import { DIRECTION_HOME, NAV_ITEMS, isHiddenPath } from '@/lib/admin-nav';
 import { usePlatformOptions } from '@/lib/options';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,6 +34,7 @@ function visibleNavItems(
     return keys.some((key) => Boolean(permissions?.[key]));
   }).map(({ resource, resources, fallbackHref, superOnly, manageLeadsOnly, alwaysVisible, ...navItem }) => ({
     ...navItem,
+    ...(isFullAccess && navItem.href === '/admin' ? DIRECTION_HOME : {}),
     // Compte restreint sans droit sur le premier volet : on entre par l'autre.
     href: !isFullAccess && fallbackHref && resources && !permissions?.[resources[0]] ? fallbackHref : navItem.href,
   }));
