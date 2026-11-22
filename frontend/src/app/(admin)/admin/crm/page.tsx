@@ -29,6 +29,7 @@ interface AutomationResult {
   expiryAlerts: number;
   servicesExpired: number;
   protectionAlerts: number;
+  leadsRouted?: number;
 }
 
 const AUTOMATIONS = [
@@ -37,7 +38,7 @@ const AUTOMATIONS = [
   'Alerte quand une action planifiée arrive à échéance, et sur les leads sans activité depuis 7 jours',
   'Rappel des rendez-vous dans les 24 heures',
   'Alertes d’échéance des services à J-60, J-30, J-7 (membre et référent), puis passage « Expiré » après le délai de grâce',
-  'Fin de la protection d’un lead de la Sales Team sans activité (si la durée est fixée dans les paramètres)',
+  'Fin de la protection d’un lead suivi par un commercial sans activité (si la durée est fixée dans les paramètres)',
 ];
 
 export default function CrmDashboardPage() {
@@ -76,8 +77,8 @@ export default function CrmDashboardPage() {
 
       {access.manageLeads && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Kpi hue="orange" icon={Inbox} label="Leads à aiguiller" value={String(kpis.toDispatch)} hint="Circuit 1 ou 2 à choisir" href="/admin/crm/entrants" tone={kpis.toDispatch ? 'alert' : undefined} />
-          <Kpi hue="blue" icon={UserCheck} label="Leads à attribuer" value={String(kpis.toAssign)} hint="Circuit 1, en attente d’un commercial" href="/admin/crm/entrants?tab=attribuer" />
+          <Kpi hue="orange" icon={Inbox} label="Leads sans intervenant" value={String(kpis.toDispatch)} hint="Normalement remis à l’Office Manager" href="/admin/crm/entrants" tone={kpis.toDispatch ? 'alert' : undefined} />
+          <Kpi hue="blue" icon={UserCheck} label="Leads à confier" value={String(kpis.toAssign)} hint="En attente d’un commercial" href="/admin/crm/entrants?tab=attribuer" />
         </div>
       )}
 
@@ -202,7 +203,7 @@ export default function CrmDashboardPage() {
           {runAutomations.isError && <p className="text-sm text-brand-orange">{errorMessage(runAutomations.error)}</p>}
           {result && (
             <p className="rounded-xl bg-ink-900/4 px-4 py-3 text-sm text-ink-700" role="status">
-              Terminé : {result.quoteReminders} relance(s) de devis, {result.invoiceReminders} rappel(s) de proforma, {result.quotesExpired} devis expiré(s), {result.followUpAlerts} action(s) à mener, {result.dormantAlerts} lead(s) dormant(s), {result.appointmentReminders} rappel(s) de rendez-vous, {result.expiryAlerts} alerte(s) d’échéance, {result.servicesExpired} service(s) expiré(s).
+              Terminé : {result.quoteReminders} relance(s) de devis, {result.invoiceReminders} rappel(s) de proforma, {result.quotesExpired} devis expiré(s), {result.followUpAlerts} action(s) à mener, {result.dormantAlerts} lead(s) dormant(s), {result.appointmentReminders} rappel(s) de rendez-vous, {result.expiryAlerts} alerte(s) d’échéance, {result.servicesExpired} service(s) expiré(s){result.leadsRouted ? `, ${result.leadsRouted} prospect(s) remis à l’Office Manager` : ''}.
             </p>
           )}
         </CardContent>

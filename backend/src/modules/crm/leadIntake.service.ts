@@ -3,10 +3,10 @@ import { prisma } from '../../lib/prisma';
 import { requestLabel } from '../services/requestLabel';
 import { describeAttribution, leadOriginFields, type Attribution } from './attribution';
 import { isAccountValidated } from '../situation/accountState';
-import { findOpenDuplicate, logActivity, notifyDispatchers } from './leads.service';
+import { findOpenDuplicate, logActivity, notifyDispatchers, pickOfficeManager } from './leads.service';
 import { nextNumber } from './numbering';
 import { createQuote, sendQuote } from './quotes.service';
-import { listStaffByRole, notifyUsers } from './staff';
+import { notifyUsers } from './staff';
 
 // Leads créés automatiquement (phase 1 du processus v1.3) : inscription,
 // demande de devis du site, formulaire de contact, recommandation d'un membre,
@@ -43,13 +43,12 @@ export async function memberLeadOf(userId: string) {
   return prisma.lead.findFirst({ where: { userId, stage: 'PAID' }, orderBy: [{ kind: 'asc' }, { wonAt: 'asc' }] });
 }
 
-/** Intervenant d'un membre : son référent, sinon celui de sa fiche, sinon l'unique Office Manager. */
+/** Intervenant d'un membre : son référent, sinon celui de sa fiche, sinon l'Office Manager. */
 async function memberOwner(userId: string, parent: Lead | null) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { referentId: true } });
   if (user?.referentId) return user.referentId;
   if (parent?.assignedToId) return parent.assignedToId;
-  const oms = await listStaffByRole('OFFICE_MANAGER');
-  return oms.length === 1 ? oms[0].id : null;
+  return pickOfficeManager();
 }
 
 /**
@@ -197,11 +196,11 @@ export async function createLeadFromServiceRequest(requestId: string, attributio
     content: `Lead créé automatiquement depuis la demande de devis du site (${request.items.length} ligne${request.items.length > 1 ? 's' : ''}).`,
   });
   await logOrigin(lead.id, attribution);
-  await notifyDispatchers(lead, 'Nouveau lead à aiguiller', `(${contactName}) vient d'arriver depuis le site.`);
+  await notifyDispatchers(lead, 'Nouveau prospect', `(${contactName}) vient d'arriver depuis le site.`);
   return lead;
 }
 
-/** Nouvelle inscription : lead à aiguiller (ou rattachement au lead déjà ouvert pour ce contact). */
+/** Nouvelle inscription : lead remis à l'Office Manager (ou rattachement au lead déjà ouvert pour ce contact). */
 export async function createLeadFromRegistration(userId: string, attribution?: Attribution) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -236,7 +235,7 @@ export async function createLeadFromRegistration(userId: string, attribution?: A
   await logActivity(lead.id, { content: 'Lead créé automatiquement à l’inscription : l’espace du membre s’ouvrira à son premier paiement.' });
   await logOrigin(lead.id, attribution);
   await prisma.lead.updateMany({ where: { email: user.email, userId: null }, data: { userId } });
-  await notifyDispatchers(lead, 'Nouvelle inscription à aiguiller', `— ${contactName}${companyName ? ` (${companyName})` : ''} vient de créer un compte.`);
+  await notifyDispatchers(lead, 'Nouvelle inscription', `— ${contactName}${companyName ? ` (${companyName})` : ''} vient de créer un compte.`);
   return lead;
 }
 
@@ -270,7 +269,7 @@ export async function createLeadFromContactMessage(messageId: string, attributio
   });
   await logActivity(lead.id, { content: 'Lead créé automatiquement depuis le formulaire de contact.' });
   await logOrigin(lead.id, attribution);
-  await notifyDispatchers(lead, 'Nouveau lead à aiguiller', `— message de ${message.name} reçu via le formulaire de contact.`);
+  await notifyDispatchers(lead, 'Nouveau prospect', `— message de ${message.name} reçu via le formulaire de contact.`);
   return lead;
 }
 
@@ -304,7 +303,7 @@ export async function createReferralLead(
     },
   });
   await logActivity(lead.id, { content: `Contact recommandé par le membre ${referrerName} depuis son espace.` });
-  await notifyDispatchers(lead, 'Nouvelle recommandation à aiguiller', `— recommandé par ${referrerName}.`);
+  await notifyDispatchers(lead, 'Nouvelle recommandation', `— recommandé par ${referrerName}.`);
   return { lead, alreadyKnown: false };
 }
 
@@ -327,7 +326,7 @@ export interface AdFormLead {
 
 /**
  * Lead reçu d'un formulaire publicitaire (Facebook / Instagram Lead Ads,
- * LinkedIn Lead Gen…) via Make ou Zapier. Il arrive « à aiguiller » avec son
+ * LinkedIn Lead Gen…) via Make ou Zapier. Il arrive chez l'Office Manager avec son
  * canal (LinkedIn, ou Publicité pour les autres réseaux) et sa campagne ; un
  * contact déjà suivi n'ouvre pas de seconde fiche.
  */
@@ -366,6 +365,6 @@ export async function createLeadFromAdForm(input: AdFormLead) {
     },
   });
   await logActivity(lead.id, { content: `Lead reçu automatiquement d’un formulaire publicitaire (${detail}).` });
-  await notifyDispatchers(lead, 'Nouveau lead des réseaux à aiguiller', `— ${detail}.`);
+  await notifyDispatchers(lead, 'Nouveau prospect des réseaux', `— ${detail}.`);
   return { lead, duplicate: false };
 }

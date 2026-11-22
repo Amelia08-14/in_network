@@ -176,7 +176,7 @@ function QuoteEditor({ quote }: { quote: QuoteDetail }) {
             )}
             {needsApproval && (
               <Button disabled={busy || lines.length === 0} onClick={() => submit.mutate()}>
-                <ShieldCheck className="h-4 w-4" /> Soumettre à validation
+                <ShieldCheck className="h-4 w-4" /> Demander la validation
               </Button>
             )}
             {((editable && !needsApproval) || quote.status === 'SENT') && (
@@ -203,16 +203,16 @@ function QuoteEditor({ quote }: { quote: QuoteDetail }) {
       )}
       {needsApproval && approval && (
         <p className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-          Demande de devis à faire valider par {approval.approver === 'DIRECTION' ? 'la Direction' : 'le responsable commercial'} avant l’envoi : {approval.reasons.join(', ')}. Enregistrez vos modifications pour mettre ce contrôle à jour.
+          Ce devis doit être validé par {approval.approver === 'DIRECTION' ? 'la Direction' : 'le responsable commercial ou la Direction'} avant de partir au client ({approval.reasons.join(', ')}). Enregistrez vos modifications, puis cliquez sur « Demander la validation » : la demande arrive dans leur rubrique « À valider », avec une notification et un e-mail.
         </p>
       )}
       {quote.status === 'PENDING_APPROVAL' && (
         <Card accent="yellow">
           <CardContent className="space-y-3">
             <h2 className="flex items-center gap-2 font-heading text-base font-bold text-ink-900">
-              <ShieldCheck className="h-4 w-4 text-amber-700" /> Validation {approval?.approver === 'DIRECTION' ? 'de la Direction' : 'du responsable commercial'}
+              <ShieldCheck className="h-4 w-4 text-amber-700" /> En attente de validation par {approval?.approver === 'DIRECTION' ? 'la Direction' : 'le responsable commercial ou la Direction'}
             </h2>
-            {approval && <p className="text-sm text-ink-600">Motifs : {approval.reasons.join(', ')}.</p>}
+            {approval && <p className="text-sm text-ink-600">Demandé le {dateTimeFr(quote.updatedAt)} · pourquoi : {approval.reasons.join(', ')}.</p>}
             {canApprove ? (
               <>
                 <div className="flex flex-wrap gap-2">
@@ -230,7 +230,7 @@ function QuoteEditor({ quote }: { quote: QuoteDetail }) {
                 </Field>
               </>
             ) : (
-              <p className="text-sm text-ink-500">En attente de validation. Vous serez prévenu dès que le devis sera validé et envoyé, ou renvoyé avec un commentaire.</p>
+              <p className="text-sm text-ink-600">Le devis partira automatiquement au client dès sa validation. Vous serez prévenu(e) dans la cloche, ou s’il vous est renvoyé avec un commentaire.</p>
             )}
           </CardContent>
         </Card>

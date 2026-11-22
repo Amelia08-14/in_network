@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
+  ArrowRight,
   ArrowLeftRight,
   CalendarCheck,
   CalendarPlus,
@@ -13,6 +14,7 @@ import {
   ClipboardCheck,
   Eye,
   FileText,
+  Hourglass,
   GitBranch,
   PackageCheck,
   PhoneCall,
@@ -78,7 +80,38 @@ import type { ActivityType, AppointmentStatus, LeadChannel, LeadDetail, LeadPipe
 // étape et le profil du compte connecté. Au paiement, elle devient la fiche
 // membre (lien vers son panier de services) sans perdre son historique.
 
-const RAIL: LeadStage[] = ['REGISTERED', 'ASSIGNED', 'QUALIFIED', 'FOLLOW_UP', 'VISIT_CONFIRMED', 'QUOTE_SENT', 'CONFIRMED', 'PAID'];
+// Six repères seulement (retours du 22/11/2026) : la relance compte comme « besoin identifié ».
+const RAIL: LeadStage[] = ['ASSIGNED', 'QUALIFIED', 'VISIT_CONFIRMED', 'QUOTE_SENT', 'CONFIRMED', 'PAID'];
+const railStage = (stage: LeadStage): LeadStage => (stage === 'FOLLOW_UP' ? 'QUALIFIED' : stage);
+
+/**
+ * Où en est le dossier, en une phrase : qui doit agir, ou ce qu'on attend
+ * (validation d'une remise, réponse du client, paiement).
+ */
+function statusLine(lead: LeadDetail): { tone: 'wait' | 'act' | 'done'; text: string } | null {
+  const who = lead.assignedTo ? staffName(lead.assignedTo) : 'l’Office Manager';
+  const pending = lead.quotes.find((q) => q.status === 'PENDING_APPROVAL');
+  if (pending) return { tone: 'wait', text: `Devis ${pending.number} en attente de validation (remise ou prix ajusté). Il partira au client dès qu’il sera validé ; vous serez prévenu(e).` };
+  switch (lead.stage) {
+    case 'REGISTERED':
+      return { tone: 'act', text: lead.circuit === 'SALES_TEAM' ? 'Un commercial doit être désigné pour ce prospect.' : 'Ce prospect n’a pas encore d’intervenant.' };
+    case 'ASSIGNED':
+      return { tone: 'act', text: `Nouveau prospect : ${who} doit le contacter pour comprendre son besoin.` };
+    case 'QUALIFIED':
+    case 'FOLLOW_UP':
+      return { tone: 'act', text: `${who} doit obtenir une visite, une visio ou une journée d’essai.` };
+    case 'VISIT_CONFIRMED':
+      return { tone: 'act', text: `Visite prévue : ${who} prépare le devis.` };
+    case 'QUOTE_SENT':
+      return { tone: 'wait', text: 'Devis envoyé : en attente de la réponse du client (relances automatiques).' };
+    case 'CONFIRMED':
+      return { tone: 'act', text: `Devis accepté par le client : ${who} organise le paiement et envoie la proforma.` };
+    case 'PAID':
+      return { tone: 'done', text: 'Payé : le prospect est devenu membre.' };
+    default:
+      return null;
+  }
+}
 
 type Modal = 'qualify' | 'followup' | 'visit' | 'circuit' | 'lose' | 'appointment' | null;
 
@@ -153,7 +186,9 @@ export default function LeadPage() {
   const preVisit = PRE_VISIT_STAGES.includes(lead.stage);
   const acceptedQuote = lead.quotes.find((q) => q.status === 'ACCEPTED');
   const openInvoice = lead.invoices.find((i) => i.status === 'SENT' || i.status === 'DRAFT');
-  const railIndex = RAIL.indexOf(lead.stage);
+  const railIndex = RAIL.indexOf(railStage(lead.stage));
+  const status = statusLine(lead);
+  const canDelegate = access.officeManager || access.salesManager || access.direction;
 
   return (
     <div className="space-y-6">
@@ -185,7 +220,7 @@ export default function LeadPage() {
       {lead.stage !== 'LOST' ? (
         <ol aria-label="Avancement du lead" className="flex flex-wrap items-center gap-1.5">
           {RAIL.map((s, index) => {
-            const current = lead.stage === s;
+            const current = railStage(lead.stage) === s;
             const reached = railIndex >= index;
             return (
               <li
@@ -208,6 +243,19 @@ export default function LeadPage() {
         </p>
       )}
 
+      {status && (
+        <p
+          role="status"
+          className={cn(
+            'flex items-start gap-2 rounded-xl px-4 py-3 text-sm font-medium',
+            status.tone === 'wait' ? 'bg-amber-50 text-amber-900 ring-1 ring-amber-200' : status.tone === 'done' ? 'bg-green-50 text-green-900 ring-1 ring-green-200' : 'bg-brand-blue/8 text-ink-900 ring-1 ring-brand-blue/20',
+          )}
+        >
+          {status.tone === 'wait' ? <Hourglass className="mt-0.5 h-4 w-4 shrink-0" /> : status.tone === 'done' ? <Check className="mt-0.5 h-4 w-4 shrink-0" /> : <ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />}
+          {status.text}
+        </p>
+      )}
+
       <ErrorNote message={error} />
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
@@ -225,15 +273,15 @@ export default function LeadPage() {
 
               {canWrite && !lead.circuit && !closed && (
                 <>
-                  <p className="text-sm text-ink-600">Le prospect nécessite-t-il un travail de qualification et de traitement commercial ? Oui : circuit 1. Non : circuit 2.</p>
-                  {access.manageLeads ? <DispatchControl lead={lead} /> : <p className="text-sm text-ink-500">En attente d’aiguillage par le responsable commercial ou l’Office Manager.</p>}
+                  <p className="text-sm text-ink-600">Prenez ce prospect en charge, ou confiez-le directement à un commercial s’il demande un travail commercial.</p>
+                  {canDelegate || access.manageLeads ? <DispatchControl lead={lead} /> : <p className="text-sm text-ink-500">En attente de l’Office Manager.</p>}
                 </>
               )}
 
               {canWrite && lead.circuit === 'SALES_TEAM' && lead.stage === 'REGISTERED' && (
                 <>
-                  <p className="text-sm text-ink-600">Circuit 1 : à attribuer à un commercial sédentaire (distance, digital, diaspora, offres simples) ou terrain (entreprises, rendez-vous physiques).</p>
-                  {access.salesManager || access.direction ? <AssignControl leadId={lead.id} current={null} /> : <p className="text-sm text-ink-500">En attente d’attribution par le responsable commercial.</p>}
+                  <p className="text-sm text-ink-600">Choisissez le commercial : sédentaire (distance, digital, diaspora, offres simples) ou terrain (entreprises, rendez-vous physiques).</p>
+                  {canDelegate ? <AssignControl leadId={lead.id} current={null} /> : <p className="text-sm text-ink-500">En attente du choix du commercial.</p>}
                 </>
               )}
 
@@ -257,7 +305,12 @@ export default function LeadPage() {
                     <Button size="sm" variant={lead.stage === 'ASSIGNED' ? 'outline' : 'primary'} onClick={() => setModal('visit')}>
                       <CalendarCheck className="h-4 w-4" /> {lead.circuit === 'SALES_TEAM' ? 'Visite confirmée · transmettre' : 'Visite / visio confirmée'}
                     </Button>
-                    {access.salesManager && lead.circuit === 'SALES_TEAM' && <AssignControl leadId={lead.id} current={lead.salesAgentId} className="w-full" />}
+                    {canDelegate && (
+                      <div className="w-full border-t border-ink-900/8 pt-3">
+                        <p className="mb-2 text-xs font-semibold text-ink-500">{lead.circuit === 'SALES_TEAM' ? 'Confier à un autre commercial' : 'Besoin d’un travail commercial ? Confiez-le à un commercial'}</p>
+                        <AssignControl leadId={lead.id} current={lead.circuit === 'SALES_TEAM' ? lead.salesAgentId : null} />
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -323,9 +376,9 @@ export default function LeadPage() {
 
               {canWrite && !closed && (
                 <div className="flex flex-wrap gap-3 border-t border-ink-900/8 pt-3 text-sm">
-                  {lead.circuit && !lead.handedOverAt && !['QUOTE_SENT', 'CONFIRMED'].includes(lead.stage) && (
+                  {lead.circuit === 'SALES_TEAM' && !lead.handedOverAt && !['QUOTE_SENT', 'CONFIRMED'].includes(lead.stage) && (
                     <button type="button" className="inline-flex items-center gap-1.5 text-ink-600 hover:text-ink-900" onClick={() => setModal('circuit')}>
-                      <ArrowLeftRight className="h-4 w-4" /> {lead.circuit === 'SALES_TEAM' ? 'Renvoyer à l’Office Manager' : 'Confier à la Sales Team'}
+                      <ArrowLeftRight className="h-4 w-4" /> Renvoyer à l’Office Manager
                     </button>
                   )}
                   <button type="button" className="inline-flex items-center gap-1.5 text-ink-600 hover:text-brand-orange" onClick={() => setModal('lose')}>
@@ -367,7 +420,7 @@ export default function LeadPage() {
                 <GitBranch className="h-4 w-4 text-ink-500" /> Circuit et intervenants
               </h2>
               <dl className="space-y-2.5 text-sm">
-                <Row label="Circuit">{lead.circuit ? CIRCUIT[lead.circuit].label : 'À aiguiller'}</Row>
+                <Row label="Suivi">{lead.circuit ? CIRCUIT[lead.circuit].label : 'Sans intervenant'}</Row>
                 <Row label="Pipeline">{lead.pipeline ? PIPELINE[lead.pipeline].label : '—'}</Row>
                 {lead.salesAgent && (
                   <Row label={lead.handedOverAt ? 'Commercial (closer)' : 'Commercial'}>
@@ -390,7 +443,7 @@ export default function LeadPage() {
                   <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-ink-500">Passerelles</h3>
                   {lead.circuitChanges.map((c) => (
                     <p key={c.id} className="text-xs text-ink-600">
-                      {dateFr(c.createdAt)} · {c.fromCircuit ? CIRCUIT[c.fromCircuit].short : 'non aiguillé'} → {CIRCUIT[c.toCircuit].short} par {staffName(c.author)} : {c.reason}
+                      {dateFr(c.createdAt)} · {c.fromCircuit ? CIRCUIT[c.fromCircuit].short : 'sans intervenant'} → {CIRCUIT[c.toCircuit].short} par {staffName(c.author)} : {c.reason}
                     </p>
                   ))}
                 </div>

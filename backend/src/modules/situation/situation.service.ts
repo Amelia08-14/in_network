@@ -27,13 +27,15 @@ const escapeHtml = (value: string) =>
  * bouge plus depuis le processus v1.3 (c'est le lead et son devis qui avancent).
  * Un devis en brouillon ne se montre pas : la demande est « en cours de chiffrage ».
  */
-export type RequestProgress = 'PRICING' | 'QUOTE_SENT' | 'QUOTE_ACCEPTED' | 'DONE' | 'CLOSED';
+export type RequestProgress = 'PRICING' | 'IN_REVIEW' | 'QUOTE_SENT' | 'QUOTE_ACCEPTED' | 'DONE' | 'CLOSED';
 export function requestProgress(request: { status: string; lead: { stage: string; quotes: { status: string }[] } | null }): RequestProgress {
   if (request.status === 'CANCELLED' || request.lead?.stage === 'LOST') return 'CLOSED';
   if (request.status === 'DONE' || request.lead?.stage === 'PAID') return 'DONE';
   const quotes = request.lead?.quotes ?? [];
   if (quotes.some((q) => q.status === 'ACCEPTED')) return 'QUOTE_ACCEPTED';
   if (quotes.some((q) => q.status === 'SENT')) return 'QUOTE_SENT';
+  // Devis prêt, en attente de la validation interne (remise, prix ajusté).
+  if (quotes.some((q) => q.status === 'PENDING_APPROVAL')) return 'IN_REVIEW';
   return 'PRICING';
 }
 

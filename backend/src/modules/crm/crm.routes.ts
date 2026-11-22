@@ -213,6 +213,8 @@ quotesRouter.post(
   validate({ body: s.quoteCreateSchema }),
   asyncHandler(async (req, res) => ok(res, await quotes.createQuote(req.body, req.user!.id, requireScope(req)), 201)),
 );
+// File « À valider » du compte : demandes à valider, et les siennes en attente.
+quotesRouter.get('/approvals', asyncHandler(async (req, res) => ok(res, await quotes.listApprovals(requireScope(req)))));
 // La validation d'une demande de devis revient à un responsable qui ne suit
 // pas forcément le lead : contrôle de portée en lecture, droits vérifiés par le service.
 quotesRouter.post('/:id/approve', asyncHandler(async (req, res) => ok(res, await quotes.approveQuote(param(req, 'id'), req.user!.id, requireScope(req)))));

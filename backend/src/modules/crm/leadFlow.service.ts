@@ -2,9 +2,9 @@ import type { AppointmentType, LeadCircuit, LeadPriority, LeadStage, Prisma } fr
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../utils/apiResponse';
 import { getSettings } from '../settings/settings.service';
-import { APPOINTMENT_LABEL, PRIORITY_LABEL, assertCrmStaff, logActivity } from './leads.service';
+import { APPOINTMENT_LABEL, PRIORITY_LABEL, assertCrmStaff, logActivity, pickOfficeManager } from './leads.service';
 import { assertCanManage, assertLeadAccess, type StaffScope } from './scope';
-import { STAFF_SELECT, listStaffByRole, listStaffWith, notifyUsers, staffName } from './staff';
+import { STAFF_SELECT, listStaffWith, notifyUsers, staffName } from './staff';
 import { CIRCUIT_LABEL, PRE_VISIT_STAGES, isOpen, stageLabel } from './workflow';
 
 // Parcours d'un lead, phases 1 et 2 du processus commercial v1.3 :
@@ -28,14 +28,13 @@ function assertOpen(lead: { stage: LeadStage }) {
   if (!isOpen(lead.stage)) throw ApiError.conflict('Ce lead est clos.');
 }
 
-/** Office Manager qui reçoit un dossier : celui choisi, sinon le seul compte actif de ce rôle. */
+/** Office Manager qui reçoit un dossier : celle choisie, l'actrice si c'est elle, sinon la moins chargée. */
 async function resolveOfficeManager(chosenId: string | null | undefined, actorId: string, actorIsOm: boolean) {
   if (chosenId) return (await assertCrmStaff(chosenId, ['OFFICE_MANAGER', 'ADMIN', 'SUPER_ADMIN'])).id;
   if (actorIsOm) return actorId;
-  const oms = await listStaffByRole('OFFICE_MANAGER');
-  if (oms.length === 1) return oms[0].id;
-  if (oms.length === 0) throw ApiError.badRequest('Aucun compte Office Manager actif : créez-en un depuis « Utilisateurs système ».');
-  throw ApiError.badRequest('Choisissez l’Office Manager qui reçoit ce dossier.');
+  const omId = await pickOfficeManager();
+  if (!omId) throw ApiError.badRequest('Aucun compte Office Manager actif : créez-en un depuis « Utilisateurs système ».');
+  return omId;
 }
 
 async function notifySalesManagers(lead: { id: string; reference: string; title: string }, type: string, title: string, detail?: string) {
@@ -54,7 +53,7 @@ export async function dispatchLead(id: string, input: { circuit: LeadCircuit; as
   assertCanManage(scope);
   const lead = await loadLead(id);
   assertOpen(lead);
-  if (lead.circuit) throw ApiError.conflict('Ce lead est déjà aiguillé : pour changer de circuit, passez par la passerelle.');
+  if (lead.circuit) throw ApiError.conflict('Ce lead a déjà un intervenant.');
   const now = new Date();
 
   if (input.circuit === 'OFFICE_MANAGER') {
@@ -64,7 +63,7 @@ export async function dispatchLead(id: string, input: { circuit: LeadCircuit; as
       data: { circuit: 'OFFICE_MANAGER', dispatchedAt: now, assignedToId: omId, assignedAt: now, stage: 'ASSIGNED' },
       include: { assignedTo: { select: STAFF_SELECT } },
     });
-    await logActivity(id, { content: `Aiguillé en circuit 2 : pris en charge par ${staffName(updated.assignedTo!)}.`, authorId: actorId });
+    await logActivity(id, { content: `Pris en charge par l’Office Manager : ${staffName(updated.assignedTo!)}.`, authorId: actorId });
     if (omId !== actorId) await notifyUsers([omId], 'lead_assigned', 'Lead à prendre en charge', `${lead.reference} — ${lead.title}`, leadUrl(id));
     return updated;
   }
@@ -73,36 +72,49 @@ export async function dispatchLead(id: string, input: { circuit: LeadCircuit; as
   const canAttribute = !scope || scope.salesManager || scope.direction;
   if (input.assignedToId && canAttribute) {
     await prisma.lead.update({ where: { id }, data: { circuit: 'SALES_TEAM', dispatchedAt: now } });
-    await logActivity(id, { content: 'Aiguillé en circuit 1 (Sales Team).', authorId: actorId });
+    await logActivity(id, { content: 'Confié à l’équipe commerciale.', authorId: actorId });
     return assignLead(id, input.assignedToId, actorId, scope);
   }
   const updated = await prisma.lead.update({ where: { id }, data: { circuit: 'SALES_TEAM', dispatchedAt: now } });
-  await logActivity(id, { content: 'Aiguillé en circuit 1 (Sales Team) : à attribuer par le responsable commercial.', authorId: actorId });
+  await logActivity(id, { content: 'Confié à l’équipe commerciale : commercial à désigner.', authorId: actorId });
   await notifySalesManagers(lead, 'lead_to_assign', 'Lead à attribuer');
   return updated;
 }
 
-/** Attribution (ou réattribution) d'un lead du circuit 1 à un commercial, avant la transmission. */
-export async function assignLead(id: string, agentId: string | null, actorId: string, scope?: StaffScope) {
-  if (scope && !scope.salesManager && !scope.direction) {
-    throw ApiError.forbidden('L’attribution des leads de la Sales Team revient au responsable commercial.');
+/**
+ * Confier un lead à un commercial (ou le réattribuer), avant la visite. Depuis
+ * les retours du 22/11/2026, l'Office Manager reçoit tous les prospects et les
+ * confie elle-même à un commercial quand un travail commercial est nécessaire ;
+ * le responsable commercial et la Direction le peuvent aussi.
+ */
+export async function assignLead(id: string, agentId: string | null, actorId: string, scope?: StaffScope): Promise<unknown> {
+  if (scope && !scope.salesManager && !scope.direction && !scope.officeManager) {
+    throw ApiError.forbidden('Seuls l’Office Manager, le responsable commercial et la Direction confient un lead à un commercial.');
   }
-  const lead = await loadLead(id);
+  let lead = await loadLead(id);
   assertOpen(lead);
-  if (lead.circuit !== 'SALES_TEAM') throw ApiError.conflict('Seul un lead du circuit 1 s’attribue à un commercial.');
-  if (lead.handedOverAt) throw ApiError.conflict('Ce dossier a déjà été transmis à l’Office Manager.');
+  if (lead.handedOverAt) throw ApiError.conflict('Ce dossier a déjà été transmis à l’Office Manager après la visite.');
+  if (lead.circuit !== 'SALES_TEAM') {
+    if (!agentId) return lead;
+    if (['VISIT_CONFIRMED', 'QUOTE_SENT', 'CONFIRMED'].includes(lead.stage)) {
+      throw ApiError.conflict('La visite est déjà confirmée ou un devis est en cours : le dossier reste chez l’Office Manager.');
+    }
+    // Lead de l'Office Manager (ou sans intervenant) confié à un commercial.
+    await assertCrmStaff(agentId, ['SALES_AGENT', 'SALES_MANAGER']);
+    await prisma.$transaction([
+      prisma.lead.update({ where: { id }, data: { circuit: 'SALES_TEAM', dispatchedAt: lead.dispatchedAt ?? new Date(), salesAgentId: null, followUpCount: 0, followUpReturnedAt: null } }),
+      prisma.leadCircuitChange.create({ data: { leadId: id, fromCircuit: lead.circuit, toCircuit: 'SALES_TEAM', reason: 'Confié à un commercial par l’Office Manager', authorId: actorId } }),
+    ]);
+    lead = await loadLead(id);
+  }
   if (agentId === lead.salesAgentId) return lead;
 
   if (agentId === null) {
+    // Retiré au commercial : le lead revient chez l'Office Manager.
     if (lead.stage !== 'ASSIGNED' && lead.stage !== 'REGISTERED') {
-      throw ApiError.conflict('Un lead en cours de traitement se réattribue à un autre commercial, il ne peut pas rester sans responsable.');
+      throw ApiError.conflict('Un lead en cours de traitement se confie à un autre commercial ou se renvoie à l’Office Manager.');
     }
-    const updated = await prisma.lead.update({ where: { id }, data: { salesAgentId: null, assignedToId: null, assignedAt: null, stage: 'REGISTERED' } });
-    await logActivity(id, { content: 'Lead retiré au commercial, à attribuer.', authorId: actorId });
-    if (lead.salesAgentId && lead.salesAgentId !== actorId) {
-      await notifyUsers([lead.salesAgentId], 'lead_unassigned', 'Lead retiré', `${lead.reference} — ${lead.title} ne vous est plus attribué.`, '/admin/crm/pipeline');
-    }
-    return updated;
+    return changeCircuit(id, { circuit: 'OFFICE_MANAGER', reason: 'Retiré au commercial' }, actorId, scope);
   }
 
   const target = await assertCrmStaff(agentId, ['SALES_AGENT', 'SALES_MANAGER']);
@@ -135,15 +147,22 @@ export async function assignLead(id: string, agentId: string | null, actorId: st
  * traité. Motif obligatoire, consigné sur la fiche : c'est ce qui fige le
  * circuit et évite les doubles commissions.
  */
-export async function changeCircuit(id: string, input: { circuit: LeadCircuit; reason: string; officeManagerId?: string | null }, actorId: string, scope?: StaffScope) {
+export async function changeCircuit(
+  id: string,
+  input: { circuit: LeadCircuit; reason?: string | null; officeManagerId?: string | null; salesAgentId?: string | null },
+  actorId: string,
+  scope?: StaffScope,
+): Promise<unknown> {
   await assertLeadAccess(scope, id);
+  // Confier à un commercial précis : c'est une attribution directe.
+  if (input.circuit === 'SALES_TEAM' && input.salesAgentId) return assignLead(id, input.salesAgentId, actorId, scope);
   const lead = await loadLead(id);
   assertOpen(lead);
-  if (!lead.circuit) throw ApiError.conflict('Ce lead n’est pas encore aiguillé : choisissez directement son circuit.');
-  if (lead.circuit === input.circuit) throw ApiError.conflict(`Ce lead est déjà en ${CIRCUIT_LABEL[input.circuit].toLowerCase()}.`);
+  if (!lead.circuit) throw ApiError.conflict('Ce lead n’a pas encore d’intervenant.');
+  if (lead.circuit === input.circuit) throw ApiError.conflict(`Ce lead est déjà ${CIRCUIT_LABEL[input.circuit].toLowerCase()}.`);
   if (lead.handedOverAt) throw ApiError.conflict('Ce dossier a déjà été transmis après la visite : son circuit est figé.');
   if (['QUOTE_SENT', 'CONFIRMED'].includes(lead.stage)) throw ApiError.conflict('Un devis est en cours : le circuit ne change plus.');
-  const reason = input.reason.trim();
+  const reason = input.reason?.trim() || (input.circuit === 'OFFICE_MANAGER' ? 'Renvoyé à l’Office Manager' : 'Commercial à désigner');
   const now = new Date();
 
   let data: Prisma.LeadUpdateInput;
@@ -151,9 +170,9 @@ export async function changeCircuit(id: string, input: { circuit: LeadCircuit; r
   let notify: { ids: string[]; title: string } | null = null;
   if (input.circuit === 'SALES_TEAM') {
     data = { circuit: 'SALES_TEAM', assignedTo: { disconnect: true }, salesAgent: { disconnect: true }, assignedAt: null, stage: 'REGISTERED', followUpCount: 0, followUpReturnedAt: null };
-    summary = 'confié à la Sales Team, à attribuer par le responsable commercial';
+    summary = 'confié à l’équipe commerciale, commercial à désigner';
     const managers = (await listStaffWith('crm_manage')).filter((u) => u.role !== 'OFFICE_MANAGER');
-    notify = { ids: managers.map((u) => u.id), title: 'Lead confié à la Sales Team' };
+    notify = { ids: managers.map((u) => u.id), title: 'Lead à confier à un commercial' };
   } else {
     const omId = await resolveOfficeManager(input.officeManagerId, actorId, Boolean(scope?.officeManager));
     data = {
@@ -166,14 +185,14 @@ export async function changeCircuit(id: string, input: { circuit: LeadCircuit; r
       followUpReturnedAt: null,
     };
     summary = 'renvoyé à l’Office Manager, prêt à être traité';
-    notify = { ids: [omId], title: 'Lead renvoyé par la Sales Team' };
+    notify = { ids: [omId], title: 'Lead renvoyé à l’Office Manager' };
   }
 
   await prisma.$transaction([
     prisma.lead.update({ where: { id }, data }),
     prisma.leadCircuitChange.create({ data: { leadId: id, fromCircuit: lead.circuit, toCircuit: input.circuit, reason, authorId: actorId } }),
   ]);
-  await logActivity(id, { content: `Passerelle : lead ${summary}. Motif : ${reason}`, authorId: actorId });
+  await logActivity(id, { content: `Lead ${summary}. Motif : ${reason}`, authorId: actorId });
   if (notify) await notifyUsers(notify.ids.filter((u) => u !== actorId), 'lead_circuit', notify.title, `${lead.reference} — ${lead.title} (${reason})`, leadUrl(id));
   return loadLead(id);
 }
@@ -313,7 +332,7 @@ export async function confirmVisit(
     await notifyUsers(
       [omId],
       'lead_handover',
-      'Dossier transmis par la Sales Team',
+      'Dossier transmis par le commercial',
       `${lead.reference} — ${lead.title} : ${APPOINTMENT_LABEL[input.type].toLowerCase()} le ${input.startAt.toLocaleDateString('fr-FR')}${lead.offerInterest ? `, offre pressentie ${lead.offerInterest}` : ''}.`,
       leadUrl(id),
     );

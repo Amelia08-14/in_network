@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, CalendarClock, CheckCircle2, Coins, Inbox, PackageCheck, Receipt, Target } from 'lucide-react';
+import { ArrowRight, CalendarClock, CheckCircle2, Coins, Inbox, PackageCheck, Receipt, ShieldCheck, Target } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageTitle, Pill } from '@/components/admin/crm-ui';
@@ -66,6 +66,27 @@ export default function MyDayPage() {
       {data && (
         <div className="grid items-start gap-6 xl:grid-cols-[1fr_360px]">
           <div className="space-y-6">
+            {/* Demandes de validation : en bandeau, impossible à manquer (22/11/2026). */}
+            {(() => {
+              const approvals = queues.find((q) => q.key === 'approvals');
+              if (!approvals?.count) return null;
+              return (
+                <Link href={approvals.href} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-brand-orange px-5 py-4 text-white shadow-soft transition-opacity hover:opacity-95">
+                  <span className="flex items-center gap-3">
+                    <ShieldCheck className="h-5 w-5 shrink-0" />
+                    <span>
+                      <strong className="block font-heading text-base">
+                        {approvals.count} demande{approvals.count > 1 ? 's' : ''} de validation vous attend{approvals.count > 1 ? 'ent' : ''}
+                      </strong>
+                      <span className="text-sm text-white/85">Remises ou prix ajustés : le devis part au client dès votre validation.</span>
+                    </span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-white px-4 py-1.5 text-sm font-semibold text-brand-orange">
+                    Traiter <ArrowRight className="h-4 w-4" />
+                  </span>
+                </Link>
+              );
+            })()}
             {pending.length === 0 && (
               <Card>
                 <CardContent className="flex items-center gap-3 py-8 text-sm text-ink-600">

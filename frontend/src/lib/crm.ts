@@ -40,35 +40,37 @@ export const TONE_CLASS: Record<Tone, string> = {
 
 // Un seul parcours, du premier contact au paiement. Après le paiement, la suite
 // (activation, livraison, échéance) vit sur les services du membre.
+// Libellés simplifiés (retours IN NETWORK du 22/11/2026) : des mots du
+// quotidien, plus de « circuit 1 / 2 ». Miroir de backend crm/workflow.ts.
 export const STAGES: { value: LeadStage; label: string; tone: Tone }[] = [
-  { value: 'REGISTERED', label: 'Lead enregistré', tone: 'blue' },
-  { value: 'ASSIGNED', label: 'Attribué', tone: 'violet' },
-  { value: 'QUALIFIED', label: 'Qualifié', tone: 'ink' },
-  { value: 'FOLLOW_UP', label: 'Relance en cours', tone: 'amber' },
-  { value: 'VISIT_CONFIRMED', label: 'Visite / visio confirmée', tone: 'blue' },
+  { value: 'REGISTERED', label: 'Nouveau', tone: 'blue' },
+  { value: 'ASSIGNED', label: 'Pris en charge', tone: 'violet' },
+  { value: 'QUALIFIED', label: 'Besoin identifié', tone: 'ink' },
+  { value: 'FOLLOW_UP', label: 'Relance', tone: 'amber' },
+  { value: 'VISIT_CONFIRMED', label: 'Visite prévue', tone: 'blue' },
   { value: 'QUOTE_SENT', label: 'Devis envoyé', tone: 'orange' },
-  { value: 'CONFIRMED', label: 'Confirmé', tone: 'violet' },
-  { value: 'PAID', label: 'Paiement confirmé', tone: 'green' },
+  { value: 'CONFIRMED', label: 'Devis accepté', tone: 'violet' },
+  { value: 'PAID', label: 'Payé', tone: 'green' },
   { value: 'LOST', label: 'Perdu', tone: 'gray' },
 ];
 export const STAGE_BY_VALUE = Object.fromEntries(STAGES.map((s) => [s.value, s])) as Record<LeadStage, (typeof STAGES)[number]>;
 export const OPEN_STAGES: LeadStage[] = ['REGISTERED', 'ASSIGNED', 'QUALIFIED', 'FOLLOW_UP', 'VISIT_CONFIRMED', 'QUOTE_SENT', 'CONFIRMED'];
 /** Avant la visite : c'est là qu'on qualifie et qu'on relance. */
 export const PRE_VISIT_STAGES: LeadStage[] = ['ASSIGNED', 'QUALIFIED', 'FOLLOW_UP'];
-/** Colonnes du pipeline : le travail commercial, une fois le lead aiguillé et confié. */
+/** Colonnes du pipeline : le travail commercial, une fois le lead pris en charge. */
 export const PIPELINE_STAGES = STAGES.filter((s) => s.value !== 'REGISTERED');
 
-/** « Attribué (Sales Team) » en circuit 1, « Pris en charge (Office Manager) » en circuit 2. */
+/** « Pris en charge » chez l'Office Manager, « Confié à un commercial » sinon. */
 export function stageLabel(stage: LeadStage, circuit: LeadCircuit | null | undefined) {
-  if (stage === 'ASSIGNED') return circuit === 'OFFICE_MANAGER' ? 'Pris en charge (OM)' : 'Attribué (Sales)';
-  if (stage === 'REGISTERED' && !circuit) return 'À aiguiller';
-  if (stage === 'REGISTERED' && circuit === 'SALES_TEAM') return 'À attribuer';
+  if (stage === 'ASSIGNED') return circuit === 'SALES_TEAM' ? 'Confié à un commercial' : 'Pris en charge';
+  if (stage === 'REGISTERED' && !circuit) return 'Sans intervenant';
+  if (stage === 'REGISTERED' && circuit === 'SALES_TEAM') return 'Commercial à désigner';
   return STAGE_BY_VALUE[stage].label;
 }
 
 export const CIRCUIT: Record<LeadCircuit, { label: string; short: string; tone: Tone }> = {
-  SALES_TEAM: { label: 'Circuit 1 · Sales Team', short: 'Circuit 1', tone: 'blue' },
-  OFFICE_MANAGER: { label: 'Circuit 2 · Office Manager', short: 'Circuit 2', tone: 'violet' },
+  SALES_TEAM: { label: 'Suivi par un commercial', short: 'Commercial', tone: 'blue' },
+  OFFICE_MANAGER: { label: 'Suivi par l’Office Manager', short: 'Office Manager', tone: 'violet' },
 };
 
 export const KIND: Record<LeadKind, { label: string; tone: Tone }> = {
@@ -172,7 +174,7 @@ export const APPOINTMENT_LABEL: Record<AppointmentType, string> = {
 
 export const QUOTE_STATUS: Record<QuoteStatus, { label: string; tone: Tone }> = {
   DRAFT: { label: 'Brouillon', tone: 'gray' },
-  PENDING_APPROVAL: { label: 'À valider', tone: 'amber' },
+  PENDING_APPROVAL: { label: 'En attente de validation', tone: 'amber' },
   SENT: { label: 'Envoyé', tone: 'blue' },
   ACCEPTED: { label: 'Confirmé', tone: 'green' },
   REJECTED: { label: 'Refusé', tone: 'red' },

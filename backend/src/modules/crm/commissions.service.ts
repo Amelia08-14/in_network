@@ -210,7 +210,7 @@ export async function checkCommissions(ids: string[], actorId: string, scope?: S
   if (scope && !scope.salesManager && !scope.direction) throw ApiError.forbidden('Le contrôle revient au responsable commercial.');
   const rows = await prisma.commission.findMany({ where: { id: { in: ids } }, include: { lead: { select: { circuit: true } } } });
   const eligible = rows.filter((c) => c.status === 'ELIGIBLE' && c.lead?.circuit === 'SALES_TEAM');
-  if (eligible.length === 0) throw ApiError.conflict('Aucune commission éligible du circuit 1 dans cette sélection.');
+  if (eligible.length === 0) throw ApiError.conflict('Aucune commission éligible (lead suivi par un commercial) dans cette sélection.');
   await prisma.commission.updateMany({ where: { id: { in: eligible.map((c) => c.id) } }, data: { status: 'CHECKED', checkedAt: new Date(), checkedById: actorId } });
   return eligible.length;
 }
@@ -220,7 +220,7 @@ export async function validateCommissions(ids: string[], actorId: string, scope?
   if (scope && !scope.direction) throw ApiError.forbidden('La validation des commissions revient à la Direction.');
   const rows = await prisma.commission.findMany({ where: { id: { in: ids } }, include: { lead: { select: { circuit: true } } } });
   const ready = rows.filter((c) => c.status === 'CHECKED' || (c.status === 'ELIGIBLE' && c.lead?.circuit !== 'SALES_TEAM'));
-  if (ready.length === 0) throw ApiError.conflict('Aucune commission prête à valider dans cette sélection (le circuit 1 passe d’abord par le contrôle du responsable commercial).');
+  if (ready.length === 0) throw ApiError.conflict('Aucune commission prête à valider dans cette sélection (les leads des commerciaux passent d’abord par le contrôle du responsable commercial).');
   await prisma.commission.updateMany({ where: { id: { in: ready.map((c) => c.id) } }, data: { status: 'VALIDATED', validatedAt: new Date(), validatedById: actorId } });
   return ready.length;
 }

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { errorMessage, Field, OfficeManagerOptions, SalesAgentOptions, useCrmAccess, useStaff } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
 import { usePlatformOptions } from '@/lib/options';
-import { APPOINTMENT_LABEL, CIRCUIT, suggestCircuit, toInputDateTime } from '@/lib/crm';
+import { APPOINTMENT_LABEL, toInputDateTime } from '@/lib/crm';
 import { cn } from '@/lib/utils';
 import type { LeadChannel, LeadCircuit, LeadPipeline, StaffUser } from '@/types/crm';
 
@@ -33,26 +33,23 @@ function useLeadRefresh(leadId: string) {
 const omCount = (staff: StaffUser[] | undefined) => (staff ?? []).filter((u) => u.role === 'OFFICE_MANAGER').length;
 
 /**
- * Question d'aiguillage : « le prospect nécessite-t-il un travail de
- * qualification et de traitement commercial ? » Oui : circuit 1 (Sales Team).
- * Non : circuit 2 (Office Manager). Le circuit suggéré dépend du canal.
+ * Lead encore sans intervenant (arrivé quand aucun Office Manager n'était
+ * actif) : l'Office Manager le prend, ou le confie directement à un commercial.
+ * Retours IN NETWORK du 22/11/2026 : plus de « circuit 1 / 2 » à choisir.
  */
 export function DispatchControl({ lead, compact = false, onDone }: { lead: { id: string; channel: LeadChannel | null; pipeline: LeadPipeline | null }; compact?: boolean; onDone?: () => void }) {
   const access = useCrmAccess();
   const { data: staff } = useStaff();
   const refresh = useLeadRefresh(lead.id);
-  const suggested = suggestCircuit(lead);
   const [agent, setAgent] = useState('');
   const [om, setOm] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const canAttribute = access.salesManager || access.direction;
 
   const dispatch = useMutation({
     mutationFn: (circuit: LeadCircuit) =>
-      api.post(`/api/admin/crm/leads/${lead.id}/dispatch`, {
-        circuit,
-        assignedToId: circuit === 'SALES_TEAM' ? agent || null : om || null,
-      }),
+      circuit === 'SALES_TEAM'
+        ? api.post(`/api/admin/crm/leads/${lead.id}/assign`, { assignedToId: agent })
+        : api.post(`/api/admin/crm/leads/${lead.id}/dispatch`, { circuit, assignedToId: om || null }),
     onSuccess: () => {
       setError(null);
       refresh();
@@ -62,36 +59,26 @@ export function DispatchControl({ lead, compact = false, onDone }: { lead: { id:
   });
 
   const needsOmChoice = !access.officeManager && omCount(staff) > 1;
-  const button = (circuit: LeadCircuit) => (
-    <Button
-      size="sm"
-      variant={suggested === circuit ? 'primary' : 'outline'}
-      disabled={dispatch.isPending || (circuit === 'OFFICE_MANAGER' && needsOmChoice && !om)}
-      onClick={() => dispatch.mutate(circuit)}
-      title={suggested === circuit ? 'Circuit suggéré d’après le canal' : undefined}
-    >
-      {circuit === 'SALES_TEAM' ? <Users className="h-4 w-4" /> : <Building2 className="h-4 w-4" />}
-      {circuit === 'SALES_TEAM' ? (agent ? 'Circuit 1 et attribuer' : 'Circuit 1 · Sales Team') : access.officeManager && !om ? 'Circuit 2 · je le prends' : 'Circuit 2 · Office Manager'}
-    </Button>
-  );
-
   return (
     <div className={cn('space-y-2', compact && 'space-y-1.5')}>
       <div className="flex flex-wrap items-center gap-2">
-        {canAttribute && (
-          <Select aria-label="Commercial à qui l’attribuer" className="h-9 w-auto min-w-44" value={agent} onChange={(e) => setAgent(e.target.value)}>
-            <option value="">Sans attribuer</option>
-            <SalesAgentOptions staff={staff} />
-          </Select>
-        )}
-        {button('SALES_TEAM')}
         {needsOmChoice && (
           <Select aria-label="Office Manager" className="h-9 w-auto min-w-40" value={om} onChange={(e) => setOm(e.target.value)}>
-            <option value="">Choisir l’Office Manager</option>
+            <option value="">Office Manager la moins chargée</option>
             <OfficeManagerOptions staff={staff} />
           </Select>
         )}
-        {button('OFFICE_MANAGER')}
+        <Button size="sm" disabled={dispatch.isPending} onClick={() => dispatch.mutate('OFFICE_MANAGER')}>
+          <Building2 className="h-4 w-4" /> {access.officeManager ? 'Je le prends en charge' : 'Remettre à l’Office Manager'}
+        </Button>
+        <span className="text-xs text-ink-400">ou</span>
+        <Select aria-label="Commercial à qui le confier" className="h-9 w-auto min-w-44" value={agent} onChange={(e) => setAgent(e.target.value)}>
+          <option value="">Choisir un commercial…</option>
+          <SalesAgentOptions staff={staff} />
+        </Select>
+        <Button size="sm" variant="outline" disabled={dispatch.isPending || !agent} onClick={() => dispatch.mutate('SALES_TEAM')}>
+          <Users className="h-4 w-4" /> Confier
+        </Button>
       </div>
       {error && (
         <p className="text-xs text-brand-orange" role="alert">
@@ -174,7 +161,7 @@ export function FollowUpModal({ leadId, open, onClose }: { leadId: string; open:
   );
 }
 
-/** Visite, visio ou journée d'essai acceptée par le client. En circuit 1, le dossier passe à l'Office Manager. */
+/** Visite, visio ou journée d'essai acceptée par le client. Suivi par un commercial, le dossier repasse à l'Office Manager. */
 export function VisitModal({ leadId, circuit, open, onClose }: { leadId: string; circuit: LeadCircuit | null; open: boolean; onClose: () => void }) {
   const refresh = useLeadRefresh(leadId);
   const access = useCrmAccess();
@@ -262,7 +249,7 @@ export function VisitModal({ leadId, circuit, open, onClose }: { leadId: string;
   );
 }
 
-/** Passerelle : changer de circuit, avec un motif consigné sur la fiche. */
+/** Renvoyer un lead à l'Office Manager (ou à l'équipe commerciale), avec un mot facultatif sur la fiche. */
 export function CircuitModal({ leadId, circuit, open, onClose }: { leadId: string; circuit: LeadCircuit; open: boolean; onClose: () => void }) {
   const refresh = useLeadRefresh(leadId);
   const { data: staff } = useStaff();
@@ -286,15 +273,15 @@ export function CircuitModal({ leadId, circuit, open, onClose }: { leadId: strin
     <Modal
       open={open}
       onClose={onClose}
-      title={target === 'SALES_TEAM' ? 'Confier à la Sales Team' : 'Renvoyer à l’Office Manager'}
+      title={target === 'SALES_TEAM' ? 'Confier à l’équipe commerciale' : 'Renvoyer à l’Office Manager'}
       size="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
             Annuler
           </Button>
-          <Button disabled={save.isPending || reason.trim().length < 5 || (chooseOm && !om)} onClick={() => save.mutate()}>
-            Passer en {CIRCUIT[target].short.toLowerCase()}
+          <Button disabled={save.isPending || (chooseOm && !om)} onClick={() => save.mutate()}>
+            {target === 'SALES_TEAM' ? 'Confier' : 'Renvoyer'}
           </Button>
         </>
       }
@@ -302,8 +289,8 @@ export function CircuitModal({ leadId, circuit, open, onClose }: { leadId: strin
       <div className="space-y-4">
         <p className="text-sm text-ink-600">
           {target === 'SALES_TEAM'
-            ? 'Le lead demande un travail de qualification : il part chez le responsable commercial, qui l’attribuera.'
-            : 'Le lead est prêt à être traité : il passe en circuit 2. Le commercial n’en sera plus le closer.'}
+            ? 'Le lead part chez le responsable commercial, qui choisira le commercial.'
+            : 'Le lead revient chez l’Office Manager, qui le traite. Le commercial n’en sera plus le closer.'}
         </p>
         {chooseOm && (
           <Field label="Office Manager" htmlFor="c-om">
@@ -313,8 +300,8 @@ export function CircuitModal({ leadId, circuit, open, onClose }: { leadId: strin
             </Select>
           </Field>
         )}
-        <Field label="Motif (consigné sur la fiche)" htmlFor="c-reason">
-          <Textarea id="c-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
+        <Field label="Un mot pour expliquer (facultatif, noté sur la fiche)" htmlFor="c-reason">
+          <Textarea id="c-reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
         </Field>
         {error && (
           <p className="text-sm text-brand-orange" role="alert">

@@ -69,8 +69,9 @@ export const dispatchBodySchema = z.object({
 export const assignBodySchema = z.object({ assignedToId: z.string().min(1).nullable() });
 export const circuitBodySchema = z.object({
   circuit: z.nativeEnum(LeadCircuit),
-  reason: z.string().trim().min(5, 'Indiquez le motif de la passerelle').max(1000),
+  reason: z.string().trim().max(1000).nullable().optional(),
   officeManagerId: z.string().min(1).nullable().optional(),
+  salesAgentId: z.string().min(1).nullable().optional(),
 });
 
 export const qualifyBodySchema = z.object({

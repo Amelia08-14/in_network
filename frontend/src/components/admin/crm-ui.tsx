@@ -52,7 +52,7 @@ export const StageBadge = ({ stage, circuit }: { stage: LeadStage; circuit?: Lea
   <Pill tone={stage === 'REGISTERED' && !circuit ? 'orange' : STAGE_BY_VALUE[stage].tone}>{stageLabel(stage, circuit)}</Pill>
 );
 export const CircuitBadge = ({ circuit }: { circuit: LeadCircuit | null | undefined }) =>
-  circuit ? <Pill tone={CIRCUIT[circuit].tone}>{CIRCUIT[circuit].short}</Pill> : <Pill tone="orange">À aiguiller</Pill>;
+  circuit ? <Pill tone={CIRCUIT[circuit].tone}>{CIRCUIT[circuit].short}</Pill> : <Pill tone="orange">Sans intervenant</Pill>;
 export const KindBadge = ({ kind }: { kind: LeadKind }) => (kind === 'NEW_BUSINESS' ? null : <Pill tone={KIND[kind].tone}>{KIND[kind].label}</Pill>);
 export const PoleBadge = ({ pole }: { pole: DeliveryPole }) => <Pill tone={POLE[pole].tone}>{POLE[pole].label}</Pill>;
 export const MemberServiceBadge = ({ status }: { status: MemberServiceStatus }) => <Pill tone={MEMBER_SERVICE_STATUS[status].tone}>{MEMBER_SERVICE_STATUS[status].label}</Pill>;

@@ -94,11 +94,11 @@ function IncomingLeads() {
   if (!access.manageLeads) {
     return (
       <div className="space-y-6">
-        <PageTitle hue="blue" title="À aiguiller" />
+        <PageTitle hue="blue" title="Prospects à répartir" />
         <EmptyState
           icon={Lock}
           title="Réservé au responsable commercial et à l’Office Manager"
-          description="L’aiguillage et l’attribution des leads leur reviennent. Vos leads sont dans le pipeline."
+          description="La répartition des leads leur revient. Vos leads sont dans le pipeline."
           action={
             <Link href="/admin/crm/pipeline?assignee=me" className="text-sm font-semibold text-brand-blue hover:underline">
               Ouvrir mon pipeline
@@ -110,8 +110,8 @@ function IncomingLeads() {
   }
 
   const tabs: { key: Tab; label: string; count: number; icon: typeof Inbox; show: boolean }[] = [
-    { key: 'aiguiller', label: 'À aiguiller', count: toDispatch.length, icon: Inbox, show: true },
-    { key: 'attribuer', label: 'À attribuer (circuit 1)', count: toAssign.length, icon: UserCheck, show: canAttribute },
+    { key: 'aiguiller', label: 'Sans intervenant', count: toDispatch.length, icon: Inbox, show: true },
+    { key: 'attribuer', label: 'Commercial à désigner', count: toAssign.length, icon: UserCheck, show: canAttribute },
     { key: 'relances', label: 'Revenus sans réponse', count: returned.length, icon: RotateCcw, show: true },
   ];
   const go = (key: Tab) => router.replace(`${pathname}?tab=${key}`);
@@ -120,8 +120,8 @@ function IncomingLeads() {
     <div className="space-y-6">
       <PageTitle
         hue="blue"
-        title="À aiguiller"
-        description="Le prospect a-t-il besoin d’un travail de qualification et de traitement commercial ? Oui : circuit 1, la Sales Team. Non (événement, recommandation, prospect déjà prêt) : circuit 2, l’Office Manager."
+        title="Prospects à répartir"
+        description="Les nouveaux prospects arrivent directement chez l’Office Manager. Ici ne restent que ceux sans intervenant (aucune Office Manager active à leur arrivée), ceux qui attendent un commercial et ceux revenus sans réponse."
         actions={
           <>
             <Link href="/admin/services-demandes" className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900">
@@ -159,7 +159,7 @@ function IncomingLeads() {
         <p className="text-sm text-ink-500">Chargement…</p>
       ) : tab === 'aiguiller' ? (
         toDispatch.length === 0 ? (
-          <EmptyState icon={Inbox} title="Rien à aiguiller" description="Les inscriptions, demandes de devis, messages et recommandations arrivent ici." className="py-12" />
+          <EmptyState icon={Inbox} title="Aucun prospect sans intervenant" description="Les inscriptions, demandes de devis, messages et recommandations vont directement chez l’Office Manager." className="py-12" />
         ) : (
           <ul className="grid gap-4 xl:grid-cols-2">
             {toDispatch.map((lead) => (
@@ -176,7 +176,7 @@ function IncomingLeads() {
         )
       ) : tab === 'attribuer' ? (
         toAssign.length === 0 ? (
-          <EmptyState icon={UserCheck} title="Rien à attribuer" description="Les leads aiguillés vers la Sales Team attendent ici un commercial." className="py-12" />
+          <EmptyState icon={UserCheck} title="Aucun lead en attente d’un commercial" description="Les leads confiés à l’équipe commerciale sans commercial désigné attendent ici." className="py-12" />
         ) : (
           <ul className="grid gap-4 xl:grid-cols-2">
             {toAssign.map((lead) => (

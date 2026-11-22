@@ -17,21 +17,23 @@ export const STAGE_ORDER: LeadStage[] = [
   'LOST',
 ];
 
+// Libellés simplifiés (retours IN NETWORK du 22/11/2026 : « trop compliqué,
+// sans signalétique ») : des mots du quotidien, plus de « circuit 1 / 2 ».
 export const STAGE_LABEL: Record<LeadStage, string> = {
-  REGISTERED: 'Lead enregistré',
-  ASSIGNED: 'Attribué',
-  QUALIFIED: 'Qualifié',
-  FOLLOW_UP: 'Relance en cours',
-  VISIT_CONFIRMED: 'Visite / visio confirmée',
+  REGISTERED: 'Nouveau',
+  ASSIGNED: 'Pris en charge',
+  QUALIFIED: 'Besoin identifié',
+  FOLLOW_UP: 'Relance',
+  VISIT_CONFIRMED: 'Visite prévue',
   QUOTE_SENT: 'Devis envoyé',
-  CONFIRMED: 'Confirmé',
-  PAID: 'Paiement confirmé',
+  CONFIRMED: 'Devis accepté',
+  PAID: 'Payé',
   LOST: 'Perdu',
 };
 
-/** « Attribué (Sales) » en circuit 1, « Pris en charge (OM) » en circuit 2. */
+/** « Pris en charge » chez l'Office Manager, « Confié à un commercial » sinon. */
 export function stageLabel(stage: LeadStage, circuit: LeadCircuit | null | undefined): string {
-  if (stage === 'ASSIGNED') return circuit === 'OFFICE_MANAGER' ? 'Pris en charge (Office Manager)' : 'Attribué (Sales Team)';
+  if (stage === 'ASSIGNED') return circuit === 'SALES_TEAM' ? 'Confié à un commercial' : 'Pris en charge';
   return STAGE_LABEL[stage];
 }
 
@@ -44,8 +46,8 @@ export const isOpen = (stage: LeadStage) => OPEN_STAGES.includes(stage);
 export const stageIndex = (stage: LeadStage) => STAGE_ORDER.indexOf(stage);
 
 export const CIRCUIT_LABEL: Record<LeadCircuit, string> = {
-  SALES_TEAM: 'Circuit 1 · Sales Team',
-  OFFICE_MANAGER: 'Circuit 2 · Office Manager',
+  SALES_TEAM: 'Suivi par un commercial',
+  OFFICE_MANAGER: 'Suivi par l’Office Manager',
 };
 
 export const KIND_LABEL: Record<LeadKind, string> = {

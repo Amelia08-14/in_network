@@ -85,7 +85,7 @@ function AdminNavList({
             >
               <item.icon className={cn('h-4 w-4 shrink-0', !active && HUE[SECTION_HUE[item.section ?? ''] ?? 'gray'].text)} strokeWidth={2} /> {item.label}
               {item.badge ? (
-                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-orange px-1.5 text-[11px] font-bold text-white" aria-label={`${item.badge} non lu(s)`}>
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-orange px-1.5 text-[11px] font-bold text-white" aria-label={item.href === '/admin/validations' ? `${item.badge} à valider` : `${item.badge} non lu(s)`}>
                   {item.badge}
                 </span>
               ) : null}

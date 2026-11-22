@@ -240,7 +240,7 @@ async function assertNoDuplicate(contact: { email?: string | null; phone?: strin
     throw new ApiError(
       409,
       'DUPLICATE_LEAD',
-      `Ce contact est déjà suivi : ${duplicate.reference} — ${duplicate.title}${duplicate.assignedTo ? ` (${staffName(duplicate.assignedTo)})` : ' (à aiguiller)'}.`,
+      `Ce contact est déjà suivi : ${duplicate.reference} — ${duplicate.title}${duplicate.assignedTo ? ` (${staffName(duplicate.assignedTo)})` : ' (sans intervenant)'}.`,
       { leadId: duplicate.id },
     );
   }
@@ -256,23 +256,67 @@ export async function assertCrmStaff(userId: string, roles?: string[]) {
   return target;
 }
 
-/** Avertit les comptes qui aiguillent les leads entrants (responsable commercial, Office Manager…). */
+/**
+ * Office Manager qui reçoit un nouveau prospect : le seul compte de ce rôle,
+ * sinon celui qui a le moins de leads ouverts. null s'il n'y en a aucun.
+ */
+export async function pickOfficeManager(): Promise<string | null> {
+  const oms = await listStaffByRole('OFFICE_MANAGER');
+  if (oms.length <= 1) return oms[0]?.id ?? null;
+  const loads = await prisma.lead.groupBy({
+    by: ['assignedToId'],
+    where: { assignedToId: { in: oms.map((o) => o.id) }, stage: { in: OPEN_STAGES } },
+    _count: { _all: true },
+  });
+  const load = (id: string) => loads.find((row) => row.assignedToId === id)?._count._all ?? 0;
+  return [...oms].sort((a, b) => load(a.id) - load(b.id))[0].id;
+}
+
+/**
+ * Retours IN NETWORK du 22/11/2026 : plus d'aiguillage. Tout prospect qui
+ * arrive (site, inscription, contact, recommandation, réseaux, saisie) va
+ * directement chez l'Office Manager, qui le traite ou le confie à un
+ * commercial si nécessaire. Renvoie l'intervenant du lead (null : aucun Office
+ * Manager actif, le lead attend dans « Prospects à répartir »).
+ */
+export async function routeToOfficeManager(leadId: string): Promise<string | null> {
+  const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { circuit: true, assignedToId: true, stage: true } });
+  if (!lead) return null;
+  if (lead.assignedToId || lead.circuit || !OPEN_STAGES.includes(lead.stage)) return lead.assignedToId;
+  const omId = await pickOfficeManager();
+  if (!omId) return null;
+  const now = new Date();
+  const updated = await prisma.lead.update({
+    where: { id: leadId },
+    data: { circuit: 'OFFICE_MANAGER', dispatchedAt: now, assignedToId: omId, assignedAt: now, stage: lead.stage === 'REGISTERED' ? 'ASSIGNED' : lead.stage },
+    include: { assignedTo: { select: STAFF_SELECT } },
+  });
+  await logActivity(leadId, { content: `Prospect transmis automatiquement à l’Office Manager (${staffName(updated.assignedTo!)}).` });
+  return omId;
+}
+
+/**
+ * Nouveau prospect (ou nouvelle demande d'un prospect) : il est remis à
+ * l'Office Manager, qui est prévenue. Sans Office Manager actif, les comptes
+ * qui gèrent les leads sont prévenus à sa place.
+ */
 export async function notifyDispatchers(lead: { id: string; reference: string; title: string }, title: string, detail?: string) {
+  const body = `${lead.reference} — ${lead.title}${detail ? ` ${detail}` : ''}`;
+  const href = `/admin/crm/leads/${lead.id}`;
+  const ownerId = await routeToOfficeManager(lead.id);
+  if (ownerId) {
+    await notifyUsers([ownerId], 'lead_new', title, body, href);
+    return;
+  }
   const dispatchers = await listStaffWith('crm_manage');
-  await notifyUsers(
-    dispatchers.map((u) => u.id),
-    'lead_new',
-    title,
-    `${lead.reference} — ${lead.title}${detail ? ` ${detail}` : ''}`,
-    `/admin/crm/leads/${lead.id}`,
-  );
+  await notifyUsers(dispatchers.map((u) => u.id), 'lead_new', title, body, href);
 }
 
 /**
  * Saisie d'un lead par l'équipe. Le circuit découle de qui saisit : l'Office
  * Manager enregistre lui-même ses leads en circuit 2, un commercial ses leads de
- * prospection en circuit 1 ; le responsable commercial ou la Direction peuvent
- * l'aiguiller dès la saisie, sinon il attend dans « À aiguiller ».
+ * prospection ; le responsable commercial ou la Direction peuvent le confier dès
+ * la saisie, sinon il va directement chez l'Office Manager.
  */
 export async function createLead(input: LeadInput, actorId: string, scope?: StaffScope) {
   await assertNoDuplicate(input);
@@ -301,11 +345,10 @@ export async function createLead(input: LeadInput, actorId: string, scope?: Staf
   } else if (scope?.salesManager && !circuit) {
     circuit = 'SALES_TEAM';
   }
-  // Circuit 2 sans Office Manager désigné : le seul compte de ce rôle le prend, sinon il reste à aiguiller.
+  // Sans intervenant désigné, le lead va chez l'Office Manager (retours du 22/11/2026).
   if (circuit === 'OFFICE_MANAGER' && !assignedToId) {
-    const oms = await listStaffByRole('OFFICE_MANAGER');
-    if (oms.length === 1) assignedToId = oms[0].id;
-    else circuit = null;
+    assignedToId = await pickOfficeManager();
+    if (!assignedToId) circuit = null;
   }
 
   const lead = await prisma.lead.create({
@@ -335,11 +378,11 @@ export async function createLead(input: LeadInput, actorId: string, scope?: Staf
   });
   await logActivity(lead.id, {
     content: circuit
-      ? `Lead enregistré en ${circuit === 'SALES_TEAM' ? 'circuit 1 (Sales Team)' : 'circuit 2 (Office Manager)'}${assignedToId ? '' : ', à attribuer'}.`
-      : 'Lead enregistré, à aiguiller.',
+      ? `Lead enregistré, ${circuit === 'SALES_TEAM' ? 'suivi par un commercial' : 'suivi par l’Office Manager'}${assignedToId ? '' : ', commercial à désigner'}.`
+      : 'Lead enregistré.',
     authorId: actorId,
   });
-  if (!circuit) await notifyDispatchers(lead, 'Nouveau lead à aiguiller');
+  if (!circuit) await notifyDispatchers(lead, 'Nouveau prospect');
   else if (circuit === 'SALES_TEAM' && !salesAgentId) {
     const managers = (await listStaffWith('crm_manage')).filter((u) => u.role !== 'OFFICE_MANAGER');
     await notifyUsers(managers.map((u) => u.id), 'lead_to_assign', 'Lead à attribuer', `${lead.reference} — ${lead.title}`, `/admin/crm/leads/${lead.id}`);

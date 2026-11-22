@@ -121,6 +121,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     refetchInterval: 20_000,
   });
 
+  // Demandes de validation (remises, prix ajustés) qui attendent ce compte.
+  const { data: approvalsCount } = useQuery({
+    queryKey: ['quote-approvals-count'],
+    queryFn: () => adminApi.get<{ data: { toApprove: unknown[] } }>('/api/admin/quotes/approvals').then((r) => r.data.toApprove.length),
+    enabled: status === 'authenticated' && Boolean(user && isStaffRole(user.role) && user.role !== 'ADMIN_SUPPORT'),
+    refetchInterval: 30_000,
+    retry: false,
+  });
+
   if (status === 'idle' || status === 'loading') {
     return <div className="flex min-h-screen items-center justify-center" />;
   }
@@ -137,7 +146,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <AdminShell
       navItems={visibleNavItems(user.role, user.permissions ?? null, user.crmAccess, hidden).map((item) =>
-        item.href === '/admin/messagerie' && supportUnread ? { ...item, badge: supportUnread } : item,
+        item.href === '/admin/messagerie' && supportUnread
+          ? { ...item, badge: supportUnread }
+          : item.href === '/admin/validations' && approvalsCount
+            ? { ...item, badge: approvalsCount }
+            : item,
       )}
     >
       {blocked ? <EmptyState title="Rubrique désactivée" description="Cette rubrique a été retirée du dashboard par le super administrateur." /> : children}

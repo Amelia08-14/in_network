@@ -2,7 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { sendEmail } from '../../lib/email';
 import { env } from '../../config/env';
 import { getSettings } from '../settings/settings.service';
-import { logActivity } from './leads.service';
+import { logActivity, routeToOfficeManager } from './leads.service';
 import { formatAmount } from './money';
 import { invoiceNumberLabel, invoicePdf } from './invoices.service';
 import { quotePdf } from './quotes.service';
@@ -41,6 +41,7 @@ export interface AutomationResult {
   expiryAlerts: number;
   servicesExpired: number;
   protectionAlerts: number;
+  leadsRouted: number;
 }
 
 export async function runAutomations(now = new Date()): Promise<AutomationResult> {
@@ -54,11 +55,22 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
     expiryAlerts: 0,
     servicesExpired: 0,
     protectionAlerts: 0,
+    leadsRouted: 0,
   };
   // Sans commercial assigné (lead à qualifier / à assigner), l'alerte va aux comptes qui
   // gèrent les leads (responsable commercial…), pas à toute l'équipe.
   const crmStaff = (await listStaffWith('crm_manage')).map((u) => u.id);
   const audience = (assigneeId: string | null | undefined) => (assigneeId ? [assigneeId] : crmStaff);
+
+  // 0. Prospects encore « à aiguiller » (arrivés avant le 22/11/2026, ou sans
+  //    Office Manager actif à leur arrivée) : remis à l'Office Manager.
+  const unrouted = await prisma.lead.findMany({ where: { circuit: null, assignedToId: null, stage: { in: OPEN } }, select: { id: true, reference: true, title: true } });
+  for (const lead of unrouted) {
+    const ownerId = await routeToOfficeManager(lead.id);
+    if (!ownerId) break;
+    await notifyUsers([ownerId], 'lead_new', 'Nouveau prospect', `${lead.reference} — ${lead.title}`, `/admin/crm/leads/${lead.id}`);
+    result.leadsRouted += 1;
+  }
 
   // 1. Devis dont la validité est dépassée → expirés.
   const expired = await prisma.quote.findMany({

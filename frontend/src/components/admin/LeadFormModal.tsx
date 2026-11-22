@@ -78,13 +78,13 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
 
   const circuitChoices: { value: CircuitChoice; label: string; hint: string }[] = access.officeManager
     ? [
-        { value: 'OFFICE_MANAGER', label: 'Je le prends en charge', hint: 'Circuit 2 : événement, recommandation, prospect déjà prêt' },
-        { value: 'SALES_TEAM', label: 'Le confier à la Sales Team', hint: 'Circuit 1 : demande un travail de qualification' },
+        { value: 'OFFICE_MANAGER', label: 'Je le prends en charge', hint: 'Vous le suivez vous-même' },
+        { value: 'SALES_TEAM', label: 'Le confier à l’équipe commerciale', hint: 'Demande un travail commercial' },
       ]
     : [
-        { value: 'SALES_TEAM', label: 'Circuit 1 · Sales Team', hint: 'Prospection, lead à travailler' },
-        { value: 'OFFICE_MANAGER', label: 'Circuit 2 · Office Manager', hint: 'Prospect déjà prêt' },
-        ...(access.direction ? [{ value: 'none' as CircuitChoice, label: 'À aiguiller plus tard', hint: 'Le lead attend dans « À aiguiller »' }] : []),
+        { value: 'SALES_TEAM', label: 'Équipe commerciale', hint: 'Prospection, lead à travailler' },
+        { value: 'OFFICE_MANAGER', label: 'Office Manager', hint: 'Par défaut : elle le traite ou le confie' },
+        ...(access.direction ? [{ value: 'none' as CircuitChoice, label: 'Sans intervenant', hint: 'Remis à l’Office Manager à la prochaine passe automatique' }] : []),
       ];
 
   return (
@@ -159,7 +159,7 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
 
         {isAgent ? (
           <p className="rounded-xl bg-ink-900/[0.04] px-3 py-2.5 text-xs text-ink-600 sm:col-span-2">
-            Le lead est enregistré dans votre prospection (circuit 1) : il vous est attribué et le responsable commercial en est informé.
+            Le lead est enregistré dans votre prospection : il vous est confié et le responsable commercial en est informé.
           </p>
         ) : (
           <fieldset className="space-y-2 sm:col-span-2">

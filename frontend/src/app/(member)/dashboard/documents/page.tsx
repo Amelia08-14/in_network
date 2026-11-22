@@ -40,7 +40,8 @@ const PROOF_STATUS: Record<PaymentProofStatus, { label: string; tone: Tone }> = 
 };
 
 const REQUEST_PROGRESS: Record<RequestProgress, { label: string; tone: Tone; detail: string }> = {
-  PRICING: { label: 'En cours de chiffrage', tone: 'blue', detail: 'L’équipe prépare votre devis : il arrivera ici, à confirmer en un clic.' },
+  PRICING: { label: 'Demande reçue · devis en préparation', tone: 'blue', detail: 'Votre demande est bien arrivée : notre Office Manager prépare votre devis et peut vous appeler pour préciser votre besoin. Il arrivera ici et par e-mail, à confirmer en un clic.' },
+  IN_REVIEW: { label: 'Devis en cours de validation', tone: 'amber', detail: 'Votre devis est prêt et attend une dernière validation interne (conditions particulières). Vous le recevrez ici et par e-mail dès qu’il sera validé : rien à faire de votre côté.' },
   QUOTE_SENT: { label: 'Devis reçu', tone: 'amber', detail: 'Votre devis est ci-dessous : confirmez-le pour lancer la suite.' },
   QUOTE_ACCEPTED: { label: 'Devis confirmé', tone: 'green', detail: 'L’équipe vous contacte pour organiser le paiement.' },
   DONE: { label: 'Traitée', tone: 'green', detail: 'Paiement enregistré : vos services sont lancés.' },
@@ -480,7 +481,7 @@ export default function DocumentsPage() {
 
   const steps = useMemo(() => (data ? buildSteps(data) : []), [data]);
   // Demandes dont le devis n'est pas encore envoyé (en chiffrage) ou pas encore confirmé.
-  const openRequests = data?.requests.filter((r) => r.progress === 'PRICING' || r.progress === 'QUOTE_SENT') ?? [];
+  const openRequests = data?.requests.filter((r) => r.progress === 'PRICING' || r.progress === 'IN_REVIEW' || r.progress === 'QUOTE_SENT') ?? [];
   const current = steps.find((step) => !step.done);
 
   if (isLoading) {

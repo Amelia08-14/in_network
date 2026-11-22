@@ -28,10 +28,10 @@ type View = 'kanban' | 'list';
 const COLUMNS: LeadStage[] = ['ASSIGNED', 'QUALIFIED', 'FOLLOW_UP', 'VISIT_CONFIRMED', 'QUOTE_SENT', 'CONFIRMED'];
 
 const QUEUE_LABEL: Record<LeadQueue, string> = {
-  to_dispatch: 'À aiguiller',
+  to_dispatch: 'Sans intervenant',
   to_assign: 'À attribuer',
   returned: 'Revenus sans réponse',
-  handed_over: 'Dossiers transmis par la Sales Team',
+  handed_over: 'Dossiers rendus par les commerciaux',
   to_call: 'Devis confirmés : paiement à organiser',
   follow_ups_due: 'Actions du jour et en retard',
 };
@@ -86,11 +86,11 @@ function Pipeline() {
         title="Pipeline"
         description={
           access.direction
-            ? 'Les deux circuits, du lead confié au devis confirmé. Ouvrez une fiche pour faire avancer le dossier.'
+            ? 'Tous les leads, de la prise en charge au devis accepté. Ouvrez une fiche pour faire avancer le dossier.'
             : access.salesManager
-              ? 'Les leads de la Sales Team (circuit 1), jusqu’à leur transmission à l’Office Manager.'
+              ? 'Les leads des commerciaux, jusqu’à la visite confirmée (le dossier repasse alors à l’Office Manager).'
               : access.officeManager
-                ? 'Vos leads du circuit 2 et les dossiers transmis par la Sales Team.'
+                ? 'Tous les prospects arrivent chez vous : traitez-les, ou confiez-les à un commercial depuis leur fiche.'
                 : 'Vos leads : qualifiez, relancez, obtenez la visite ou la visio, puis transmettez le dossier.'
         }
         actions={
@@ -108,7 +108,7 @@ function Pipeline() {
           <span className="flex items-center gap-2.5 text-ink-800">
             <Inbox className="h-4 w-4 text-brand-blue" />
             <span>
-              <strong>{waiting.length}</strong> lead{waiting.length > 1 ? 's' : ''} enregistré{waiting.length > 1 ? 's' : ''}, à aiguiller ou à attribuer
+              <strong>{waiting.length}</strong> lead{waiting.length > 1 ? 's' : ''} sans intervenant ou en attente d’un commercial
             </span>
           </span>
           <span className="inline-flex items-center gap-1.5 font-semibold text-brand-blue">

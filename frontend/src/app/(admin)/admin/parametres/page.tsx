@@ -26,7 +26,7 @@ interface Setting {
 }
 
 const HINTS: Record<string, string> = {
-  followUpMaxAttempts: 'Au-delà, le lead revient au responsable commercial (circuit 1) ou attend la décision de l’Office Manager (circuit 2).',
+  followUpMaxAttempts: 'Au-delà, le lead suivi par un commercial revient au responsable commercial ; celui de l’Office Manager attend sa décision.',
   followUpIntervalDays: 'Date proposée pour la relance suivante.',
   trialFollowUpDays: 'Un appel de suivi est programmé après une journée d’essai.',
   checkInDays: 'Appels programmés dans l’agenda du référent après l’activation (ex. 7, 30).',
@@ -34,7 +34,7 @@ const HINTS: Record<string, string> = {
   expiryGraceDays: 'Délai avant de passer un service « Expiré » après son échéance.',
   leadProtectionDays: 'À fixer par IN NETWORK. Vide : pas de règle.',
   quoteDirectionThreshold: 'À fixer par IN NETWORK. Vide : pas de seuil.',
-  directionApprovesOfficeManagerQuotes: 'Sinon, le responsable commercial valide aussi les devis sur mesure du circuit 2.',
+  directionApprovesOfficeManagerQuotes: 'Sinon, le responsable commercial valide aussi les remises et devis sur mesure de l’Office Manager (la Direction le peut toujours).',
   discountWithoutApprovalRate: 'À fixer par IN NETWORK. Vide : toute remise (ligne ou total) fait valider le devis avant l’envoi.',
   roomOpeningHour: 'Première heure réservable dans les salles (8 par défaut, à confirmer par IN NETWORK).',
   roomMiddayHour: 'Le matin se termine et l’après-midi commence à cette heure (13 par défaut).',
@@ -144,7 +144,7 @@ function SocialLeadsCard() {
         <section className="space-y-2">
           <h3 className="text-sm font-semibold text-ink-900">1 · Liens de campagne</h3>
           <p className="text-sm text-ink-600">
-            Publiez sur les réseaux un lien généré ici. Le visiteur qui s’inscrit, demande un devis ou écrit via le formulaire de contact (dans les 60 jours) arrive dans « À aiguiller » avec son réseau et sa campagne, au lieu de « Site web ».
+            Publiez sur les réseaux un lien généré ici. Le visiteur qui s’inscrit, demande un devis ou écrit via le formulaire de contact (dans les 60 jours) arrive chez l’Office Manager avec son réseau et sa campagne, au lieu de « Site web ».
           </p>
           <CampaignLinkBuilder siteUrl={data.siteUrl} />
         </section>
@@ -155,7 +155,7 @@ function SocialLeadsCard() {
             <Pill tone={data.leadWebhook.enabled ? 'green' : 'amber'}>{data.leadWebhook.enabled ? 'Réception active' : 'À configurer'}</Pill>
           </div>
           <p className="text-sm text-ink-600">
-            Avec Make ou Zapier : un scénario « nouveau lead » (Facebook Lead Ads ou LinkedIn Lead Gen Forms) envoie chaque lead à l’adresse ci-dessous. Il arrive dans « À aiguiller », classé LinkedIn ou Publicité, avec sa campagne ; un contact déjà suivi n’ouvre pas de seconde fiche.
+            Avec Make ou Zapier : un scénario « nouveau lead » (Facebook Lead Ads ou LinkedIn Lead Gen Forms) envoie chaque lead à l’adresse ci-dessous. Il arrive chez l’Office Manager, classé LinkedIn ou Publicité, avec sa campagne ; un contact déjà suivi n’ouvre pas de seconde fiche.
           </p>
           <dl className="space-y-1.5 rounded-xl bg-ink-900/[0.04] px-4 py-3 text-sm">
             <div>

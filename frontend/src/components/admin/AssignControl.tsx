@@ -10,7 +10,7 @@ import { api } from '@/lib/admin-api';
 import { cn } from '@/lib/utils';
 
 /**
- * Attribution d'un lead du circuit 1 à un commercial (responsable commercial) :
+ * Confier un lead à un commercial (Office Manager, responsable commercial ou Direction) :
  * sédentaire pour le digital, l'entrant, la diaspora et les offres simples,
  * terrain pour les entreprises et les rendez-vous physiques. `workload`
  * affiche la charge de chaque commercial pour répartir équitablement.
@@ -54,11 +54,11 @@ export function AssignControl({
     <div className={cn('space-y-2', className)}>
       <div className="flex flex-wrap items-center gap-2">
         <Select aria-label="Commercial" className="h-9 min-w-52 flex-1" value={choice} onChange={(e) => setChoice(e.target.value)}>
-          <option value="">{allowClear ? 'Retirer le commercial (retour à attribuer)' : 'Choisir un commercial…'}</option>
+          <option value="">{allowClear ? 'Retirer le commercial (retour à l’Office Manager)' : 'Choisir un commercial…'}</option>
           <SalesAgentOptions staff={decorated} />
         </Select>
         <Button size="sm" disabled={assign.isPending || (!choice && !allowClear) || choice === (current ?? '')} onClick={() => assign.mutate()}>
-          <UserCheck className="h-4 w-4" /> {assign.isPending ? 'Attribution…' : current ? 'Réattribuer' : 'Attribuer'}
+          <UserCheck className="h-4 w-4" /> {assign.isPending ? 'En cours…' : current ? 'Confier à ce commercial' : 'Confier'}
         </Button>
       </div>
       {error && (

@@ -7,8 +7,8 @@ import { hasResourceAccess, isFullAccessRole, parsePermissions, type DashboardPe
 // Portée des données commerciales — processus v1.3 (23/10/2026).
 //   Direction (administrateurs) et comptes « crm_all » : tous les leads.
 //   Responsable commercial : les leads du circuit 1 (Sales Team).
-//   Office Manager : le circuit 2, et les dossiers du circuit 1 qui lui ont été
-//     transmis après la visite.
+//   Office Manager : tous les leads — chaque prospect arrive chez elle et elle
+//     le confie à un commercial si nécessaire (retours du 22/11/2026).
 //   Commercial : ses leads ; après la transmission à l'Office Manager, il garde
 //     un accès en lecture (il en est le closer).
 //   Les comptes qui aiguillent (droit « crm_manage ») voient aussi les leads
@@ -35,7 +35,8 @@ export interface StaffScope {
 export function scopeFlags(role: string, perms: DashboardPermissions): Omit<StaffScope, 'userId' | 'role'> {
   const manageLeads = hasResourceAccess(role, perms, 'crm_manage');
   return {
-    allLeads: hasResourceAccess(role, perms, 'crm_all'),
+    // L'Office Manager reçoit tous les prospects et les répartit (22/11/2026) : elle voit tout.
+    allLeads: role === 'OFFICE_MANAGER' || hasResourceAccess(role, perms, 'crm_all'),
     manageLeads,
     salesManager: role === 'SALES_MANAGER' || (manageLeads && role !== 'OFFICE_MANAGER' && !isFullAccessRole(role)),
     officeManager: role === 'OFFICE_MANAGER',

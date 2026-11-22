@@ -1,6 +1,7 @@
 import type { Prisma, QuoteConfirmation } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import { sendEmail } from '../../lib/email';
+import { env } from '../../config/env';
 import { ApiError } from '../../utils/apiResponse';
 import { getSettings } from '../settings/settings.service';
 import { discountLabel, renderDocumentPdf, type PdfDocumentInput } from './documentPdf';
@@ -355,13 +356,69 @@ function quoteEmailHtml(quote: Awaited<ReturnType<typeof getQuote>>) {
 
 // --- Validation des devis sur mesure --------------------------------------------------
 
+/** Qui peut valider : la Direction toujours (administrateurs), plus le responsable commercial pour ses devis. */
 async function approversFor(approver: ApprovalCheck['approver']) {
-  if (approver === 'DIRECTION') {
-    const [admins, supers] = await Promise.all([listStaffByRole('ADMIN'), listStaffByRole('SUPER_ADMIN')]);
-    return [...admins, ...supers].map((u) => u.id);
-  }
+  const [admins, supers] = await Promise.all([listStaffByRole('ADMIN'), listStaffByRole('SUPER_ADMIN')]);
+  const direction = [...admins, ...supers];
+  if (approver === 'DIRECTION') return direction;
   const managers = (await listStaffWith('crm_manage')).filter((u) => u.role !== 'OFFICE_MANAGER');
-  return managers.map((u) => u.id);
+  const seen = new Set(direction.map((u) => u.id));
+  return [...direction, ...managers.filter((u) => !seen.has(u.id))];
+}
+
+const WHO_APPROVES = (approver: ApprovalCheck['approver']) => (approver === 'DIRECTION' ? 'la Direction' : 'le responsable commercial ou la Direction');
+
+/**
+ * File « À valider » (retours IN NETWORK du 22/11/2026 : l'administrateur ne
+ * trouvait pas la demande de remise de l'Office Manager). `toApprove` : les
+ * demandes que ce compte peut valider ; `waiting` : celles qu'il a soumises et
+ * qui attendent quelqu'un d'autre.
+ */
+export async function listApprovals(scope: StaffScope) {
+  const pending = await prisma.quote.findMany({
+    where: { status: 'PENDING_APPROVAL' },
+    include: {
+      lines: true,
+      lead: { select: { id: true, reference: true, title: true, contactName: true, companyName: true, circuit: true, assignedToId: true } },
+      createdBy: { select: STAFF_SELECT },
+    },
+    orderBy: { updatedAt: 'asc' },
+  });
+  const rows = await Promise.all(
+    pending.map(async (quote) => {
+      const check = await checkApproval(quote);
+      return {
+        id: quote.id,
+        number: quote.number,
+        total: quote.total,
+        subtotal: quote.subtotal,
+        discountAmount: quote.discountAmount,
+        submittedAt: quote.updatedAt,
+        lead: quote.lead,
+        createdBy: quote.createdBy,
+        approver: check.approver,
+        approverLabel: WHO_APPROVES(check.approver),
+        reasons: check.reasons,
+        canApprove: canApprove(scope, check.approver),
+        mine: quote.createdById === scope.userId || quote.lead.assignedToId === scope.userId,
+      };
+    }),
+  );
+  return {
+    toApprove: rows.filter((r) => r.canApprove),
+    waiting: rows.filter((r) => !r.canApprove && r.mine),
+  };
+}
+
+function approvalEmailHtml(quote: Awaited<ReturnType<typeof getQuote>>, reasons: string[], requester: string) {
+  const link = `${env.appUrl}/admin/devis/${quote.id}`;
+  return [
+    '<p>Bonjour,</p>',
+    `<p><strong>${escapeHtml(requester)}</strong> vous demande de valider le devis <strong>${quote.number}</strong> pour ${escapeHtml(quote.lead.contactName)}${quote.lead.companyName ? ` (${escapeHtml(quote.lead.companyName)})` : ''} : ${formatAmount(Number(quote.total))} TTC.</p>`,
+    `<p>Pourquoi une validation : ${escapeHtml(reasons.join(', '))}.</p>`,
+    `<p><a href="${link}">Ouvrir le devis pour le valider ou le renvoyer</a> — vous le retrouvez aussi dans la rubrique « À valider » du tableau de bord.</p>`,
+    '<p>Le devis part au client dès votre validation.</p>',
+  ].join('');
 }
 
 /** Demande de devis : soumise au responsable commercial ou à la Direction. */
@@ -375,15 +432,30 @@ export async function submitForApproval(id: string, actorId: string) {
 
   await prisma.quote.update({ where: { id }, data: { status: 'PENDING_APPROVAL', approvedAt: null, approvedById: null } });
   await logActivity(quote.leadId, {
-    content: `Devis ${quote.number} soumis à validation (${check.approver === 'DIRECTION' ? 'Direction' : 'responsable commercial'}) : ${check.reasons.join(', ')}.`,
+    content: `Devis ${quote.number} envoyé en validation à ${WHO_APPROVES(check.approver)} : ${check.reasons.join(', ')}.`,
     authorId: actorId,
   });
+  const approvers = (await approversFor(check.approver)).filter((u) => u.id !== actorId);
+  const actor = await prisma.user.findUnique({ where: { id: actorId }, select: { displayName: true, email: true } });
+  const requester = actor ? actor.displayName || actor.email : 'L’équipe';
   await notifyUsers(
-    (await approversFor(check.approver)).filter((u) => u !== actorId),
+    approvers.map((u) => u.id),
     'quote_approval',
-    'Devis à valider',
-    `${quote.number} — ${quote.lead.contactName} (${formatAmount(Number(quote.total))} TTC)`,
+    `Validation demandée par ${requester}`,
+    `${quote.number} — ${quote.lead.contactName} (${formatAmount(Number(quote.total))} TTC) : ${check.reasons.join(', ')}`,
     `/admin/devis/${quote.id}`,
+  );
+  // Le client sait où en est son devis (espace membre, « Devis et factures »).
+  if (quote.lead.userId) {
+    await notifyUsers([quote.lead.userId], 'quote_in_review', 'Votre devis est en cours de validation', `Le devis ${quote.number} est prêt : il vous sera envoyé dès sa validation par notre équipe.`, '/dashboard/documents');
+  }
+  // Un e-mail en plus de la cloche : la demande ne doit pas passer inaperçue.
+  await Promise.all(
+    approvers.map((u) =>
+      sendEmail({ to: u.email, subject: `À valider : devis ${quote.number} — ${quote.lead.contactName}`, html: approvalEmailHtml(quote, check.reasons, requester) }).catch((err) =>
+        console.error('[quotes] e-mail de validation non envoyé', err),
+      ),
+    ),
   );
   return getQuote(id);
 }
@@ -399,9 +471,13 @@ export async function approveQuote(id: string, actorId: string, scope?: StaffSco
   await prisma.quote.update({ where: { id }, data: { status: 'DRAFT', approvedAt: new Date(), approvedById: actorId } });
   await logActivity(quote.leadId, { content: `Devis ${quote.number} validé.`, authorId: actorId });
   const result = await sendQuote(id, actorId);
-  if (quote.createdById && quote.createdById !== actorId) {
-    await notifyUsers([quote.createdById], 'quote_approved', 'Devis validé et envoyé', `${quote.number} — ${quote.lead.contactName}`, `/admin/devis/${quote.id}`);
-  }
+  await notifyUsers(
+    [quote.createdById, quote.lead.assignedToId].filter((u): u is string => Boolean(u) && u !== actorId),
+    'quote_approved',
+    'Devis validé et envoyé au client',
+    `${quote.number} — ${quote.lead.contactName}`,
+    `/admin/devis/${quote.id}`,
+  );
   return result;
 }
 

@@ -62,7 +62,7 @@ function Commissions() {
       <PageTitle
         hue="amber"
         title="Commissions"
-        description="Calculées au paiement encaissé, selon le barème ; éligibles une fois le service livré ; contrôlées par le responsable commercial (circuit 1), validées par la Direction, puis versées. Un remboursement les reprend."
+        description="Calculées au paiement encaissé, selon le barème ; éligibles une fois le service livré ; contrôlées par le responsable commercial (leads des commerciaux), validées par la Direction, puis versées. Un remboursement les reprend."
       />
       <div role="tablist" className="flex flex-wrap gap-2">
         {tabs.map(([key, label]) => (
@@ -135,7 +135,7 @@ function Tracking({ initialStatus }: { initialStatus: CommissionStatus | '' }) {
           <span className="text-ink-600">{selected.length} sélectionnée(s) :</span>
           {access.salesManager && (
             <Button size="sm" variant="outline" disabled={!selected.length || act.isPending} onClick={() => act.mutate('check')}>
-              Contrôler (circuit 1)
+              Contrôler
             </Button>
           )}
           {access.direction && (
@@ -383,7 +383,7 @@ function Rules() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Bénéficiaire" htmlFor="r-ben">
                 <Select id="r-ben" value={form.beneficiary} onChange={(e) => set({ beneficiary: e.target.value as CommissionBeneficiary })}>
-                  <option value="CLOSER">Commercial closer (circuit 1)</option>
+                  <option value="CLOSER">Commercial closer</option>
                   <option value="OFFICE_MANAGER">Office Manager</option>
                 </Select>
               </Field>

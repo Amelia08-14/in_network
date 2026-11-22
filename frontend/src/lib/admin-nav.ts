@@ -23,6 +23,7 @@ import {
   CircleUserRound,
   Coins,
   SlidersHorizontal,
+  ShieldCheck,
 } from 'lucide-react';
 import type { AdminNavItem } from '@/components/layout/AdminShell';
 
@@ -49,11 +50,15 @@ export type NavEntry = AdminNavItem & {
 export const NAV_ITEMS: NavEntry[] = [
   { href: '/admin', label: 'Ma journée', icon: Sun, alwaysVisible: true, section: 'Accueil' },
   // Prospects : du lead entrant à la visite confirmée
-  { href: '/admin/crm/entrants', alsoMatch: ['/admin/services-demandes', '/admin/contact'], label: 'À aiguiller', icon: Inbox, resource: 'crm', manageLeadsOnly: true, section: 'Prospects' },
+  // Depuis le 22/11/2026 les prospects vont directement chez l'Office Manager :
+  // cette page ne garde que les leads sans intervenant et ceux à confier.
+  { href: '/admin/crm/entrants', alsoMatch: ['/admin/services-demandes', '/admin/contact'], label: 'Prospects à répartir', icon: Inbox, resource: 'crm', manageLeadsOnly: true, section: 'Prospects' },
   { href: '/admin/crm/pipeline', alsoMatch: ['/admin/crm/leads'], label: 'Pipeline', icon: KanbanSquare, resource: 'crm', section: 'Prospects' },
   { href: '/admin/crm/agenda', label: 'Agenda', icon: CalendarClock, resource: 'crm', section: 'Prospects' },
   { href: '/admin/crm/activite', label: 'Journal d’activité', icon: NotebookPen, resource: 'crm', section: 'Prospects' },
   // Ventes : devis, proforma, paiement
+  // Demandes de remise / prix ajusté : une rubrique dédiée, avec un badge (22/11/2026).
+  { href: '/admin/validations', label: 'À valider', icon: ShieldCheck, resource: 'quotes', section: 'Ventes' },
   { href: '/admin/devis', label: 'Devis', icon: FileText, resource: 'quotes', section: 'Ventes' },
   { href: '/admin/factures', alsoMatch: ['/admin/paiements'], label: 'Proformas et factures', icon: Receipt, resource: 'invoices', section: 'Ventes' },
   // Clients : activation, livraison, échéances, fiche membre

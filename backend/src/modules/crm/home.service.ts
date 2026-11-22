@@ -4,6 +4,7 @@ import { ROLE_LABELS, isStaffRole } from '../admin/permissions';
 import { getSettings } from '../settings/settings.service';
 import { orderScopeWhere } from './fulfilment.service';
 import { queueWhere } from './leads.service';
+import { listApprovals } from './quotes.service';
 import { leadScopeWhere, type StaffScope } from './scope';
 import { STAFF_SELECT, staffName } from './staff';
 import { CIRCUIT_LABEL, OPEN_STAGES, PIPELINE_LABEL, STAGE_ORDER, stageLabel } from './workflow';
@@ -45,31 +46,55 @@ export async function getHome(scope: StaffScope) {
   const tasks: Promise<HomeQueue | null>[] = [];
   const queue = (q: Omit<HomeQueue, 'count'>, count: Promise<number>) => tasks.push(count.then((n) => ({ ...q, count: n })));
 
+  // Validations (remises, prix ajustés, sur mesure) : en tête, en alerte, pour qui peut valider.
+  if (hasCrm) {
+    const pendingApprovals = listApprovals(scope);
+    tasks.push(
+      pendingApprovals.then((approvals) => ({
+        key: 'approvals',
+        group: 'Ventes' as const,
+        label: 'Demandes de validation à traiter',
+        hint: 'Remises et prix ajustés : valider ou renvoyer',
+        href: '/admin/validations',
+        alert: true,
+        count: approvals.toApprove.length,
+      })),
+    );
+    tasks.push(
+      pendingApprovals.then((approvals) => ({
+        key: 'approvals_waiting',
+        group: 'Ventes' as const,
+        label: 'Mes devis en attente de validation',
+        hint: 'Vous serez prévenu(e) dès la réponse',
+        href: '/admin/validations',
+        count: approvals.waiting.length,
+      })),
+    );
+  }
   if (scope.manageLeads) {
-    queue({ key: 'to_dispatch', group: 'Prospects', label: 'Leads à aiguiller', hint: 'Choisir le circuit 1 ou 2', href: '/admin/crm/entrants' }, prisma.lead.count({ where: and(scoped, queueWhere('to_dispatch')) }));
+    // Ne reste que les leads arrivés quand aucun Office Manager n'était actif.
+    queue({ key: 'to_dispatch', group: 'Prospects', label: 'Prospects sans intervenant', hint: 'À prendre en charge ou à confier', href: '/admin/crm/entrants' }, prisma.lead.count({ where: and(scoped, queueWhere('to_dispatch')) }));
+  }
+  if (scope.officeManager || scope.direction) {
+    queue(
+      { key: 'new_leads', group: 'Prospects', label: 'Nouveaux prospects à contacter', hint: 'Les traiter vous-même ou les confier à un commercial', href: '/admin/crm/pipeline?assignee=me', alert: true },
+      prisma.lead.count({ where: { assignedToId: me, circuit: 'OFFICE_MANAGER', stage: 'ASSIGNED' } }),
+    );
   }
   if (scope.salesManager || scope.direction) {
-    queue({ key: 'to_assign', group: 'Prospects', label: 'Leads à attribuer', hint: 'Circuit 1 : sédentaire ou terrain', href: '/admin/crm/entrants?tab=attribuer' }, prisma.lead.count({ where: and(scoped, queueWhere('to_assign')) }));
+    queue({ key: 'to_assign', group: 'Prospects', label: 'Leads à confier à un commercial', hint: 'Choisir le commercial', href: '/admin/crm/entrants?tab=attribuer' }, prisma.lead.count({ where: and(scoped, queueWhere('to_assign')) }));
     queue(
-      { key: 'returned', group: 'Prospects', label: 'Revenus sans réponse', hint: 'Réattribuer ou clôturer', href: '/admin/crm/entrants?tab=relances', alert: true },
+      { key: 'returned', group: 'Prospects', label: 'Revenus sans réponse', hint: 'Confier à un autre commercial ou clôturer', href: '/admin/crm/entrants?tab=relances', alert: true },
       prisma.lead.count({ where: and(scoped, queueWhere('returned'), { circuit: 'SALES_TEAM' }) }),
     );
     queue(
-      { key: 'quotes_sales', group: 'Ventes', label: 'Demandes de devis à valider', hint: 'Devis sur mesure du circuit 1', href: '/admin/devis?status=PENDING_APPROVAL' },
-      prisma.quote.count({ where: { status: 'PENDING_APPROVAL', lead: { circuit: 'SALES_TEAM' } } }),
-    );
-    queue(
-      { key: 'commissions_check', group: 'Commissions', label: 'Commissions à contrôler', hint: 'Circuit 1, services livrés', href: '/admin/commissions?status=ELIGIBLE' },
+      { key: 'commissions_check', group: 'Commissions', label: 'Commissions à contrôler', hint: 'Leads des commerciaux, services livrés', href: '/admin/commissions?status=ELIGIBLE' },
       prisma.commission.count({ where: { status: 'ELIGIBLE', lead: { circuit: 'SALES_TEAM' } } }),
     );
   }
   if (scope.direction) {
     queue(
-      { key: 'quotes_direction', group: 'Ventes', label: 'Devis à valider (Direction)', hint: 'Circuit 2 ou au-delà du seuil', href: '/admin/devis?status=PENDING_APPROVAL' },
-      prisma.quote.count({ where: { status: 'PENDING_APPROVAL', lead: { circuit: { not: 'SALES_TEAM' } } } }),
-    );
-    queue(
-      { key: 'commissions_validate', group: 'Commissions', label: 'Commissions à valider', hint: 'Contrôlées ou éligibles (circuit 2)', href: '/admin/commissions?status=CHECKED' },
+      { key: 'commissions_validate', group: 'Commissions', label: 'Commissions à valider', hint: 'Contrôlées, ou leads de l’Office Manager', href: '/admin/commissions?status=CHECKED' },
       prisma.commission.count({ where: { OR: [{ status: 'CHECKED' }, { status: 'ELIGIBLE', lead: { circuit: { not: 'SALES_TEAM' } } }] } }),
     );
   }
@@ -85,7 +110,7 @@ export async function getHome(scope: StaffScope) {
   }
   if (scope.officeManager || scope.direction) {
     queue(
-      { key: 'handed_over', group: 'Prospects', label: 'Dossiers transmis par la Sales Team', hint: 'Visite ou visio confirmée', href: '/admin/crm/pipeline?queue=handed_over' },
+      { key: 'handed_over', group: 'Prospects', label: 'Dossiers rendus par les commerciaux', hint: 'Visite ou visio confirmée', href: '/admin/crm/pipeline?queue=handed_over' },
       prisma.lead.count({ where: scope.direction ? queueWhere('handed_over') : queueWhere('handed_over', me) }),
     );
     queue(
@@ -149,7 +174,7 @@ export async function getHome(scope: StaffScope) {
   return {
     role: scope.role,
     roleLabel: isStaffRole(scope.role) ? ROLE_LABELS[scope.role] : scope.role,
-    queues: (queues.filter(Boolean) as HomeQueue[]).filter((q) => q.count > 0 || ['to_dispatch', 'my_leads', 'to_deliver'].includes(q.key)),
+    queues: (queues.filter(Boolean) as HomeQueue[]).filter((q) => q.count > 0 || ['my_leads', 'to_deliver'].includes(q.key)),
     agenda: agenda.map((a) => ({ ...a, overdue: a.startAt < dayStart })),
     myMembers,
     kpis: scope.direction || scope.salesManager ? await getPilotage(scope) : null,
@@ -283,7 +308,7 @@ export async function getCrmDashboard(scope?: StaffScope) {
     },
     stages,
     pipelines: byPipeline.map((row) => ({ pipeline: row.pipeline, label: row.pipeline ? PIPELINE_LABEL[row.pipeline] : 'Non renseigné', count: row._count._all })),
-    circuits: byCircuit.map((row) => ({ circuit: row.circuit, label: row.circuit ? CIRCUIT_LABEL[row.circuit] : 'À aiguiller', count: row._count._all })),
+    circuits: byCircuit.map((row) => ({ circuit: row.circuit, label: row.circuit ? CIRCUIT_LABEL[row.circuit] : 'Sans intervenant', count: row._count._all })),
     assignees: openByAssignee.map((row) => ({
       id: row.assignedToId,
       name: row.assignedToId ? staffName(staffById.get(row.assignedToId) ?? { displayName: null, email: 'Compte supprimé' }) : 'Sans intervenant',

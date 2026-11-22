@@ -41,9 +41,9 @@ const ROLE_INFO: Record<string, RoleInfo> = {
   SALES_MANAGER: {
     icon: Target,
     title: 'Responsable commercial',
-    tagline: 'Pilote la Sales Team (circuit 1)',
+    tagline: 'Pilote l’équipe commerciale',
     tone: 'text-violet-700 bg-violet-600/10 border-violet-600/30',
-    points: ['Filtre les leads et les attribue à un sédentaire ou un terrain', 'Valide les devis sur mesure du circuit 1', 'Contrôle les commissions de la Sales Team'],
+    points: ['Confie les leads à un sédentaire ou un terrain', 'Valide les remises et devis sur mesure de son équipe', 'Contrôle les commissions des commerciaux'],
   },
   SALES_AGENT: {
     icon: UserRound,
@@ -55,9 +55,9 @@ const ROLE_INFO: Record<string, RoleInfo> = {
   OFFICE_MANAGER: {
     icon: UserCog,
     title: 'Office Manager',
-    tagline: 'Circuit 2, paiement et activation',
+    tagline: 'Reçoit tous les prospects, paiement et activation',
     tone: 'text-amber-700 bg-accent-yellow/20 border-accent-yellow/60',
-    points: ['Prend en charge les leads du circuit 2 et les dossiers transmis', 'Encaisse, active les membres, livre le pôle Espaces', 'Référent membre par défaut'],
+    points: ['Reçoit tous les nouveaux prospects, les traite ou les confie à un commercial', 'Encaisse, active les membres, livre le pôle Espaces', 'Référent membre par défaut'],
   },
   ADMIN_SUPPORT: {
     icon: FileCheck2,
@@ -71,7 +71,7 @@ const ROLE_INFO: Record<string, RoleInfo> = {
     title: 'Direction',
     tagline: 'Accès total',
     tone: 'text-brand-orange bg-brand-orange/10 border-brand-orange/30',
-    points: ['Voit les deux circuits, valide les devis du circuit 2', 'Valide et verse les commissions', 'Gère les utilisateurs système et les paramètres'],
+    points: ['Voit tous les leads, valide les remises (rubrique « À valider »)', 'Valide et verse les commissions', 'Gère les utilisateurs système et les paramètres'],
   },
 };
 

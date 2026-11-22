@@ -194,6 +194,7 @@ export interface QuoteDetail extends QuoteListItem, DocDiscountFields {
   vatRate: string;
   notes: string | null;
   sentAt: string | null;
+  updatedAt: string;
   approvedAt: string | null;
   approvedBy: StaffUser | null;
   confirmedVia: 'PLATFORM' | 'EMAIL' | null;
@@ -415,4 +416,26 @@ export interface SearchResults {
   leads: { id: string; reference: string; title: string; contactName: string; stage: LeadStage; circuit: LeadCircuit | null }[];
   quotes: { id: string; number: string; status: QuoteStatus; total: string; lead: { contactName: string } }[];
   invoices: { id: string; number: string | null; proformaNumber: string | null; status: InvoiceStatus; total: string; customerName: string }[];
+}
+
+/** File « À valider » (GET /api/admin/quotes/approvals). */
+export interface ApprovalItem {
+  id: string;
+  number: string;
+  total: string;
+  subtotal: string;
+  discountAmount: string;
+  submittedAt: string;
+  lead: { id: string; reference: string; title: string; contactName: string; companyName: string | null; circuit: LeadCircuit | null; assignedToId: string | null };
+  createdBy: StaffUser | null;
+  approver: 'SALES_MANAGER' | 'DIRECTION' | null;
+  approverLabel: string;
+  reasons: string[];
+  canApprove: boolean;
+  mine: boolean;
+}
+
+export interface ApprovalsData {
+  toApprove: ApprovalItem[];
+  waiting: ApprovalItem[];
 }
