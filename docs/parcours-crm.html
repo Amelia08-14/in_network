@@ -120,7 +120,7 @@ footer { padding-top: 40px; color: var(--muted); font-size: 12.5px; }
     <span class="rule"></span>
     <span class="eyebrow">IN NETWORK · CRM · parcours en vigueur depuis le 22/11/2026</span>
     <h1>Du premier contact au service livré</h1>
-    <p>Ce que vit le client, et ce que fait chaque membre de l’équipe à chaque étape. Tout nouveau prospect arrive chez l’Office Manager, qui le traite ou le confie à un commercial. Les schémas décrivent le fonctionnement réel de la plateforme.</p>
+    <p>Ce que vit le client, et ce que fait chaque membre de l’équipe à chaque étape. Tout nouveau prospect arrive chez l’Office Manager, qui gère elle-même le dossier jusqu’au paiement. Le confier à un commercial est possible, jamais obligatoire. Les schémas décrivent le fonctionnement réel de la plateforme.</p>
   </div>
 </div>
 
@@ -133,7 +133,7 @@ footer { padding-top: 40px; color: var(--muted); font-size: 12.5px; }
   </header>
   <div class="stages" aria-label="Étapes du dossier">
     <span class="stage"><b>1</b>Nouveau</span><span class="arrow">→</span>
-    <span class="stage"><b>2</b>Pris en charge / Confié à un commercial</span><span class="arrow">→</span>
+    <span class="stage"><b>2</b>Pris en charge</span><span class="arrow">→</span>
     <span class="stage"><b>3</b>Besoin identifié</span><span class="arrow">→</span>
     <span class="stage"><b>4</b>Relance</span><span class="arrow">→</span>
     <span class="stage"><b>5</b>Visite prévue</span><span class="arrow">→</span>
@@ -142,7 +142,7 @@ footer { padding-top: 40px; color: var(--muted); font-size: 12.5px; }
     <span class="stage win"><b>8</b>Payé</span>
     <span class="stage lost">Perdu (à tout moment, avec un motif)</span>
   </div>
-  <p class="note">« Relance » est facultative : on y passe quand le client ne répond pas. Un dossier perdu peut être rouvert.</p>
+  <p class="note">« Relance » est facultative : on y passe quand le client ne répond pas. Si l’Office Manager confie un dossier à un commercial, l’étape 2 s’affiche « Confié à un commercial ». Un dossier perdu peut être rouvert.</p>
 </section>
 
 <section>
@@ -169,7 +169,7 @@ footer { padding-top: 40px; color: var(--muted); font-size: 12.5px; }
             <li>Demande un devis sur le site (panier de services).</li>
             <li>Ou crée son compte (indépendant·e ou entreprise), écrit via le formulaire de contact, est recommandé par un membre, ou remplit un formulaire publicitaire.</li>
           </ul></td>
-          <td><ul><li>Reçoit la notification « Nouveau prospect ».</li><li>Peut aussi saisir un prospect à la main (appel, visite spontanée).</li></ul></td>
+          <td><ul><li>Reçoit la notification « Nouveau prospect » ; il apparaît dans « Nouveaux prospects ».</li><li>Peut aussi saisir un prospect à la main (appel, visite spontanée).</li></ul></td>
           <td class="empty">—</td>
           <td class="empty">—</td>
           <td class="auto"><ul>
@@ -183,10 +183,10 @@ footer { padding-top: 40px; color: var(--muted); font-size: 12.5px; }
           <td><ul><li>Est rappelé par l’équipe.</li><li>S’il a un compte : il voit seulement « Devis et factures » et « Mon profil » tant qu’il n’a pas payé.</li></ul></td>
           <td class="key"><ul>
             <li>Appelle le prospect, consigne l’échange dans le journal.</li>
-            <li>Décide : traite elle-même, ou <strong>confie à un commercial</strong> en un clic depuis la fiche (motif facultatif).</li>
-            <li>Peut reprendre un dossier confié.</li>
+            <li><strong>Garde le dossier</strong> et le mène elle-même : c’est le fonctionnement actuel.</li>
+            <li>Facultatif : le confier à un commercial depuis la fiche, et le reprendre quand elle veut.</li>
           </ul></td>
-          <td><ul><li>Reçoit la notification du dossier confié (« Confié à un commercial »).</li><li>Ne voit que ses propres dossiers.</li></ul></td>
+          <td><ul><li>Seulement si un dossier lui est confié : il est prévenu et le dossier s’affiche « Confié à un commercial ».</li><li>Ne voit que ses propres dossiers.</li></ul></td>
           <td><ul><li>Le responsable commercial peut lui aussi confier ou réattribuer un dossier.</li></ul></td>
           <td class="auto"><ul><li>Si l’on retire le commercial, le dossier revient à l’Office Manager.</li></ul></td>
         </tr>
@@ -339,8 +339,8 @@ footer { padding-top: 40px; color: var(--muted); font-size: 12.5px; }
     <div class="role om">
       <div class="who"><h3>Office Manager</h3><span class="sees">voit tous les dossiers</span></div>
       <ul>
-        <li>Reçoit chaque nouveau prospect (« Prospects à répartir »).</li>
-        <li>Traite le dossier ou le confie à un commercial ; peut le reprendre.</li>
+        <li>Reçoit chaque nouveau prospect (« Nouveaux prospects »).</li>
+        <li>Mène elle-même le dossier jusqu’au paiement ; le confier à un commercial est facultatif.</li>
         <li>Devis, proformas, vérification des justificatifs, enregistrement des paiements.</li>
         <li>Lancement des espaces et des Solutions IN Group ; référent des membres.</li>
         <li>Membres, réservations, événements, messages de contact.</li>
@@ -350,7 +350,8 @@ footer { padding-top: 40px; color: var(--muted); font-size: 12.5px; }
     <div class="role">
       <div class="who"><h3>Commercial</h3><span class="sees">voit ses dossiers</span></div>
       <ul>
-        <li>Rappelle, qualifie et relance les dossiers qui lui sont confiés.</li>
+        <li>Intervient seulement sur les dossiers que l’Office Manager lui confie.</li>
+        <li>Rappelle, qualifie et relance ces dossiers.</li>
         <li>Confirme la visite : le dossier passe à l’Office Manager.</li>
         <li>Peut préparer des devis pour ses dossiers.</li>
         <li>Consulte ses commissions.</li>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   ArrowLeftRight,
@@ -15,7 +16,6 @@ import {
   Eye,
   FileText,
   Hourglass,
-  GitBranch,
   PackageCheck,
   PhoneCall,
   Receipt,
@@ -37,7 +37,6 @@ import { QualifyModal } from '@/components/admin/QualifyModal';
 import { CircuitModal, DispatchControl, FollowUpModal, LoseModal, VisitModal } from '@/components/admin/LeadFlowControls';
 import {
   Avatar,
-  CircuitBadge,
   ErrorNote,
   errorMessage,
   Field,
@@ -84,34 +83,46 @@ import type { ActivityType, AppointmentStatus, LeadChannel, LeadDetail, LeadPipe
 const RAIL: LeadStage[] = ['ASSIGNED', 'QUALIFIED', 'VISIT_CONFIRMED', 'QUOTE_SENT', 'CONFIRMED', 'PAID'];
 const railStage = (stage: LeadStage): LeadStage => (stage === 'FOLLOW_UP' ? 'QUALIFIED' : stage);
 
+type StatusTone = 'urgent' | 'act' | 'wait' | 'done';
+
 /**
- * Où en est le dossier, en une phrase : qui doit agir, ou ce qu'on attend
- * (validation d'une remise, réponse du client, paiement).
+ * Un seul message en haut de la fiche (retour du 24/11/2026 : « propre, avec
+ * les messages urgents et nécessaires ») : ce qu'il faut faire maintenant, ou
+ * ce qu'on attend. Urgent = action en retard, ou client qui a accepté son devis
+ * et attend de payer.
  */
-function statusLine(lead: LeadDetail): { tone: 'wait' | 'act' | 'done'; text: string } | null {
+function statusLine(lead: LeadDetail): { tone: StatusTone; title: string; text: string } | null {
   const who = lead.assignedTo ? staffName(lead.assignedTo) : 'l’Office Manager';
   const pending = lead.quotes.find((q) => q.status === 'PENDING_APPROVAL');
-  if (pending) return { tone: 'wait', text: `Devis ${pending.number} en attente de validation (remise ou prix ajusté). Il partira au client dès qu’il sera validé ; vous serez prévenu(e).` };
+  if (pending) return { tone: 'wait', title: 'En attente de validation', text: `Le devis ${pending.number} part au client dès qu’il est validé.` };
+  const late = lead.nextActionAt && new Date(lead.nextActionAt).getTime() < Date.now() && !['PAID', 'LOST', 'QUOTE_SENT'].includes(lead.stage);
   switch (lead.stage) {
     case 'REGISTERED':
-      return { tone: 'act', text: lead.circuit === 'SALES_TEAM' ? 'Un commercial doit être désigné pour ce prospect.' : 'Ce prospect n’a pas encore d’intervenant.' };
+      return { tone: 'urgent', title: 'À prendre en charge', text: 'Ce prospect n’a encore personne pour le suivre.' };
     case 'ASSIGNED':
-      return { tone: 'act', text: `Nouveau prospect : ${who} doit le contacter pour comprendre son besoin.` };
+      return { tone: late ? 'urgent' : 'act', title: late ? 'Rappel en retard' : 'À appeler', text: `${who} contacte le prospect pour comprendre son besoin.` };
     case 'QUALIFIED':
     case 'FOLLOW_UP':
-      return { tone: 'act', text: `${who} doit obtenir une visite, une visio ou une journée d’essai.` };
+      return { tone: late ? 'urgent' : 'act', title: late ? 'Relance en retard' : 'Obtenir une visite', text: `${who} propose une visite, une visio ou une journée d’essai.` };
     case 'VISIT_CONFIRMED':
-      return { tone: 'act', text: `Visite prévue : ${who} prépare le devis.` };
+      return { tone: late ? 'urgent' : 'act', title: 'Préparer le devis', text: `Après la visite, ${who} envoie le devis.` };
     case 'QUOTE_SENT':
-      return { tone: 'wait', text: 'Devis envoyé : en attente de la réponse du client (relances automatiques).' };
+      return { tone: 'wait', title: 'Réponse du client attendue', text: 'Le devis est envoyé ; les relances partent automatiquement.' };
     case 'CONFIRMED':
-      return { tone: 'act', text: `Devis accepté par le client : ${who} organise le paiement et envoie la proforma.` };
+      return { tone: 'urgent', title: 'Paiement à organiser', text: `Le client a accepté : ${who} l’appelle et envoie la proforma.` };
     case 'PAID':
-      return { tone: 'done', text: 'Payé : le prospect est devenu membre.' };
+      return { tone: 'done', title: 'Payé', text: 'Le client est devenu membre.' };
     default:
       return null;
   }
 }
+
+const STATUS_STYLE: Record<StatusTone, string> = {
+  urgent: 'bg-brand-orange text-white',
+  act: 'bg-ink-900 text-white',
+  wait: 'bg-white text-ink-900 ring-1 ring-ink-900/10',
+  done: 'bg-green-50 text-green-900 ring-1 ring-green-200',
+};
 
 type Modal = 'qualify' | 'followup' | 'visit' | 'circuit' | 'lose' | 'appointment' | null;
 
@@ -209,51 +220,64 @@ export default function LeadPage() {
           </div>
           <span className="flex flex-wrap items-center gap-2">
             <KindBadge kind={lead.kind} />
-            <CircuitBadge circuit={lead.circuit} />
             <PriorityBadge priority={lead.priority} />
-            <StageBadge stage={lead.stage} circuit={lead.circuit} />
           </span>
         </div>
       </div>
 
-      {/* Avancement : affiché, il avance par les gestes du processus. */}
+      {/* Avancement : une frise numérotée, l'étape en cours bien visible. Elle
+          avance seule avec les gestes du dossier (retour du 24/11/2026). */}
       {lead.stage !== 'LOST' ? (
-        <ol aria-label="Avancement du lead" className="flex flex-wrap items-center gap-1.5">
-          {RAIL.map((s, index) => {
-            const current = railStage(lead.stage) === s;
-            const reached = railIndex >= index;
-            return (
-              <li
-                key={s}
-                aria-current={current ? 'step' : undefined}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-pill border px-3 py-1 text-xs font-medium',
-                  current ? 'border-ink-900 bg-ink-900 text-white' : reached ? 'border-ink-900/20 bg-ink-900/8 text-ink-800' : 'border-ink-900/10 bg-white text-ink-400',
-                )}
-              >
-                {reached && !current && <Check className="h-3 w-3" />} {stageLabel(s, lead.circuit)}
-              </li>
-            );
-          })}
-        </ol>
+        <div className="rounded-2xl bg-white px-4 py-4 shadow-soft ring-1 ring-ink-900/8 sm:px-6">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-ink-500">
+            Étape {Math.max(railIndex, 0) + 1} sur {RAIL.length}
+          </p>
+          <ol aria-label="Avancement du dossier" className="grid gap-y-3" style={{ gridTemplateColumns: `repeat(${RAIL.length}, minmax(0, 1fr))` }}>
+            {RAIL.map((s, index) => {
+              const current = index === railIndex;
+              const reached = index < railIndex || (lead.stage === 'PAID' && current);
+              return (
+                <li key={s} aria-current={current ? 'step' : undefined} className="relative flex flex-col items-center gap-1.5 text-center">
+                  {index > 0 && <span aria-hidden className={cn('absolute right-1/2 top-3.5 h-0.5 w-full -translate-y-1/2', index <= railIndex ? 'bg-ink-900' : 'bg-ink-900/10')} />}
+                  <span
+                    className={cn(
+                      'relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold tabular-nums',
+                      reached ? 'bg-ink-900 text-white' : current ? 'bg-brand-orange text-white ring-4 ring-brand-orange/20' : 'bg-white text-ink-400 ring-1 ring-ink-900/15',
+                    )}
+                  >
+                    {reached ? <Check className="h-3.5 w-3.5" /> : index + 1}
+                  </span>
+                  <span className={cn('text-[11px] leading-tight sm:text-xs', current ? 'font-semibold text-ink-900' : reached ? 'text-ink-700' : 'hidden text-ink-400 sm:block')}>
+                    {stageLabel(s, lead.circuit)}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       ) : (
         <p className="rounded-xl bg-ink-900/[0.05] px-4 py-2.5 text-sm text-ink-700">
-          Lead clôturé le {dateFr(lead.updatedAt)}
+          Dossier clôturé le {dateFr(lead.updatedAt)}
           {lead.lostReason ? ` — ${lead.lostReason}` : ''}.
         </p>
       )}
 
       {status && (
-        <p
-          role="status"
-          className={cn(
-            'flex items-start gap-2 rounded-xl px-4 py-3 text-sm font-medium',
-            status.tone === 'wait' ? 'bg-amber-50 text-amber-900 ring-1 ring-amber-200' : status.tone === 'done' ? 'bg-green-50 text-green-900 ring-1 ring-green-200' : 'bg-brand-blue/8 text-ink-900 ring-1 ring-brand-blue/20',
+        <div role="status" className={cn('flex items-start gap-3 rounded-2xl px-5 py-4', STATUS_STYLE[status.tone])}>
+          {status.tone === 'wait' ? (
+            <Hourglass className="mt-0.5 h-5 w-5 shrink-0 text-ink-500" />
+          ) : status.tone === 'done' ? (
+            <Check className="mt-0.5 h-5 w-5 shrink-0" />
+          ) : status.tone === 'urgent' ? (
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          ) : (
+            <ArrowRight className="mt-0.5 h-5 w-5 shrink-0" />
           )}
-        >
-          {status.tone === 'wait' ? <Hourglass className="mt-0.5 h-4 w-4 shrink-0" /> : status.tone === 'done' ? <Check className="mt-0.5 h-4 w-4 shrink-0" /> : <ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />}
-          {status.text}
-        </p>
+          <p className="text-sm">
+            <strong className="block font-heading text-base">{status.title}</strong>
+            <span className={status.tone === 'urgent' || status.tone === 'act' ? 'text-white/85' : 'text-ink-600'}>{status.text}</span>
+          </p>
+        </div>
       )}
 
       <ErrorNote message={error} />
@@ -273,7 +297,7 @@ export default function LeadPage() {
 
               {canWrite && !lead.circuit && !closed && (
                 <>
-                  <p className="text-sm text-ink-600">Prenez ce prospect en charge, ou confiez-le directement à un commercial s’il demande un travail commercial.</p>
+                  <p className="text-sm text-ink-600">Prenez ce prospect en charge. Le confier à un commercial est facultatif.</p>
                   {canDelegate || access.manageLeads ? <DispatchControl lead={lead} /> : <p className="text-sm text-ink-500">En attente de l’Office Manager.</p>}
                 </>
               )}
@@ -307,7 +331,7 @@ export default function LeadPage() {
                     </Button>
                     {canDelegate && (
                       <div className="w-full border-t border-ink-900/8 pt-3">
-                        <p className="mb-2 text-xs font-semibold text-ink-500">{lead.circuit === 'SALES_TEAM' ? 'Confier à un autre commercial' : 'Besoin d’un travail commercial ? Confiez-le à un commercial'}</p>
+                        <p className="mb-2 text-xs font-semibold text-ink-500">{lead.circuit === 'SALES_TEAM' ? 'Confier à un autre commercial' : 'Confier à un commercial (facultatif : vous pouvez garder le dossier)'}</p>
                         <AssignControl leadId={lead.id} current={lead.circuit === 'SALES_TEAM' ? lead.salesAgentId : null} />
                       </div>
                     )}
@@ -417,11 +441,11 @@ export default function LeadPage() {
           <Card accent="blue">
             <CardContent className="space-y-3">
               <h2 className="flex items-center gap-2 font-heading text-base font-bold text-ink-900">
-                <GitBranch className="h-4 w-4 text-ink-500" /> Circuit et intervenants
+                <UserRound className="h-4 w-4 text-ink-500" /> Qui suit le dossier
               </h2>
               <dl className="space-y-2.5 text-sm">
                 <Row label="Suivi">{lead.circuit ? CIRCUIT[lead.circuit].label : 'Sans intervenant'}</Row>
-                <Row label="Pipeline">{lead.pipeline ? PIPELINE[lead.pipeline].label : '—'}</Row>
+                <Row label="Origine">{lead.pipeline ? PIPELINE[lead.pipeline].label : '—'}</Row>
                 {lead.salesAgent && (
                   <Row label={lead.handedOverAt ? 'Commercial (closer)' : 'Commercial'}>
                     <span className="flex items-center gap-2">

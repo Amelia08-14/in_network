@@ -73,16 +73,16 @@ export async function getHome(scope: StaffScope) {
   }
   if (scope.manageLeads) {
     // Ne reste que les leads arrivés quand aucun Office Manager n'était actif.
-    queue({ key: 'to_dispatch', group: 'Prospects', label: 'Prospects sans intervenant', hint: 'À prendre en charge ou à confier', href: '/admin/crm/entrants' }, prisma.lead.count({ where: and(scoped, queueWhere('to_dispatch')) }));
+    queue({ key: 'to_dispatch', group: 'Prospects', label: 'Prospects sans intervenant', hint: 'À prendre en charge', href: '/admin/crm/entrants' }, prisma.lead.count({ where: and(scoped, queueWhere('to_dispatch')) }));
   }
   if (scope.officeManager || scope.direction) {
     queue(
-      { key: 'new_leads', group: 'Prospects', label: 'Nouveaux prospects à contacter', hint: 'Les traiter vous-même ou les confier à un commercial', href: '/admin/crm/pipeline?assignee=me', alert: true },
+      { key: 'new_leads', group: 'Prospects', label: 'Nouveaux prospects à appeler', hint: 'Comprendre leur besoin, proposer une visite', href: '/admin/crm/entrants', alert: true },
       prisma.lead.count({ where: { assignedToId: me, circuit: 'OFFICE_MANAGER', stage: 'ASSIGNED' } }),
     );
   }
   if (scope.salesManager || scope.direction) {
-    queue({ key: 'to_assign', group: 'Prospects', label: 'Leads à confier à un commercial', hint: 'Choisir le commercial', href: '/admin/crm/entrants?tab=attribuer' }, prisma.lead.count({ where: and(scoped, queueWhere('to_assign')) }));
+    queue({ key: 'to_assign', group: 'Prospects', label: 'Dossiers confiés à l’équipe', hint: 'Choisir le commercial', href: '/admin/crm/entrants?tab=attribuer' }, prisma.lead.count({ where: and(scoped, queueWhere('to_assign')) }));
     queue(
       { key: 'returned', group: 'Prospects', label: 'Revenus sans réponse', hint: 'Confier à un autre commercial ou clôturer', href: '/admin/crm/entrants?tab=relances', alert: true },
       prisma.lead.count({ where: and(scoped, queueWhere('returned'), { circuit: 'SALES_TEAM' }) }),

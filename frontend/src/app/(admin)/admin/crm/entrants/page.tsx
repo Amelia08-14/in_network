@@ -4,7 +4,7 @@ import { Suspense, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { ClipboardList, Inbox, Lock, Mail, Plus, RotateCcw, UserCheck } from 'lucide-react';
+import { ArrowRight, ClipboardList, Inbox, Lock, Mail, Plus, RotateCcw, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -13,17 +13,19 @@ import { DispatchControl, LoseModal } from '@/components/admin/LeadFlowControls'
 import { LeadFormModal } from '@/components/admin/LeadFormModal';
 import { KindBadge, PageTitle, Pill, PriorityBadge, useCrmAccess } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
-import { CIRCUIT, dateFr, money, originLabel, PIPELINE, staffName, suggestCircuit } from '@/lib/crm';
+import { dateFr, money, originLabel, PIPELINE, staffName } from '@/lib/crm';
 import { cn } from '@/lib/utils';
 import type { LeadListItem } from '@/types/crm';
 
-// Entrée des prospects (phase 1 du processus v1.3). Tous les leads arrivent
-// « Lead enregistré » ; la question d'aiguillage décide du circuit :
-//   circuit 1 — la Sales Team (le responsable commercial attribue à un
-//   sédentaire ou un terrain) ; circuit 2 — l'Office Manager en direct.
-// Le responsable commercial retrouve ici aussi les leads revenus sans réponse.
+// Nouveaux prospects. Depuis le 22/11/2026 chaque prospect arrive chez
+// l'Office Manager ; retour du 24/11/2026 : c'est elle qui gère, la répartition
+// sur les commerciaux n'est PAS obligatoire. La page est donc sa file des
+// nouveaux arrivés à traiter ; confier à un commercial reste une option
+// repliée. Les files « commercial à choisir » (dossiers confiés à l'équipe
+// sans commercial) et « revenus sans réponse » n'apparaissent que lorsqu'elles
+// contiennent quelque chose.
 
-type Tab = 'aiguiller' | 'attribuer' | 'relances';
+type Tab = 'nouveaux' | 'attribuer' | 'relances';
 
 const WORKING = ['ASSIGNED', 'QUALIFIED', 'FOLLOW_UP'];
 
@@ -66,7 +68,8 @@ function IncomingLeads() {
   const pathname = usePathname();
   const params = useSearchParams();
   const canAttribute = access.salesManager || access.direction;
-  const tab = (params.get('tab') as Tab | null) ?? 'aiguiller';
+  const requested = params.get('tab');
+  const tab: Tab = requested === 'attribuer' || requested === 'relances' ? requested : 'nouveaux';
   const [creating, setCreating] = useState(false);
   const [closing, setClosing] = useState<string | null>(null);
 
@@ -76,7 +79,7 @@ function IncomingLeads() {
     enabled: access.manageLeads,
   });
 
-  const { toDispatch, toAssign, returned, workload } = useMemo(() => {
+  const { fresh, toAssign, returned, workload } = useMemo(() => {
     const load = new Map<string, number>();
     const oldestFirst = (a: LeadListItem, b: LeadListItem) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     const all = leads ?? [];
@@ -84,7 +87,11 @@ function IncomingLeads() {
       if (lead.salesAgentId && WORKING.includes(lead.stage) && !lead.handedOverAt) load.set(lead.salesAgentId, (load.get(lead.salesAgentId) ?? 0) + 1);
     }
     return {
-      toDispatch: all.filter((l) => !l.circuit && !['PAID', 'LOST'].includes(l.stage)).sort(oldestFirst),
+      // Arrivés et pas encore traités : sans intervenant, ou « Pris en charge »
+      // par l'Office Manager sans qualification ni relance encore.
+      fresh: all
+        .filter((l) => (!l.circuit && !['PAID', 'LOST'].includes(l.stage)) || (l.circuit === 'OFFICE_MANAGER' && l.stage === 'ASSIGNED' && !l.followUpReturnedAt))
+        .sort(oldestFirst),
       toAssign: all.filter((l) => l.circuit === 'SALES_TEAM' && l.stage === 'REGISTERED' && !l.salesAgentId).sort(oldestFirst),
       returned: all.filter((l) => l.followUpReturnedAt && !['PAID', 'LOST'].includes(l.stage) && (canAttribute ? l.circuit === 'SALES_TEAM' : l.circuit === 'OFFICE_MANAGER')),
       workload: load,
@@ -94,11 +101,11 @@ function IncomingLeads() {
   if (!access.manageLeads) {
     return (
       <div className="space-y-6">
-        <PageTitle hue="blue" title="Prospects à répartir" />
+        <PageTitle hue="blue" title="Nouveaux prospects" />
         <EmptyState
           icon={Lock}
-          title="Réservé au responsable commercial et à l’Office Manager"
-          description="La répartition des leads leur revient. Vos leads sont dans le pipeline."
+          title="Réservé à l’Office Manager et au responsable commercial"
+          description="Les nouveaux prospects arrivent chez l’Office Manager. Vos dossiers sont dans le pipeline."
           action={
             <Link href="/admin/crm/pipeline?assignee=me" className="text-sm font-semibold text-brand-blue hover:underline">
               Ouvrir mon pipeline
@@ -110,9 +117,9 @@ function IncomingLeads() {
   }
 
   const tabs: { key: Tab; label: string; count: number; icon: typeof Inbox; show: boolean }[] = [
-    { key: 'aiguiller', label: 'Sans intervenant', count: toDispatch.length, icon: Inbox, show: true },
-    { key: 'attribuer', label: 'Commercial à désigner', count: toAssign.length, icon: UserCheck, show: canAttribute },
-    { key: 'relances', label: 'Revenus sans réponse', count: returned.length, icon: RotateCcw, show: true },
+    { key: 'nouveaux', label: 'À traiter', count: fresh.length, icon: Inbox, show: true },
+    { key: 'attribuer', label: 'Commercial à choisir', count: toAssign.length, icon: UserCheck, show: canAttribute && (toAssign.length > 0 || tab === 'attribuer') },
+    { key: 'relances', label: 'Revenus sans réponse', count: returned.length, icon: RotateCcw, show: returned.length > 0 || tab === 'relances' },
   ];
   const go = (key: Tab) => router.replace(`${pathname}?tab=${key}`);
 
@@ -120,8 +127,8 @@ function IncomingLeads() {
     <div className="space-y-6">
       <PageTitle
         hue="blue"
-        title="Prospects à répartir"
-        description="Les nouveaux prospects arrivent directement chez l’Office Manager. Ici ne restent que ceux sans intervenant (aucune Office Manager active à leur arrivée), ceux qui attendent un commercial et ceux revenus sans réponse."
+        title="Nouveaux prospects"
+        description="Chaque nouveau prospect arrive chez l’Office Manager, qui le traite elle-même : appel, besoin, visite, devis. Le confier à un commercial est possible, jamais obligatoire. Un prospect quitte cette liste dès qu’il est qualifié ou relancé."
         actions={
           <>
             <Link href="/admin/services-demandes" className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900">
@@ -157,18 +164,35 @@ function IncomingLeads() {
 
       {isLoading ? (
         <p className="text-sm text-ink-500">Chargement…</p>
-      ) : tab === 'aiguiller' ? (
-        toDispatch.length === 0 ? (
-          <EmptyState icon={Inbox} title="Aucun prospect sans intervenant" description="Les inscriptions, demandes de devis, messages et recommandations vont directement chez l’Office Manager." className="py-12" />
+      ) : tab === 'nouveaux' ? (
+        fresh.length === 0 ? (
+          <EmptyState icon={Inbox} title="Aucun nouveau prospect à traiter" description="Les inscriptions, demandes de devis, messages et recommandations arrivent ici, chez l’Office Manager." className="py-12" />
         ) : (
           <ul className="grid gap-4 xl:grid-cols-2">
-            {toDispatch.map((lead) => (
+            {fresh.map((lead) => (
               <li key={lead.id}>
                 <LeadCard lead={lead} accent="orange">
-                  <p className="text-xs text-ink-500">
-                    Circuit suggéré d’après le canal : <strong className="text-ink-800">{CIRCUIT[suggestCircuit(lead)].label}</strong>
-                  </p>
-                  <DispatchControl lead={lead} compact />
+                  {!lead.circuit ? (
+                    <>
+                      <p className="text-xs text-ink-500">Aucune Office Manager active à son arrivée : prenez-le en charge.</p>
+                      <DispatchControl lead={lead} compact />
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs text-ink-500">Suivi par {staffName(lead.assignedTo)}</p>
+                        <Link href={`/admin/crm/leads/${lead.id}`} className="inline-flex items-center gap-1.5 rounded-pill bg-ink-900 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-ink-800">
+                          Traiter le prospect <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                      <details className="rounded-lg bg-ink-900/[0.03] px-3 py-2">
+                        <summary className="cursor-pointer text-xs font-semibold text-ink-600">Confier à un commercial (facultatif)</summary>
+                        <div className="pt-2">
+                          <AssignControl leadId={lead.id} current={null} workload={workload} />
+                        </div>
+                      </details>
+                    </>
+                  )}
                 </LeadCard>
               </li>
             ))}
@@ -176,7 +200,7 @@ function IncomingLeads() {
         )
       ) : tab === 'attribuer' ? (
         toAssign.length === 0 ? (
-          <EmptyState icon={UserCheck} title="Aucun lead en attente d’un commercial" description="Les leads confiés à l’équipe commerciale sans commercial désigné attendent ici." className="py-12" />
+          <EmptyState icon={UserCheck} title="Aucun dossier en attente d’un commercial" description="Un dossier confié à l’équipe commerciale sans commercial désigné attendrait ici." className="py-12" />
         ) : (
           <ul className="grid gap-4 xl:grid-cols-2">
             {toAssign.map((lead) => (

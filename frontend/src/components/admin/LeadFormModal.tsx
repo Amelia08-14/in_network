@@ -79,7 +79,7 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
   const circuitChoices: { value: CircuitChoice; label: string; hint: string }[] = access.officeManager
     ? [
         { value: 'OFFICE_MANAGER', label: 'Je le prends en charge', hint: 'Vous le suivez vous-même' },
-        { value: 'SALES_TEAM', label: 'Le confier à l’équipe commerciale', hint: 'Demande un travail commercial' },
+        { value: 'SALES_TEAM', label: 'Le confier à un commercial', hint: 'Facultatif' },
       ]
     : [
         { value: 'SALES_TEAM', label: 'Équipe commerciale', hint: 'Prospection, lead à travailler' },

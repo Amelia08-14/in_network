@@ -50,13 +50,14 @@ export type NavEntry = AdminNavItem & {
 // commissions, et enfin le pilotage, le contenu du site et le système.
 export const NAV_ITEMS: NavEntry[] = [
   // Administrateurs : « /admin » est le tableau de bord de la Direction (libellé
-  // remplacé dans le layout) et « Ma journée » a sa propre page.
+  // remplacé dans le layout). Retour du 24/11/2026 : l'administration consulte,
+  // elle n'a pas de « Ma journée » (files d'attente de travail) ; les autres
+  // profils gardent « Ma journée » comme page d'accueil.
   { href: '/admin', label: 'Ma journée', icon: Sun, alwaysVisible: true, section: 'Accueil' },
-  { href: '/admin/ma-journee', label: 'Ma journée', icon: Sun, superOnly: true, section: 'Accueil' },
   // Prospects : du lead entrant à la visite confirmée
   // Depuis le 22/11/2026 les prospects vont directement chez l'Office Manager :
-  // cette page ne garde que les leads sans intervenant et ceux à confier.
-  { href: '/admin/crm/entrants', alsoMatch: ['/admin/services-demandes', '/admin/contact'], label: 'Prospects à répartir', icon: Inbox, resource: 'crm', manageLeadsOnly: true, section: 'Prospects' },
+  // c'est sa file des nouveaux arrivés (confier à un commercial est facultatif).
+  { href: '/admin/crm/entrants', alsoMatch: ['/admin/services-demandes', '/admin/contact'], label: 'Nouveaux prospects', icon: Inbox, resource: 'crm', manageLeadsOnly: true, section: 'Prospects' },
   { href: '/admin/crm/pipeline', alsoMatch: ['/admin/crm/leads'], label: 'Pipeline', icon: KanbanSquare, resource: 'crm', section: 'Prospects' },
   { href: '/admin/crm/agenda', label: 'Agenda', icon: CalendarClock, resource: 'crm', section: 'Prospects' },
   { href: '/admin/crm/activite', label: 'Journal d’activité', icon: NotebookPen, resource: 'crm', section: 'Prospects' },

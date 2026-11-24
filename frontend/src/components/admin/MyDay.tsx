@@ -2,13 +2,12 @@
 
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, CalendarClock, CheckCircle2, Coins, Inbox, PackageCheck, Receipt, ShieldCheck, Target } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, Coins, Inbox, ListChecks, PackageCheck, Receipt, ShieldCheck, Target } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageTitle, Pill } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
 import { APPOINTMENT_LABEL, dateTimeFr } from '@/lib/crm';
-import { HUE, type Hue } from '@/lib/palette';
 import { cn } from '@/lib/utils';
 import { useAdminAuthStore } from '@/store/admin-auth';
 import type { HomeData, HomeQueue, PilotageKpi } from '@/types/crm';
@@ -18,12 +17,12 @@ import type { HomeData, HomeQueue, PilotageKpi } from '@/types/crm';
 // l'API selon ses droits), puis son agenda du jour et, pour la Direction et le
 // responsable commercial, les indicateurs de pilotage face aux objectifs.
 
-const GROUPS: { key: HomeQueue['group']; title: string; hue: Hue; icon: LucideIcon }[] = [
-  { key: 'Prospects', title: 'Prospects', hue: 'blue', icon: Inbox },
-  { key: 'Ventes', title: 'Ventes', hue: 'orange', icon: Receipt },
-  { key: 'Clients', title: 'Clients', hue: 'green', icon: PackageCheck },
-  { key: 'Commissions', title: 'Commissions', hue: 'amber', icon: Coins },
-];
+const GROUP_ICON: Record<HomeQueue['group'], LucideIcon> = {
+  Prospects: Inbox,
+  Ventes: Receipt,
+  Clients: PackageCheck,
+  Commissions: Coins,
+};
 
 const KPI_TONE: Record<PilotageKpi['status'], string> = {
   good: 'text-green-700',
@@ -94,41 +93,46 @@ export function MyDay() {
                 </CardContent>
               </Card>
             )}
-            <div className="grid gap-6 md:grid-cols-2">
-              {GROUPS.map((group) => {
-                const items = queues.filter((q) => q.group === group.key);
-                if (items.length === 0) return null;
-                return (
-                  <Card key={group.key} accent={group.hue === 'amber' ? 'yellow' : group.hue === 'gray' ? 'none' : (group.hue as 'blue' | 'orange' | 'green')}>
-                    <CardContent className="space-y-3">
-                      <h2 className="flex items-center gap-2 font-heading text-base font-bold text-ink-900">
-                        <group.icon className={cn('h-4 w-4', HUE[group.hue].text)} /> {group.title}
-                      </h2>
-                      <ul className="divide-y divide-ink-900/8">
-                        {items.map((q) => (
-                          <li key={q.key}>
-                            <Link href={q.href} className="group flex items-center justify-between gap-4 py-3">
-                              <span className="min-w-0">
-                                <span className="block text-sm font-medium text-ink-900 group-hover:text-brand-blue">{q.label}</span>
-                                <span className="block text-xs text-ink-500">{q.hint}</span>
+            {/* Retour du 24/11/2026 : seulement ce qui attend vraiment une action,
+                l'urgent d'abord ; plus de compteurs à zéro ni de blocs par thème. */}
+            {[
+              { key: 'urgent', title: 'Urgent', items: pending.filter((q) => q.alert && q.key !== 'approvals'), hue: 'orange' as const },
+              { key: 'todo', title: 'À faire', items: pending.filter((q) => !q.alert && q.key !== 'approvals'), hue: 'ink' as const },
+            ].map((block) =>
+              block.items.length === 0 ? null : (
+                <section key={block.key} aria-labelledby={`myday-${block.key}`} className="space-y-2">
+                  <h2 id={`myday-${block.key}`} className={cn('flex items-center gap-2 font-heading text-base font-bold', block.hue === 'orange' ? 'text-brand-orange' : 'text-ink-900')}>
+                    {block.hue === 'orange' ? <AlertTriangle className="h-4 w-4" /> : <ListChecks className="h-4 w-4" />} {block.title}
+                  </h2>
+                  <ul className="overflow-hidden rounded-2xl bg-white shadow-soft ring-1 ring-ink-900/8">
+                    {block.items.map((q) => {
+                      const Icon = GROUP_ICON[q.group];
+                      return (
+                        <li key={q.key} className="border-b border-ink-900/8 last:border-b-0">
+                          <Link href={q.href} className="group flex items-center gap-4 px-4 py-3.5 hover:bg-ink-900/[0.03]">
+                            <span
+                              className={cn(
+                                'flex h-9 min-w-9 items-center justify-center rounded-full px-2 font-heading text-sm font-bold tabular-nums',
+                                block.hue === 'orange' ? 'bg-brand-orange text-white' : 'bg-ink-900 text-white',
+                              )}
+                            >
+                              {q.count}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-semibold text-ink-900">{q.label}</span>
+                              <span className="flex items-center gap-1.5 text-xs text-ink-500">
+                                <Icon className="h-3.5 w-3.5" /> {q.hint}
                               </span>
-                              <span
-                                className={cn(
-                                  'inline-flex min-w-9 justify-center rounded-pill px-2.5 py-0.5 font-heading text-sm font-bold tabular-nums',
-                                  q.count === 0 ? 'bg-ink-900/5 text-ink-400' : q.alert ? 'bg-brand-orange/12 text-brand-orange' : 'bg-ink-900/8 text-ink-900',
-                                )}
-                              >
-                                {q.count}
-                              </span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                            </span>
+                            <ArrowRight className="h-4 w-4 shrink-0 text-ink-400 transition-transform group-hover:translate-x-0.5 group-hover:text-ink-900" />
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ),
+            )}
 
             {data.kpis && (
               <section aria-labelledby="pilotage-title" className="space-y-3">

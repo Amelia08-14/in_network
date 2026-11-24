@@ -17,7 +17,6 @@ import {
   FileText,
   Minus,
   ShieldCheck,
-  Sun,
   Target,
   TrendingUp,
   UserPlus,
@@ -35,7 +34,7 @@ import type { ComparedValue, Overview, OverviewPeriod } from '@/types/crm';
 
 // Tableau de bord de la Direction (retours du 22/11/2026 : « un vrai dashboard
 // d'admin principal, des chiffres et interactif pour une visibilité globale »).
-// Page d'accueil des administrateurs ; « Ma journée » reste dans le menu.
+// Page d'accueil des administrateurs, en consultation : pas de « Ma journée » pour eux (retour du 24/11/2026).
 //
 // Lecture : d'abord ce qui bloque (alertes cliquables), puis les chiffres de la
 // période comparés à la période précédente de même durée, la situation à
@@ -116,9 +115,6 @@ export function DirectionDashboard() {
                 </button>
               ))}
             </div>
-            <Link href="/admin/ma-journee" className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900">
-              <Sun className="h-4 w-4" /> Ma journée
-            </Link>
           </div>
         }
       />

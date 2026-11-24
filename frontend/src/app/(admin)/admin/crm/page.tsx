@@ -78,7 +78,9 @@ export default function CrmDashboardPage() {
       {access.manageLeads && (
         <div className="grid gap-4 sm:grid-cols-2">
           <Kpi hue="orange" icon={Inbox} label="Leads sans intervenant" value={String(kpis.toDispatch)} hint="Normalement remis à l’Office Manager" href="/admin/crm/entrants" tone={kpis.toDispatch ? 'alert' : undefined} />
-          <Kpi hue="blue" icon={UserCheck} label="Leads à confier" value={String(kpis.toAssign)} hint="En attente d’un commercial" href="/admin/crm/entrants?tab=attribuer" />
+          {/* Confier à un commercial est facultatif (retour du 24/11/2026) : la
+              tuile n'apparaît que si un dossier attend vraiment un commercial. */}
+          {kpis.toAssign > 0 && <Kpi hue="blue" icon={UserCheck} label="Dossiers confiés à l’équipe" value={String(kpis.toAssign)} hint="Commercial à choisir" href="/admin/crm/entrants?tab=attribuer" />}
         </div>
       )}
 

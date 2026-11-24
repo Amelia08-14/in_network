@@ -1,9 +1,7 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import { MyDay } from '@/components/admin/MyDay';
-
-// « Ma journée » des administrateurs : leurs files d'attente personnelles,
-// à côté du tableau de bord de la Direction (page d'accueil /admin).
+// L'administration consulte le tableau de bord ; elle n'a plus de « Ma journée »
+// (retour du 24/11/2026). L'ancienne adresse renvoie au tableau de bord.
 export default function MyDayPage() {
-  return <MyDay />;
+  redirect('/admin');
 }
