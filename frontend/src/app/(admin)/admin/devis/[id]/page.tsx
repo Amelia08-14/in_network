@@ -181,7 +181,7 @@ function QuoteEditor({ quote }: { quote: QuoteDetail }) {
             )}
             {((editable && !needsApproval) || quote.status === 'SENT') && (
               <Button disabled={busy || lines.length === 0} onClick={() => send.mutate()}>
-                <Mail className="h-4 w-4" /> {quote.status === 'SENT' ? 'Renvoyer au client' : 'Envoyer au client'}
+                <Mail className="h-4 w-4" /> {send.isPending ? 'Envoi en cours…' : quote.status === 'SENT' ? 'Renvoyer au client' : 'Envoyer au client'}
               </Button>
             )}
           </div>

@@ -26,7 +26,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { PageTitle } from '@/components/admin/crm-ui';
+import { errorMessage, PageTitle } from '@/components/admin/crm-ui';
 import { api } from '@/lib/admin-api';
 import { money } from '@/lib/crm';
 import { cn } from '@/lib/utils';
@@ -85,7 +85,7 @@ export function DirectionDashboard() {
     }
   };
 
-  const { data, isLoading, isError, isFetching } = useQuery({
+  const { data, isLoading, isError, error, isFetching, refetch } = useQuery({
     queryKey: ['direction-overview', period],
     queryFn: () => api.get<{ data: Overview }>(`/api/admin/crm/overview?period=${period}`).then((r) => r.data),
     refetchInterval: 120_000,
@@ -124,7 +124,16 @@ export function DirectionDashboard() {
       />
 
       {isLoading && <p className="text-sm text-ink-500">Chargement des chiffres…</p>}
-      {isError && <p className="text-sm text-brand-orange">Le tableau de bord n’a pas pu être chargé. Réessayez dans un instant.</p>}
+      {isError && (
+        // Le message du serveur est affiché tel quel (retour du 24/11/2026 :
+        // « ne se charge pas » sans indice sur la cause).
+        <p className="text-sm text-brand-orange">
+          Le tableau de bord n’a pas pu être chargé ({errorMessage(error)}).{' '}
+          <button type="button" className="font-semibold underline underline-offset-2" onClick={() => refetch()}>
+            Réessayer
+          </button>
+        </p>
+      )}
 
       {data && (
         <div className={cn('space-y-8 transition-opacity', isFetching && 'opacity-70')} aria-busy={isFetching}>

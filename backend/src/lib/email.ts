@@ -15,30 +15,55 @@ interface SendEmailInput {
   attachments?: EmailAttachment[];
 }
 
-// Pool + timeouts courts : le serveur SMTP de l'hébergeur est parfois lent à
-// répondre (connexion TCP qui traîne) — sans ça une requête d'inscription/
-// reset restait accrochée ~20s avant d'échouer.
+// Timeouts courts : le serveur SMTP de l'hébergeur est parfois lent à répondre
+// (connexion TCP qui traîne) — sans ça une requête d'inscription/reset restait
+// accrochée ~20s avant d'échouer.
+//
+// Retour de l'Office Manager (24/11/2026) : « il faut cliquer plusieurs fois
+// sur Renvoyer le devis pour que ça passe ». Cause : le transport était en
+// `pool` — la connexion SMTP gardée ouverte entre deux envois est fermée par
+// le serveur de l'hébergeur au bout de quelques minutes d'inactivité, et le
+// premier envoi suivant partait sur ce socket mort (échec), le second ouvrait
+// une connexion neuve (succès). Désormais : une connexion neuve par e-mail
+// (le volume est faible) et jusqu'à 3 tentatives sur les erreurs passagères.
 function createSmtpTransporter() {
   return nodemailer.createTransport({
     host: env.smtp.host,
     port: env.smtp.port,
     secure: env.smtp.secure,
     auth: { user: env.smtp.user, pass: env.smtp.pass },
-    pool: true,
-    maxConnections: 3,
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 15_000,
+    connectionTimeout: 15_000,
+    greetingTimeout: 15_000,
+    // Un devis ou une facture part avec son PDF : on laisse le temps au
+    // serveur d'accepter la pièce jointe.
+    socketTimeout: 30_000,
   });
 }
 
-let transporter: ReturnType<typeof createSmtpTransporter> | undefined;
+/** Erreurs d'authentification / d'adresse : inutile de réessayer. */
+function isPermanentSmtpError(err: unknown) {
+  const e = err as { responseCode?: number; code?: string };
+  return e?.code === 'EAUTH' || e?.code === 'EENVELOPE' || (typeof e?.responseCode === 'number' && e.responseCode >= 500);
+}
 
-function getTransporter(): ReturnType<typeof createSmtpTransporter> {
-  if (!transporter) {
-    transporter = createSmtpTransporter();
+async function sendViaSmtp(message: Parameters<ReturnType<typeof createSmtpTransporter>['sendMail']>[0]) {
+  const attempts = 3;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const transporter = createSmtpTransporter();
+    try {
+      await transporter.sendMail(message);
+      return;
+    } catch (err) {
+      lastError = err;
+      if (isPermanentSmtpError(err) || attempt === attempts) break;
+      console.warn(`[email] tentative ${attempt}/${attempts} échouée, nouvel essai`, err instanceof Error ? err.message : err);
+      await new Promise((resolve) => setTimeout(resolve, 1_000 * attempt));
+    } finally {
+      transporter.close();
+    }
   }
-  return transporter;
+  throw lastError;
 }
 
 // Fournisseur email transactionnel : SMTP (compte hébergeur, cf. CDC §9)
@@ -50,7 +75,7 @@ export async function sendEmail({ to, subject, html, attachments }: SendEmailInp
   // Charte graphique IN NETWORK appliquée à tous les e-mails (cf. emailLayout.ts).
   const document = renderEmail({ subject, html });
   if (env.smtp.host && env.smtp.user && env.smtp.pass) {
-    await getTransporter().sendMail({ from: env.emailFrom, to, subject, html: document, attachments });
+    await sendViaSmtp({ from: env.emailFrom, to, subject, html: document, attachments });
     return;
   }
 

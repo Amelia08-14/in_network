@@ -20,7 +20,8 @@
     "sectors:migrate": "tsx prisma/migrate-sectors.ts",
     "emails:preview": "tsx prisma/preview-emails.ts",
     "matching:diagnostic": "tsx prisma/matching-diagnostic.ts",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "crm:reset": "tsx prisma/crm-reset.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -34,6 +35,7 @@
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "express-rate-limit": "^7.4.0",
     "heic-convert": "^2.1.0",

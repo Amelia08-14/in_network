@@ -11,3 +11,6 @@ src/generated/
 
 # Justificatifs de paiement des membres (jamais commités ni servis en statique)
 /private-uploads/
+
+# Sauvegardes du CRM (données clients : jamais commitées)
+/backups/

@@ -1,0 +1,428 @@
+<title>Parcours IN NETWORK</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout : une colonne de lecture ; le parcours en couloirs (phases × acteurs) défile seul à l'horizontale. */
+:root {
+  --night: #001042;
+  --beige: #f4ece1;
+  --paper: #fbf8f3;
+  --ink: #141a2e;
+  --muted: #5b6175;
+  --line: #e2d8c9;
+  --orange: #d44835;
+  --blue: #2a5bd7;
+  --violet: #6a4bc4;
+  --card: #ffffff;
+  --chip: #ece3d6;
+  --on-night: #f4ece1;
+  --display: "Roboto Slab", Georgia, serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --night: #0a1a5c; --beige: #1d2233; --paper: #11141f; --ink: #ece6dc; --muted: #a3a8b8; --line: #2c3246;
+    --orange: #e8644f; --blue: #6f97ff; --violet: #a88cf0; --card: #181c2a; --chip: #232a3d; --on-night: #f4ece1;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --night: #0a1a5c; --beige: #1d2233; --paper: #11141f; --ink: #ece6dc; --muted: #a3a8b8; --line: #2c3246;
+  --orange: #e8644f; --blue: #6f97ff; --violet: #a88cf0; --card: #181c2a; --chip: #232a3d; --on-night: #f4ece1;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.55 var(--body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 0 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+p { margin: 0; }
+
+.hero { background: var(--night); color: var(--on-night); margin-top: calc(-1 * env(safe-area-inset-top, 0px)); padding-top: calc(env(safe-area-inset-top, 0px) + 40px); padding-bottom: 36px; }
+.hero .wrap { padding-block: 0; display: grid; gap: 14px; }
+.eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .75; }
+.hero h1 { font-size: clamp(28px, 4.4vw, 42px); font-weight: 700; }
+.hero p { max-width: 68ch; opacity: .9; }
+.hero .rule { width: 44px; height: 4px; background: var(--orange); }
+
+section { display: grid; gap: 18px; padding-top: 44px; }
+section > header { display: grid; gap: 6px; max-width: 72ch; }
+section h2 { font-size: 24px; color: var(--night); }
+:root[data-theme="dark"] section h2 { color: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) section h2 { color: var(--ink); } }
+.lead { color: var(--muted); }
+
+/* Frise des étapes du dossier */
+.stages { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.stage { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; background: var(--chip); font-weight: 500; font-size: 14px; }
+.stage b { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); font-weight: 600; }
+.stage.win { background: var(--orange); color: #fff; }
+.stage.win b { color: #fff; opacity: .85; }
+.stage.lost { background: transparent; border: 1px dashed var(--muted); color: var(--muted); }
+.arrow { color: var(--muted); }
+.note { font-size: 13px; color: var(--muted); }
+
+/* Couloirs */
+.lanes-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+table.lanes { border-collapse: collapse; width: 100%; min-width: 1040px; font-size: 13.5px; }
+.lanes th, .lanes td { border-bottom: 1px solid var(--line); padding: 12px 12px; vertical-align: top; text-align: left; }
+.lanes thead th { background: var(--night); color: var(--on-night); font-weight: 600; font-size: 13px; position: sticky; top: 0; }
+.lanes thead th small { display: block; font-weight: 400; opacity: .75; }
+.lanes tbody th { width: 170px; background: var(--beige); font-weight: 600; }
+.lanes tbody th .n { display: block; font-family: var(--display); font-size: 20px; color: var(--orange); line-height: 1.1; }
+.lanes tbody th .st { display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 999px; background: var(--chip); }
+.lanes td ul { margin: 0; padding-left: 16px; display: grid; gap: 4px; }
+.lanes td.empty { color: var(--line); }
+.lanes td.auto { background: color-mix(in srgb, var(--blue) 7%, var(--card)); }
+.lanes td.key { box-shadow: inset 3px 0 0 var(--orange); }
+.lanes tr:last-child th, .lanes tr:last-child td { border-bottom: 0; }
+
+/* Règles */
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.rule-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 8px; align-content: start; }
+.rule-card h3 { font-size: 16px; }
+.rule-card ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--chip); }
+
+/* Rôles */
+.roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.role { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; }
+.role .who { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.role h3 { font-size: 17px; }
+.role .sees { font-size: 12px; font-weight: 600; color: var(--blue); }
+.role ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.role .no { color: var(--muted); font-size: 13px; }
+.role.om { border-color: var(--orange); box-shadow: inset 0 3px 0 var(--orange); }
+
+/* Droits */
+.perm-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+table.perm { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.perm th, .perm td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: center; }
+.perm th:first-child, .perm td:first-child { text-align: left; }
+.perm thead th { background: var(--beige); font-weight: 600; }
+.perm tr:last-child td { border-bottom: 0; }
+.w { color: var(--orange); font-weight: 600; }
+.r { color: var(--blue); font-weight: 500; }
+.x { color: var(--muted); }
+
+/* Espace client */
+.client { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.client div { background: var(--beige); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; }
+.client strong { font-family: var(--display); font-weight: 500; font-size: 15px; }
+.client span { font-size: 13.5px; color: var(--muted); }
+
+footer { padding-top: 40px; color: var(--muted); font-size: 12.5px; }
+</style>
+
+<div class="hero">
+  <div class="wrap">
+    <span class="rule"></span>
+    <span class="eyebrow">IN NETWORK · CRM · parcours en vigueur depuis le 22/11/2026</span>
+    <h1>Du premier contact au service livré</h1>
+    <p>Ce que vit le client, et ce que fait chaque membre de l’équipe à chaque étape. Tout nouveau prospect arrive chez l’Office Manager, qui le traite ou le confie à un commercial. Les schémas décrivent le fonctionnement réel de la plateforme.</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+<section>
+  <header>
+    <h2>Les étapes d’un dossier</h2>
+    <p class="lead">C’est la frise affichée sur chaque fiche prospect et dans le pipeline. Le dossier avance tout seul avec les documents : envoyer le devis le passe à « Devis envoyé », l’acceptation du client à « Devis accepté », l’enregistrement du paiement à « Payé ».</p>
+  </header>
+  <div class="stages" aria-label="Étapes du dossier">
+    <span class="stage"><b>1</b>Nouveau</span><span class="arrow">→</span>
+    <span class="stage"><b>2</b>Pris en charge / Confié à un commercial</span><span class="arrow">→</span>
+    <span class="stage"><b>3</b>Besoin identifié</span><span class="arrow">→</span>
+    <span class="stage"><b>4</b>Relance</span><span class="arrow">→</span>
+    <span class="stage"><b>5</b>Visite prévue</span><span class="arrow">→</span>
+    <span class="stage"><b>6</b>Devis envoyé</span><span class="arrow">→</span>
+    <span class="stage"><b>7</b>Devis accepté</span><span class="arrow">→</span>
+    <span class="stage win"><b>8</b>Payé</span>
+    <span class="stage lost">Perdu (à tout moment, avec un motif)</span>
+  </div>
+  <p class="note">« Relance » est facultative : on y passe quand le client ne répond pas. Un dossier perdu peut être rouvert.</p>
+</section>
+
+<section>
+  <header>
+    <h2>Le parcours, acteur par acteur</h2>
+    <p class="lead">Chaque ligne est une phase, chaque colonne un acteur. La colonne bleutée liste ce que la plateforme fait seule. Le trait orange marque le geste qui fait avancer le dossier.</p>
+  </header>
+  <div class="lanes-scroll" tabindex="0" aria-label="Parcours en couloirs, défilable horizontalement">
+    <table class="lanes">
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>Client<small>site et espace membre</small></th>
+          <th>Office Manager<small>reçoit tous les prospects</small></th>
+          <th>Commercial<small>dossiers qui lui sont confiés</small></th>
+          <th>Responsable commercial · Direction<small>validations et pilotage</small></th>
+          <th>Plateforme<small>automatique</small></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th><span class="n">1</span>Premier contact<span class="st">Nouveau</span></th>
+          <td class="key"><ul>
+            <li>Demande un devis sur le site (panier de services).</li>
+            <li>Ou crée son compte (indépendant·e ou entreprise), écrit via le formulaire de contact, est recommandé par un membre, ou remplit un formulaire publicitaire.</li>
+          </ul></td>
+          <td><ul><li>Reçoit la notification « Nouveau prospect ».</li><li>Peut aussi saisir un prospect à la main (appel, visite spontanée).</li></ul></td>
+          <td class="empty">—</td>
+          <td class="empty">—</td>
+          <td class="auto"><ul>
+            <li>Crée la fiche prospect et la remet à l’Office Manager (la moins chargée s’il y en a plusieurs).</li>
+            <li>Un contact déjà suivi n’ouvre pas de seconde fiche : la demande est ajoutée à sa fiche.</li>
+            <li>Note l’origine (site, réseau social, campagne).</li>
+          </ul></td>
+        </tr>
+        <tr>
+          <th><span class="n">2</span>Prise en charge<span class="st">Pris en charge</span></th>
+          <td><ul><li>Est rappelé par l’équipe.</li><li>S’il a un compte : il voit seulement « Devis et factures » et « Mon profil » tant qu’il n’a pas payé.</li></ul></td>
+          <td class="key"><ul>
+            <li>Appelle le prospect, consigne l’échange dans le journal.</li>
+            <li>Décide : traite elle-même, ou <strong>confie à un commercial</strong> en un clic depuis la fiche (motif facultatif).</li>
+            <li>Peut reprendre un dossier confié.</li>
+          </ul></td>
+          <td><ul><li>Reçoit la notification du dossier confié (« Confié à un commercial »).</li><li>Ne voit que ses propres dossiers.</li></ul></td>
+          <td><ul><li>Le responsable commercial peut lui aussi confier ou réattribuer un dossier.</li></ul></td>
+          <td class="auto"><ul><li>Si l’on retire le commercial, le dossier revient à l’Office Manager.</li></ul></td>
+        </tr>
+        <tr>
+          <th><span class="n">3</span>Besoin et relances<span class="st">Besoin identifié · Relance</span></th>
+          <td><ul><li>Précise son besoin, son budget, son délai.</li></ul></td>
+          <td class="key" colspan="2"><ul>
+            <li>Celui qui suit le dossier le qualifie : besoin, budget, décideur, délai, priorité (froid / tiède / chaud), offre pressentie.</li>
+            <li>Note chaque relance quand le client ne répond pas.</li>
+            <li>Programme la prochaine action (rappel dans « Ma journée »).</li>
+          </ul></td>
+          <td><ul><li>Suit le pipeline ; le responsable commercial voit tous les dossiers de l’équipe.</li></ul></td>
+          <td class="auto"><ul>
+            <li>Alerte quand l’action prévue arrive à échéance, et quand un dossier n’a pas bougé depuis plusieurs jours.</li>
+            <li>Au-delà du nombre de relances fixé dans les paramètres, le dossier remonte pour être réattribué ou clos.</li>
+          </ul></td>
+        </tr>
+        <tr>
+          <th><span class="n">4</span>Visite<span class="st">Visite prévue</span></th>
+          <td><ul><li>Visite les espaces, fait une visio ou une journée d’essai.</li></ul></td>
+          <td><ul><li>Reçoit la visite dans son agenda.</li><li>Récupère le dossier si un commercial le suivait.</li></ul></td>
+          <td class="key"><ul><li>Confirme la visite (date, lieu, type) : le dossier est <strong>transmis à l’Office Manager</strong>, qui est prévenue.</li></ul></td>
+          <td class="empty">—</td>
+          <td class="auto"><ul><li>Crée le rendez-vous dans l’agenda et envoie un rappel avant la visite.</li></ul></td>
+        </tr>
+        <tr>
+          <th><span class="n">5</span>Devis<span class="st">Devis envoyé</span></th>
+          <td><ul>
+            <li>Reçoit le devis en PDF par e-mail et le retrouve dans « Devis et factures ».</li>
+            <li>Si le devis doit être validé, il est prévenu qu’il est « en cours de validation ».</li>
+          </ul></td>
+          <td class="key"><ul>
+            <li>Prépare le devis à partir du catalogue (lignes, palier, remise).</li>
+            <li>Prix du catalogue sans remise au-delà du taux libre : <strong>envoi direct</strong>.</li>
+            <li>Sinon : « Soumettre à validation ».</li>
+          </ul></td>
+          <td><ul><li>Peut préparer et envoyer les devis de ses dossiers, avec les mêmes règles de validation.</li></ul></td>
+          <td class="key"><ul>
+            <li>Rubrique <strong>« À valider »</strong> (badge dans le menu, bandeau sur « Ma journée », e-mail).</li>
+            <li>Valide : le devis part aussitôt au client. Ou le renvoie à son auteur avec un commentaire.</li>
+          </ul></td>
+          <td class="auto"><ul><li>Numérote le devis, génère le PDF, l’envoie (3 tentatives si le serveur d’e-mail ne répond pas), passe le dossier à « Devis envoyé ».</li><li>Relance le client et signale les devis échus.</li></ul></td>
+        </tr>
+        <tr>
+          <th><span class="n">6</span>Accord du client<span class="st">Devis accepté</span></th>
+          <td class="key"><ul><li>Accepte ou refuse le devis depuis son espace (ou répond par e-mail : l’équipe l’enregistre).</li></ul></td>
+          <td><ul><li>Reçoit la tâche « Appeler le client pour organiser le paiement ».</li></ul></td>
+          <td class="empty">—</td>
+          <td class="empty">—</td>
+          <td class="auto"><ul><li>Passe le dossier à « Devis accepté », crée la tâche d’appel dans l’agenda de la personne qui suit le dossier et la prévient.</li></ul></td>
+        </tr>
+        <tr>
+          <th><span class="n">7</span>Proforma et paiement<span class="st">Devis accepté → Payé</span></th>
+          <td><ul>
+            <li>Reçoit la facture proforma (PF-…) avec son échéance.</li>
+            <li>Paie en espèces ou par virement (virement pour la diaspora).</li>
+            <li>Dépose son justificatif dans « Devis et factures ».</li>
+          </ul></td>
+          <td class="key"><ul>
+            <li>Envoie la proforma.</li>
+            <li>Vérifie le justificatif : l’accepte, ou le refuse avec un motif (le client peut en renvoyer un).</li>
+            <li><strong>Enregistre le paiement</strong> (moyen, référence).</li>
+          </ul></td>
+          <td class="empty">—</td>
+          <td><ul><li>La Direction voit les proformas échues et l’encaissé sur le tableau de bord.</li></ul></td>
+          <td class="auto"><ul>
+            <li>Facture définitive numérotée (FA-…) envoyée au client ; dossier « Payé ».</li>
+            <li>Espace membre déverrouillé ; compte créé avec ses accès s’il n’en avait pas.</li>
+            <li>Référent désigné (l’Office Manager par défaut), kit de bienvenue, appels de suivi J+7 et M+1 dans son agenda.</li>
+            <li>Commissions calculées.</li>
+          </ul></td>
+        </tr>
+        <tr>
+          <th><span class="n">8</span>Lancement des services<span class="st">Payé</span></th>
+          <td><ul>
+            <li>Suit chaque service dans « Mes services ».</li>
+            <li>Valide le livrable, ou demande un ajustement.</li>
+            <li>Reçoit ses documents (contrat, attestation…).</li>
+          </ul></td>
+          <td class="key"><ul>
+            <li>Lance les espaces (attribue le bureau) et les Solutions IN Group, qu’elle traite avec la filiale concernée.</li>
+            <li>Peut valider un service pour le membre en tant que référent.</li>
+          </ul></td>
+          <td class="empty">—</td>
+          <td><ul><li>Le <strong>support administratif</strong> livre la création d’entreprise (étapes selon la formule Essentiel, Avancé ou Complet).</li></ul></td>
+          <td class="auto"><ul><li>Chaque ligne payée devient un service : À lancer → Activation en cours → En attente de validation (⇄ Ajustement demandé) → Livré / Actif.</li></ul></td>
+        </tr>
+        <tr>
+          <th><span class="n">9</span>Fidélisation<span class="st">nouvelle fiche</span></th>
+          <td><ul>
+            <li>Est prévenu avant l’échéance et renouvelle depuis « Mes services ».</li>
+            <li>Demande un service supplémentaire depuis son espace.</li>
+          </ul></td>
+          <td class="key"><ul><li>Traite les fiches « Renouvellement » et « Extension » avec le référent du membre.</li></ul></td>
+          <td class="empty">—</td>
+          <td class="empty">—</td>
+          <td class="auto"><ul><li>Rappels d’échéance au membre et à son référent ; la nouvelle demande est rattachée à la fiche du membre et repart à la phase 5.</li></ul></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <header>
+    <h2>Quand un devis doit-il être validé ?</h2>
+    <p class="lead">La plateforme le calcule seule au moment de l’envoi. Les seuils se règlent dans les paramètres de la Direction.</p>
+  </header>
+  <div class="rules">
+    <div class="rule-card">
+      <h3>Envoi direct</h3>
+      <ul>
+        <li>Toutes les lignes viennent du catalogue, au prix du catalogue (ou du palier choisi).</li>
+        <li>Pas de remise, ou une remise sous le <span class="tag">taux de remise libre</span>.</li>
+        <li>Montant sous le <span class="tag">seuil Direction</span>.</li>
+      </ul>
+    </div>
+    <div class="rule-card">
+      <h3>Validation par le responsable commercial</h3>
+      <ul>
+        <li>Prix ajusté, ligne « sur devis » ou hors catalogue, ou remise au-dessus du taux libre.</li>
+        <li>Sur un dossier suivi par un commercial (et sur ceux de l’Office Manager si la Direction n’a pas choisi de les valider elle-même).</li>
+        <li>La Direction peut toujours valider à sa place.</li>
+      </ul>
+    </div>
+    <div class="rule-card">
+      <h3>Validation par la Direction</h3>
+      <ul>
+        <li>Montant TTC au-dessus du seuil Direction, quel que soit l’auteur.</li>
+        <li>Ou devis de l’Office Manager à valider, si le paramètre « la Direction valide les devis de l’Office Manager » est activé.</li>
+      </ul>
+    </div>
+    <div class="rule-card">
+      <h3>Après validation</h3>
+      <ul>
+        <li>Le devis part tout de suite au client, sans nouveau clic.</li>
+        <li>Modifier les lignes, la TVA ou la remise d’un devis validé annule la validation.</li>
+        <li>Un devis renvoyé revient à son auteur avec le commentaire du validateur.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <header>
+    <h2>Qui fait quoi</h2>
+    <p class="lead">Ce que voit chaque rôle dans le CRM, et ce qu’il fait au quotidien.</p>
+  </header>
+  <div class="roles">
+    <div class="role om">
+      <div class="who"><h3>Office Manager</h3><span class="sees">voit tous les dossiers</span></div>
+      <ul>
+        <li>Reçoit chaque nouveau prospect (« Prospects à répartir »).</li>
+        <li>Traite le dossier ou le confie à un commercial ; peut le reprendre.</li>
+        <li>Devis, proformas, vérification des justificatifs, enregistrement des paiements.</li>
+        <li>Lancement des espaces et des Solutions IN Group ; référent des membres.</li>
+        <li>Membres, réservations, événements, messages de contact.</li>
+      </ul>
+      <p class="no">Ne modifie pas le catalogue ni les tarifs.</p>
+    </div>
+    <div class="role">
+      <div class="who"><h3>Commercial</h3><span class="sees">voit ses dossiers</span></div>
+      <ul>
+        <li>Rappelle, qualifie et relance les dossiers qui lui sont confiés.</li>
+        <li>Confirme la visite : le dossier passe à l’Office Manager.</li>
+        <li>Peut préparer des devis pour ses dossiers.</li>
+        <li>Consulte ses commissions.</li>
+      </ul>
+      <p class="no">Pas d’accès aux factures ni aux dossiers des autres.</p>
+    </div>
+    <div class="role">
+      <div class="who"><h3>Responsable commercial</h3><span class="sees">voit tous les dossiers</span></div>
+      <ul>
+        <li>Confie et réattribue les dossiers.</li>
+        <li>Valide les remises et prix ajustés (rubrique « À valider »).</li>
+        <li>Contrôle les commissions.</li>
+        <li>Consulte factures, services clients, demandes du site.</li>
+      </ul>
+    </div>
+    <div class="role">
+      <div class="who"><h3>Direction</h3><span class="sees">voit tout</span></div>
+      <ul>
+        <li>Tableau de bord : chiffre d’affaires, prospects, conversion, encaissements, équipe.</li>
+        <li>Valide les devis au-dessus du seuil.</li>
+        <li>Catalogue, tarifs, paramètres (taux de remise libre, seuil), comptes et droits.</li>
+        <li>Suppression de comptes réservée au super administrateur.</li>
+      </ul>
+    </div>
+    <div class="role">
+      <div class="who"><h3>Support administratif</h3><span class="sees">voit son pôle</span></div>
+      <ul>
+        <li>Livre la création d’entreprise : checklist, livrables, documents remis au membre.</li>
+        <li>Prévient le référent quand un livrable est prêt.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <header>
+    <h2>Droits par défaut</h2>
+    <p class="lead">Droits donnés à la création du compte. La Direction peut les ajuster compte par compte dans « Utilisateurs système ».</p>
+  </header>
+  <div class="perm-scroll" tabindex="0" aria-label="Tableau des droits, défilable horizontalement">
+    <table class="perm">
+      <thead>
+        <tr><th>Rubrique</th><th>Office Manager</th><th>Responsable commercial</th><th>Commercial</th><th>Support administratif</th><th>Direction</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Prospects, pipeline, agenda</td><td class="w">modifier · tous</td><td class="w">modifier · tous</td><td class="w">modifier · les siens</td><td class="x">—</td><td class="w">tout</td></tr>
+        <tr><td>Confier un dossier</td><td class="w">oui</td><td class="w">oui</td><td class="x">non</td><td class="x">—</td><td class="w">oui</td></tr>
+        <tr><td>Devis</td><td class="w">modifier</td><td class="w">modifier</td><td class="w">modifier · les siens</td><td class="x">—</td><td class="w">tout</td></tr>
+        <tr><td>Proformas, factures, justificatifs</td><td class="w">modifier</td><td class="r">consulter</td><td class="x">—</td><td class="x">—</td><td class="w">tout</td></tr>
+        <tr><td>Services clients</td><td class="w">modifier</td><td class="r">consulter</td><td class="x">—</td><td class="w">modifier · son pôle</td><td class="w">tout</td></tr>
+        <tr><td>Commissions</td><td class="r">consulter</td><td class="w">contrôler</td><td class="r">les siennes</td><td class="x">—</td><td class="w">tout</td></tr>
+        <tr><td>Membres</td><td class="w">modifier</td><td class="x">—</td><td class="x">—</td><td class="x">—</td><td class="w">tout</td></tr>
+        <tr><td>Réservations, événements</td><td class="w">modifier</td><td class="x">—</td><td class="x">—</td><td class="x">—</td><td class="w">tout</td></tr>
+        <tr><td>Demandes du site, messages de contact</td><td class="w">modifier</td><td class="r">consulter</td><td class="x">—</td><td class="x">—</td><td class="w">tout</td></tr>
+        <tr><td>Catalogue, formules, espaces</td><td class="x">—</td><td class="x">—</td><td class="x">—</td><td class="x">—</td><td class="w">modifier</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <header>
+    <h2>Ce que voit le client dans son espace</h2>
+  </header>
+  <div class="client">
+    <div><strong>Avant paiement</strong><span>« Devis et factures » (ses demandes, devis à accepter, proformas à régler, dépôt du justificatif) et « Mon profil ». Le reste de l’espace est verrouillé.</span></div>
+    <div><strong>Au paiement</strong><span>Espace entier ouvert, e-mail de bienvenue, référent attitré, facture définitive dans ses documents.</span></div>
+    <div><strong>Mes services</strong><span>Avancement de chaque service, validation des livrables, demande d’ajustement, renouvellement à l’échéance.</span></div>
+    <div><strong>Ensuite</strong><span>Demande de services supplémentaires, messagerie avec l’équipe, annuaire et mise en relation entre membres.</span></div>
+  </div>
+</section>
+
+<footer>Schéma établi à partir du code de la plateforme au 24/11/2026 (parcours simplifié du 22/11/2026). Les seuils de validation et le nombre de relances dépendent des paramètres réglés par la Direction.</footer>
+
+</div>
